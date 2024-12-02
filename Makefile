@@ -1,7 +1,7 @@
 
 # Run tests and log the test coverage
 test:
-	go test -v -coverprofile=".cover.out" .
+	go test -v -coverprofile=".cover.out" "$$(go list ./... | grep -v /tmp)"
 
 # Run benchmarking
 bench:
@@ -13,13 +13,14 @@ cover:
 
 # Runs source code linters and catches common errors
 lint:
-	test -z $(gofmt -l .) || echo "Code isn't gofmt'ed!"
-	go vet ./...
+	test -z $$(gofmt -l .) || (echo "Code isn't gofmt'ed!" && exit 1)
+	go vet "$$(go list ./... | grep -v /tmp)"
 	gosec -quiet -fmt=golint -exclude-dir="tmp" ./...
+	# TODO: add cyclomatic complexxity tool?
 
 # Updates 3rd party packages and tools
 deps:
-	go get -u ./...
+	go get -u "$$(go list ./... | grep -v /tmp)"
 	go mod tidy
 	go install github.com/securego/gosec/v2/cmd/gosec@latest
 
