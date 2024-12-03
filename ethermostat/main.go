@@ -1,5 +1,8 @@
 package main
 
+// This file was originally copied from:
+// https://github.com/sdoque/systems/blob/main/ds18b20/ds18b20.go
+
 import (
 	"context"
 	"encoding/json"
@@ -40,7 +43,6 @@ func main() {
 	}
 
 	// Load the proper unit asset(s) using the user-defined settings from the config file.
-	// sys.UAssets = make(map[string]*components.UnitAsset) // clear the unit asset map (from the template)
 	clear(sys.UAssets)
 	for _, raw := range rawUAs {
 		var uac UnitAsset

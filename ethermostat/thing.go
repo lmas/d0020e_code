@@ -1,5 +1,8 @@
 package main
 
+// This file was originally copied from:
+// https://github.com/sdoque/systems/blob/main/ds18b20/thing.go
+
 import (
 	"log"
 
