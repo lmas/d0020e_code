@@ -8,21 +8,22 @@ bench:
 	go test -cover -test.benchmem -bench=.
 
 # Generate pretty coverage report
-cover:
+analyse:
 	go tool cover -html=".cover.out" -o="cover.html"
+	gocyclo -avg -top 10 .
 
 # Runs source code linters and catches common errors
 lint:
 	test -z $$(gofmt -l .) || (echo "Code isn't gofmt'ed!" && exit 1)
 	go vet "$$(go list ./... | grep -v /tmp)"
 	gosec -quiet -fmt=golint -exclude-dir="tmp" ./...
-	# TODO: add cyclomatic complexxity tool?
 
 # Updates 3rd party packages and tools
 deps:
 	go get -u "$$(go list ./... | grep -v /tmp)"
 	go mod tidy
 	go install github.com/securego/gosec/v2/cmd/gosec@latest
+	go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
 
 # Show documentation of public parts of package, in the current dir
 docs:
