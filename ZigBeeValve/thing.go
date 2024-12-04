@@ -5,8 +5,10 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/sdoque/mbaigo/components"
+	"github.com/sdoque/mbaigo/forms"
 )
 
 //-------------------------------------Define the unit asset
@@ -53,15 +55,15 @@ func initTemplate() components.UnitAsset {
 		Definition:  "setpoint",
 		SubPath:     "setpoint",
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
-		CUnit:       "Eur/kWh",
 		Description: "provides the current thermal setpoint (GET) or sets it (PUT)",
 	}
 
-	measure := components.Service{ //current use of Ampere (change name)
-		Definition:  "measure",
-		SubPath:     "measure",
-		Details:     map[string][]string{"Unit": {"?"}, "Forms": {"SignalA_v1a"}},
-		Description: "provides current use of Ampere",
+	getAmpereUsage := components.Service{ //current use of Ampere (change name)
+		Definition:  "usage",
+		SubPath:     "usage",
+		Details:     map[string][]string{"Unit": {"Ampere"}, "Forms": {"SignalA_v1a"}},
+		CUnit:       "Eur/kWh",
+		Description: "provides current use of Amperes",
 	}
 	// add more shit, like Wh, W, V etc
 
@@ -72,7 +74,7 @@ func initTemplate() components.UnitAsset {
 		Setpt:   20,
 		ServicesMap: components.Services{
 			setPointService.SubPath: &setPointService,
-			measure.SubPath:         &measure,
+			measure.SubPath:         &getAmpereUsage,
 		},
 	}
 	return uat
@@ -115,4 +117,21 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 	return ua, func() {
 		log.Println("Shutting down thermostat ", ua.Name)
 	}
+}
+
+//-------------------------------------Thing's resource methods
+
+// getSetPoint fills out a signal form with the current thermal setpoint
+func (ua *UnitAsset) getSetPoint() (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Value = ua.Setpt
+	f.Unit = "Celcius"
+	f.Timestamp = time.Now()
+	return f
+}
+
+// setSetPoint updates the thermal setpoint
+func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
+	ua.Setpt = f.Value
+	log.Printf("new set point: %.1f", f.Value)
 }
