@@ -111,16 +111,35 @@ func initTemplate() components.UnitAsset {
 // This function returns an UA instance that is ready to be published and used,
 // aswell as a function that can perform any cleanup when the system is shutting down.
 func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Service) (components.UnitAsset, func()) {
+
+	sProtocol := components.SProtocols(sys.Husk.ProtoPort)
+
+	// the Cervice that is to be consumed by zigbee, there fore the name with the C
+	t := &components.Cervice{
+		Name:   "setpoint",
+		Protos: sProtocol,
+		Url:    make([]string, 0),
+	}
 	ua := &UnitAsset{
 		// Filling in public fields using the given data
 		Name:        uac.Name,
 		Owner:       sys,
 		Details:     uac.Details,
 		ServicesMap: components.CloneServices(servs),
-
-		// Setting the example variable
-		temperature: 3.14,
+		CervicesMap: components.Cervices{
+			t.Name: t,
+		},
 	}
+	//
+	var ref components.Service
+	for _, s := range servs {
+		if s.Definition == "setpoint" {
+			ref = s
+		}
+	}
+
+	ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
+	ua.CervicesMap["rotation"].Details = components.MergeDetails(ua.Details, map[string][]string{"Unit": {"Percent"}, "Forms": {"SignalA_v1a"}})
 
 	// Optionally start background tasks here! Example:
 	go func() {
@@ -221,6 +240,23 @@ func (ua *UnitAsset) setMax_temp(f forms.SignalA_v1a) {
 //TODO: Needs to be modified to match our needs, not using processFeedbacklopp
 //TODO: So mayby the period is every hour, call the api to receive the current price ( could be every 24 hours)
 //TODO: This function is may be better in the COMFORTSTAT MAIN
+
+// feedbackLoop is THE control loop (IPR of the system)
+func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
+	// Initialize a ticker for periodic execution
+	ticker := time.NewTicker(ua.Period * time.Second)
+	defer ticker.Stop()
+
+	// start the control loop
+	for {
+		select {
+		case <-ticker.C:
+			ua.processFeedbackLoop() // either modifiy processFeedback loop or write a new one
+		case <-ctx.Done():
+			return
+		}
+	}
+}
 
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
