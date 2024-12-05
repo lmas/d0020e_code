@@ -21,7 +21,9 @@ type UnitAsset struct {
 	ServicesMap components.Services `json:"-"`
 	CervicesMap components.Cervices `json:"-"`
 	//
-	Setpt float64 `json:"setpoint"`
+	Setpt   float64 `json:"setpoint"`
+	gateway string  `json:"-"`
+	apikey  string  `json:"-"`
 }
 
 // GetName returns the name of the Resource.
@@ -58,23 +60,15 @@ func initTemplate() components.UnitAsset {
 		Description: "provides the current thermal setpoint (GET) or sets it (PUT)",
 	}
 
-	getAmpereUsage := components.Service{ //current use of Ampere (change name)
-		Definition:  "usage",
-		SubPath:     "usage",
-		Details:     map[string][]string{"Unit": {"Ampere"}, "Forms": {"SignalA_v1a"}},
-		CUnit:       "Eur/kWh",
-		Description: "provides current use of Amperes",
-	}
-	// add more shit, like Wh, W, V etc
-
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
 		Name:    "ZigBeeValve",
 		Details: map[string][]string{"Location": {"Kitchen"}},
 		Setpt:   20,
+		gateway: "",
+		apikey:  "",
 		ServicesMap: components.Services{
 			setPointService.SubPath: &setPointService,
-			measure.SubPath:         &getAmpereUsage,
 		},
 	}
 	return uat
@@ -84,14 +78,6 @@ func initTemplate() components.UnitAsset {
 
 // newResource creates the Resource resource with its pointers and channels based on the configuration using the tConig structs
 func newResource(uac UnitAsset, sys *components.System, servs []components.Service) (components.UnitAsset, func()) {
-	// deterimine the protocols that the system supports
-	sProtocols := components.SProtocols(sys.Husk.ProtoPort)
-	// instantiate the consumed services
-	t := &components.Cervice{
-		Name:   "temperature",
-		Protos: sProtocols,
-		Url:    make([]string, 0),
-	}
 
 	// intantiate the unit asset
 	ua := &UnitAsset{
@@ -100,22 +86,13 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		Details:     uac.Details,
 		ServicesMap: components.CloneServices(servs),
 		Setpt:       uac.Setpt,
-		CervicesMap: components.Cervices{
-			t.Name: t,
-		},
+		gateway:     uac.gateway,
+		apikey:      uac.apikey,
+		CervicesMap: components.Cervices{},
 	}
-
-	var ref components.Service
-	for _, s := range servs {
-		if s.Definition == "setpoint" {
-			ref = s
-		}
-	}
-
-	ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
 
 	return ua, func() {
-		log.Println("Shutting down thermostat ", ua.Name)
+		log.Println("Shutting down zigbeevalve ", ua.Name)
 	}
 }
 

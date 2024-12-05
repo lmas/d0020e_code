@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -21,7 +22,7 @@ func main() {
 	defer cancel()                                          // make sure all paths cancel the context to avoid context leak
 
 	// instantiate the System
-	sys := components.NewSystem("thermostat", ctx)
+	sys := components.NewSystem("ZigBeeValve", ctx)
 
 	// Instatiate the Capusle
 	sys.Husk = &components.Husk{
@@ -56,6 +57,24 @@ func main() {
 	// Generate PKI keys and CSR to obtain a authentication certificate from the CA
 	usecases.RequestCertificate(&sys)
 
+	// https://pkg.go.dev/net/http#Get
+	// GET https://phoscon.de/discover	// to find gateways, JSON array is returned in http body, we'll only have one for now so take index 0,
+	// this could be done once at start (main) and saved in the struct to make it easy and fast to reach zigbee gateway
+	res, err := http.Get("https://phoscon.de/discover")
+	if err != nil {
+		log.Fatal("Couldn't get gateway, error:", err)
+	}
+	body, err := io.ReadAll(res.Body)
+	res.Body.Close()
+	if res.StatusCode > 299 {
+		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+	// TODO: SEE IF THIS WORKS
+	ua.gateway := body[0].internalipaddress + body[0].internalport
+
 	// Register the (system) and its services
 	usecases.RegisterServices(&sys)
 
@@ -74,8 +93,6 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 	switch servicePath {
 	case "setpoint":
 		t.setpt(w, r)
-	case "usage":
-		t.usage(w, r)
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
 	}
@@ -93,17 +110,11 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		}
 		rsc.setSetPoint(sig)
 		// API call to set desired temp in smart thermostat
-		// GET https://phoscon.de/discover // to find gateways, JSON array is returned, we'll only have one for now to take index 0
 		// SET URL/api/<apikey>/sensor/config
-		// URL = getGateway[0].internalipaddress + ":" + getGateway[0].internalport + "api/<apikey>/sensor/config" // not 100% sure of this
-		//
+		URL = rsc.gateway + "/" + rsc.apikey + "/sensor/config" // not 100% sure of this
+		// TODO FIND OUT HOW THIS SHIT WORKS
+
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
-}
-
-func (rsc *UnitAsset) usage(w http.ResponseWriter, r *http.Request) {
-	// EDIT: Cant find this in the API doc, will look for it tomorrow
-	// API call to get current use of amps
-	// URL = getGateway[0].internalipaddress + ":" + getGateway[0].internalport + "api/<apikey>/sensor/id/" // not 100% sure its right
 }
