@@ -152,6 +152,21 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 	}
 }
 
+// getSEK_price is used for reading the current hourly electric price
+func (ua *UnitAsset) getSEK_price() (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Value = ua.SEK_price
+	f.Unit = "SEK"
+	f.Timestamp = time.Now()
+	return f
+}
+
+// setSEK_price updates the current electric price with the new current electric hourly price
+func (ua *UnitAsset) setSEK_price(f forms.SignalA_v1a) {
+	ua.SEK_price = f.Value
+	log.Printf("new electric price: %.1f", f.Value)
+}
+
 // get_minMaxprice is used for reading the current value of min/max set by the user
 // LOOK OVER: is it possible that the price type should be a float64?
 func (ua *UnitAsset) get_minMaxprice(priceType string) (f forms.SignalA_v1a) {
