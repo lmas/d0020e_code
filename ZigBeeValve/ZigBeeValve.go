@@ -58,7 +58,7 @@ func main() {
 	usecases.RequestCertificate(&sys)
 
 	// https://pkg.go.dev/net/http#Get
-	// GET https://phoscon.de/discover	// to find gateways, JSON array is returned in http body, we'll only have one for now so take index 0,
+	// GET https://phoscon.de/discover	// to find gateways, array of JSONs is returned in http body, we'll only have one for now so take index 0,
 	// this could be done once at start (main) and saved in the struct to make it easy and fast to reach zigbee gateway
 	res, err := http.Get("https://phoscon.de/discover")
 	if err != nil {
@@ -72,8 +72,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	// TODO: SEE IF THIS WORKS
-	ua.gateway := body[0].internalipaddress + body[0].internalport
+	ua.gateway := body[0].internalipaddress + ":" + body[0].internalport
 
 	// Register the (system) and its services
 	usecases.RegisterServices(&sys)
