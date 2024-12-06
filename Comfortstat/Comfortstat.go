@@ -69,49 +69,59 @@ func main() {
 // Serving handles the resources services. NOTE: it exepcts those names from the request URL path
 func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath string) {
 	switch servicePath {
-	case "setpoint":
-		t.setpt(w, r)
-	case "thermalerror":
-		t.diff(w, r)
-	case "jitter":
-		t.variations(w, r)
+	case "min_temperature":
+		t.set_temp(w, r)
+	case "max_temperature":
+		t.set_temp(w, r)
+	case "max_price":
+		t.set_price(w, r)
+	case "min_price":
+		t.set_price(w, r)
+	case "SEK_price":
+		t.set_SEKprice(w, r)
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
 	}
 }
-
-func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) set_SEKprice(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "GET":
-		setPointForm := rsc.getSetPoint()
-		usecases.HTTPProcessGetRequest(w, r, &setPointForm)
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			log.Println("Error with the setting request of the position ", err)
 		}
-		rsc.setSetPoint(sig)
+		rsc.set_SEKprice(sig)
+	default:
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+	}
+}
+func (rsc *UnitAsset) set_temp(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		sig, err := usecases.HTTPProcessSetRequest(w, r)
+		if err != nil {
+			log.Println("Error with the setting request of the position ", err)
+		}
+		rsc.set_minMaxtemp(sig)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
 }
 
-func (rsc *UnitAsset) diff(w http.ResponseWriter, r *http.Request) {
+// LOOK AT: I guess that we probable only need to if there is a PUT from user?
+// LOOK AT: so not the GET!
+// For PUT - the "HTTPProcessSetRequest(w, r)" is called to prosses the data given from the user and if no error, call set_minMaxprice with the value
+// wich updates the value in thge struct
+func (rsc *UnitAsset) set_price(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "GET":
-		signalErr := rsc.getError()
-		usecases.HTTPProcessGetRequest(w, r, &signalErr)
+	case "PUT":
+		sig, err := usecases.HTTPProcessSetRequest(w, r)
+		if err != nil {
+			log.Println("Error with the setting request of the position ", err)
+		}
+		rsc.set_minMaxprice(sig)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
-	}
-}
 
-func (rsc *UnitAsset) variations(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		signalErr := rsc.getJitter()
-		usecases.HTTPProcessGetRequest(w, r, &signalErr)
-	default:
-		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
 }

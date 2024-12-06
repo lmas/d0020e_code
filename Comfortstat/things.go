@@ -60,6 +60,12 @@ var _ components.UnitAsset = (*UnitAsset)(nil)
 func initTemplate() components.UnitAsset {
 	// First predefine any exposed services
 	// (see https://github.com/sdoque/mbaigo/blob/main/components/service.go for documentation)
+	setSEK_price := components.Service{
+		Definition:  "SEK_price",
+		SubPath:     "SEK_price",
+		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the current electric hourly price (using a GET request)",
+	}
 
 	setMax_temp := components.Service{
 		Definition:  "max_temperature",                                                  // TODO: this get's incorrectly linked to the below subpath
@@ -100,6 +106,7 @@ func initTemplate() components.UnitAsset {
 			setMin_temp.SubPath:  &setMin_temp,
 			setMax_price.SubPath: &setMax_price,
 			setMin_price.SubPath: &setMin_price,
+			setSEK_price.SubPath: &setSEK_price,
 		},
 	}
 }
@@ -152,6 +159,9 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
+
 // getSEK_price is used for reading the current hourly electric price
 func (ua *UnitAsset) getSEK_price() (f forms.SignalA_v1a) {
 	f.NewForm()
@@ -167,6 +177,42 @@ func (ua *UnitAsset) setSEK_price(f forms.SignalA_v1a) {
 	log.Printf("new electric price: %.1f", f.Value)
 }
 
+/////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
+
+// getMin_price is used for reading the current value of Min_price
+func (ua *UnitAsset) getMin_price() (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Value = ua.Min_price
+	f.Unit = "SEK"
+	f.Timestamp = time.Now()
+	return f
+}
+
+// setMin_price updates the current minimum price set by the user with a new value
+func (ua *UnitAsset) setMin_price(f forms.SignalA_v1a) {
+	ua.Min_price = f.Value
+	log.Printf("new minimum price: %.1f", f.Value)
+}
+
+// getMax_price is used for reading the current value of Max_price
+func (ua *UnitAsset) getMax_price() (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Value = ua.Max_price
+	f.Unit = "SEK"
+	f.Timestamp = time.Now()
+	return f
+}
+
+// setMax_price updates the current minimum price set by the user with a new value
+func (ua *UnitAsset) setMax_price(f forms.SignalA_v1a) {
+	ua.Max_price = f.Value
+	log.Printf("new maximum price: %.1f", f.Value)
+}
+
+// ////////////////////////////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////////////////////////////////////////////////////////
 // get_minMaxprice is used for reading the current value of min/max set by the user
 // LOOK OVER: is it possible that the price type should be a float64?
 func (ua *UnitAsset) get_minMaxprice(priceType string) (f forms.SignalA_v1a) {
@@ -231,57 +277,6 @@ func (ua *UnitAsset) set_minMaxtemp(priceType string) (f forms.SignalA_v1a) {
 	return f.value
 }
 
-///////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////
-/*
-// getSEK_price is used for reading the current hourly electric price
-func (ua *UnitAsset) getSEK_price() (f forms.SignalA_v1a) {
-	f.NewForm()
-	f.Value = ua.SEK_price
-	f.Unit = "SEK"
-	f.Timestamp = time.Now()
-	return f
-}
-
-// setSEK_price updates the current electric price with the new current electric hourly price
-func (ua *UnitAsset) setSEK_price(f forms.SignalA_v1a) {
-	ua.SEK_price = f.Value
-	log.Printf("new electric price: %.1f", f.Value)
-}
-
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-
-// getMin_price is used for reading the current value of Min_price
-func (ua *UnitAsset) getMin_price() (f forms.SignalA_v1a) {
-	f.NewForm()
-	f.Value = ua.Min_price
-	f.Unit = "SEK"
-	f.Timestamp = time.Now()
-	return f
-}
-
-// setMin_price updates the current minimum price set by the user with a new value
-func (ua *UnitAsset) setMin_price(f forms.SignalA_v1a) {
-	ua.Min_price = f.Value
-	log.Printf("new minimum price: %.1f", f.Value)
-}
-
-// getMax_price is used for reading the current value of Max_price
-func (ua *UnitAsset) getMax_price() (f forms.SignalA_v1a) {
-	f.NewForm()
-	f.Value = ua.Max_price
-	f.Unit = "SEK"
-	f.Timestamp = time.Now()
-	return f
-}
-
-// setMax_price updates the current minimum price set by the user with a new value
-func (ua *UnitAsset) setMax_price(f forms.SignalA_v1a) {
-	ua.Max_price = f.Value
-	log.Printf("new maximum price: %.1f", f.Value)
-}
-
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
@@ -314,7 +309,7 @@ func (ua *UnitAsset) setMax_temp(f forms.SignalA_v1a) {
 	ua.Max_temp = f.Value
 	log.Printf("new maximum temperature: %.1f", f.Value)
 }
-*/
+
 //TODO: This fuction is used for checking the electric price ones every x hours and so on
 //TODO: Needs to be modified to match our needs, not using processFeedbacklopp
 //TODO: So mayby the period is every hour, call the api to receive the current price ( could be every 24 hours)
