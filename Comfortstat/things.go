@@ -152,9 +152,73 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////
+// get_minMaxprice is used for reading the current value of min/max set by the user
+// LOOK OVER: is it possible that the price type should be a float64?
+func (ua *UnitAsset) get_minMaxprice(priceType string) (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Unit = "SEK"
+	f.Timestamp = time.Now()
 
+	switch priceType {
+	case "max_price":
+		f.value = ua.Max_price
+	case "min_price":
+		f.value = ua.Min_price
+	default:
+		log.Printf("unknown price type") // print the wrong pricetype maybey
+
+	}
+	return f
+}
+
+// set_minMaxprice updates the current minimum price set by the user with a new value
+func (ua *UnitAsset) set_minMaxprice(priceType string) (f forms.SignalA_v1a) {
+	switch priceType {
+	case "max_price":
+		ua.Max_price = f.Value
+		log.Printf("new maximum price: %.1f", f.Value)
+	case "min_price":
+		ua.Min_price = f.Value
+		log.Printf("new minimum price: %.1f", f.Value)
+	default:
+		log.Printf("unknown price type")
+	}
+	return f.value
+}
+
+// //////
+func (ua *UnitAsset) get_minMaxtemp(priceType string) (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Unit = "Celcius"
+	f.Timestamp = time.Now()
+
+	switch priceType {
+	case "max_temp":
+		f.value = ua.Max_temp
+	case "min_temp":
+		f.value = ua.Min_temp
+	default:
+		log.Printf("unknown temperature type") // print the wrong pricetype maybey
+	}
+	return f
+}
+func (ua *UnitAsset) set_minMaxtemp(priceType string) (f forms.SignalA_v1a) {
+	switch priceType {
+	case "max_temp":
+		ua.Max_temp = f.Value
+		log.Printf("new maximum temperature: %.1f", f.Value)
+	case "min_temp":
+		ua.Min_temp = f.Value
+		log.Printf("new minimum temperature: %.1f", f.Value)
+	default:
+		log.Printf("unknown temperature type")
+	}
+	return f.value
+}
+
+///////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
+/*
 // getSEK_price is used for reading the current hourly electric price
 func (ua *UnitAsset) getSEK_price() (f forms.SignalA_v1a) {
 	f.NewForm()
@@ -235,7 +299,7 @@ func (ua *UnitAsset) setMax_temp(f forms.SignalA_v1a) {
 	ua.Max_temp = f.Value
 	log.Printf("new maximum temperature: %.1f", f.Value)
 }
-
+*/
 //TODO: This fuction is used for checking the electric price ones every x hours and so on
 //TODO: Needs to be modified to match our needs, not using processFeedbacklopp
 //TODO: So mayby the period is every hour, call the api to receive the current price ( could be every 24 hours)
