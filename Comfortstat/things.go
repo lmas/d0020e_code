@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"time"
 
@@ -170,9 +169,9 @@ func (ua *UnitAsset) get_minMaxprice(priceType string) (f forms.SignalA_v1a) {
 
 	switch priceType {
 	case "max_price":
-		f.value = ua.Max_price
+		f.Value = ua.Max_price
 	case "min_price":
-		f.value = ua.Min_price
+		f.Value = ua.Min_price
 	default:
 		log.Printf("unknown price type") // print the wrong pricetype maybey
 
@@ -192,7 +191,7 @@ func (ua *UnitAsset) set_minMaxprice(priceType string) (f forms.SignalA_v1a) {
 	default:
 		log.Printf("unknown price type")
 	}
-	return f.value
+	return f
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -204,9 +203,9 @@ func (ua *UnitAsset) get_minMaxtemp(priceType string) (f forms.SignalA_v1a) {
 
 	switch priceType {
 	case "max_temp":
-		f.value = ua.Max_temp
+		f.Value = ua.Max_temp
 	case "min_temp":
-		f.value = ua.Min_temp
+		f.Value = ua.Min_temp
 	default:
 		log.Printf("unknown temperature type") // print the wrong pricetype maybey
 	}
@@ -225,7 +224,7 @@ func (ua *UnitAsset) set_minMaxtemp(priceType string) (f forms.SignalA_v1a) {
 	default:
 		log.Printf("unknown temperature type")
 	}
-	return f.value
+	return f
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -235,7 +234,7 @@ func (ua *UnitAsset) set_minMaxtemp(priceType string) (f forms.SignalA_v1a) {
 //TODO: Needs to be modified to match our needs, not using processFeedbacklopp
 //TODO: So mayby the period is every hour, call the api to receive the current price ( could be every 24 hours)
 //TODO: This function is may be better in the COMFORTSTAT MAIN
-
+/*
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 	// Initialize a ticker for periodic execution
@@ -269,3 +268,4 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 		}
 	}
 }
+*/
