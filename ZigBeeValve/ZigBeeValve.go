@@ -112,7 +112,7 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		rsc.setSetPoint(sig)
 		// API call to set desired temp in smart thermostat
 		// SET URL/api/<apikey>/sensor/config
-		URL = rsc.gateway + "/" + rsc.apikey + "/sensor/config" // not 100% sure of this
+		URL = rsc.gateway + "/api/" + rsc.apikey + "/sensor/config" // not 100% sure of this
 		// TODO FIND OUT HOW THIS SHIT WORKS
 
 	default:
