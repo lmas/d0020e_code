@@ -75,9 +75,9 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 	case "max_temperature":
 		t.set_maxTemp(w, r)
 	case "max_price":
-		t.set_minPrice(w, r)
-	case "min_price":
 		t.set_maxPrice(w, r)
+	case "min_price":
+		t.set_minPrice(w, r)
 	case "SEK_price":
 		//t.set_SEKprice(w, r)
 	default:

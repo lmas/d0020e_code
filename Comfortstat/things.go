@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"time"
 
 	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
+	"github.com/sdoque/mbaigo/usecases"
 )
 
 // A UnitAsset models an interface or API for a smaller part of a whole system, for example a single temperature sensor.
@@ -81,7 +83,7 @@ func initTemplate() components.UnitAsset {
 	setMax_price := components.Service{
 		Definition:  "max_price",
 		SubPath:     "max_price",
-		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
+		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}, "Value": {"0"}},
 		Description: "provides the maximum price the user wants to pay (using a GET request)",
 	}
 	setMin_price := components.Service{
@@ -93,11 +95,14 @@ func initTemplate() components.UnitAsset {
 
 	return &UnitAsset{
 		// TODO: These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
+		Name:      "Set Values",
+		Details:   map[string][]string{"Location": {"Kitchen"}},
 		SEK_price: 0.0,  // Example electricity price in SEK per kWh
 		Min_price: 0.0,  // Minimum price allowed
 		Max_price: 1.0,  // Maximum price allowed
 		Min_temp:  15.0, // Minimum temperature
 		Max_temp:  20.0, // Maximum temprature allowed
+		Period:    10,
 
 		// Don't forget to map the provided services from above!
 		ServicesMap: components.Services{
@@ -122,7 +127,7 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 
 	// the Cervice that is to be consumed by zigbee, there fore the name with the C
 	t := &components.Cervice{
-		Name:   "setpoint",
+		Name:   "max_price",
 		Protos: sProtocol,
 		Url:    make([]string, 0),
 	}
@@ -132,21 +137,25 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 		Owner:       sys,
 		Details:     uac.Details,
 		ServicesMap: components.CloneServices(servs),
+		Period:      uac.Period,
 		CervicesMap: components.Cervices{
 			t.Name: t,
 		},
 	}
-	/*
-		var ref components.Service
-		for _, s := range servs {
-			if s.Definition == "setpoint" {
-				ref = s
-			}
-		}
 
-		ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
-		ua.CervicesMap["rotation"].Details = components.MergeDetails(ua.Details, map[string][]string{"Unit": {"Percent"}, "Forms": {"SignalA_v1a"}})
-	*/
+	var ref components.Service
+	for _, s := range servs {
+		if s.Definition == "max_price" {
+			ref = s
+		}
+	}
+
+	ua.CervicesMap["max_price"].Details = components.MergeDetails(ua.Details, ref.Details)
+	//		ua.CervicesMap["rotation"].Details = components.MergeDetails(ua.Details, map[string][]string{"Unit": {"Percent"}, "Forms": {"SignalA_v1a"}})
+
+	// start the unit asset(s)
+	go ua.feedbackLoop(sys.Ctx)
+
 	// Optionally start background tasks here! Example:
 	go func() {
 		log.Println("Starting up " + ua.Name)
@@ -257,6 +266,7 @@ func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 		}
 	}
 }
+*/
 
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
@@ -274,4 +284,44 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 		}
 	}
 }
-*/
+
+func (ua *UnitAsset) processFeedbackLoop() {
+	//	jitterStart := time.Now()
+
+	/*	// get the current temperature
+		tf, err := usecases.GetState(ua.CervicesMap["setpoint"], ua.Owner)
+		if err != nil {
+			log.Printf("\n unable to obtain a setpoint reading error: %s\n", err)
+			return
+		}
+		// Perform a type assertion to convert the returned Form to SignalA_v1a
+		tup, ok := tf.(*forms.SignalA_v1a)
+		if !ok {
+			log.Println("problem unpacking the setpoint signal form")
+			return
+		}
+	*/
+
+	// perform the control algorithm
+	//	ua.deviation = ua.Setpt - tup.Value
+	//	output := ua.calculateOutput(ua.deviation)
+
+	// prepare the form to send
+	var of forms.SignalA_v1a
+	of.NewForm()
+	of.Value = ua.getMax_price().Value
+	of.Unit = ua.CervicesMap["max_price"].Details["Unit"][0]
+	of.Timestamp = time.Now()
+
+	// pack the new valve state form
+	op, err := usecases.Pack(&of, "application/json")
+	if err != nil {
+		return
+	}
+	// send the new valve state request
+	err = usecases.SetState(ua.CervicesMap["max_price"], ua.Owner, op)
+	if err != nil {
+		log.Printf("cannot update valve state: %s\n", err)
+		return
+	}
+}
