@@ -158,77 +158,83 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 	}
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// get_minMaxprice is used for reading the current value of min/max set by the user
-// LOOK OVER: is it possible that the price type should be a float64?
-func (ua *UnitAsset) get_minMaxprice(priceType string) (f forms.SignalA_v1a) {
+// getSEK_price is used for reading the current hourly electric price
+func (ua *UnitAsset) getSEK_price() (f forms.SignalA_v1a) {
 	f.NewForm()
+	f.Value = ua.SEK_price
 	f.Unit = "SEK"
 	f.Timestamp = time.Now()
-
-	switch priceType {
-	case "max_price":
-		f.Value = ua.Max_price
-	case "min_price":
-		f.Value = ua.Min_price
-	default:
-		log.Printf("unknown price type") // print the wrong pricetype maybey
-
-	}
 	return f
 }
 
-// set_minMaxprice updates the current minimum price set by the user with a new value
-func (ua *UnitAsset) set_minMaxprice(priceType string) (f forms.SignalA_v1a) {
-	switch priceType {
-	case "max_price":
-		ua.Max_price = f.Value
-		log.Printf("new maximum price: %.1f", f.Value)
-	case "min_price":
-		ua.Min_price = f.Value
-		log.Printf("new minimum price: %.1f", f.Value)
-	default:
-		log.Printf("unknown price type")
-	}
-	return f
+// setSEK_price updates the current electric price with the new current electric hourly price
+func (ua *UnitAsset) setSEK_price(f forms.SignalA_v1a) {
+	ua.SEK_price = f.Value
+	log.Printf("new electric price: %.1f", f.Value)
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
 
-func (ua *UnitAsset) get_minMaxtemp(priceType string) (f forms.SignalA_v1a) {
+// getMin_price is used for reading the current value of Min_price
+func (ua *UnitAsset) getMin_price() (f forms.SignalA_v1a) {
 	f.NewForm()
-	f.Unit = "Celcius"
+	f.Value = ua.Min_price
+	f.Unit = "SEK"
 	f.Timestamp = time.Now()
-
-	switch priceType {
-	case "max_temp":
-		f.Value = ua.Max_temp
-	case "min_temp":
-		f.Value = ua.Min_temp
-	default:
-		log.Printf("unknown temperature type") // print the wrong pricetype maybey
-	}
 	return f
 }
 
-// //////////////////////////////////////////////////////////////////////////////
-func (ua *UnitAsset) set_minMaxtemp(priceType string) (f forms.SignalA_v1a) {
-	switch priceType {
-	case "max_temp":
-		ua.Max_temp = f.Value
-		log.Printf("new maximum temperature: %.1f", f.Value)
-	case "min_temp":
-		ua.Min_temp = f.Value
-		log.Printf("new minimum temperature: %.1f", f.Value)
-	default:
-		log.Printf("unknown temperature type")
-	}
+// setMin_price updates the current minimum price set by the user with a new value
+func (ua *UnitAsset) setMin_price(f forms.SignalA_v1a) {
+	ua.Min_price = f.Value
+	log.Printf("new minimum price: %.1f", f.Value)
+}
+
+// getMax_price is used for reading the current value of Max_price
+func (ua *UnitAsset) getMax_price() (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Value = ua.Max_price
+	f.Unit = "SEK"
+	f.Timestamp = time.Now()
 	return f
 }
 
-////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////
+// setMax_price updates the current minimum price set by the user with a new value
+func (ua *UnitAsset) setMax_price(f forms.SignalA_v1a) {
+	ua.Max_price = f.Value
+	log.Printf("new maximum price: %.1f", f.Value)
+}
+
+// getMin_temp is used for reading the current minimum temerature value
+func (ua *UnitAsset) getMin_temp() (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Value = ua.Min_temp
+	f.Unit = "Celsius"
+	f.Timestamp = time.Now()
+	return f
+}
+
+// setMin_temp updates the current minimum temperature set by the user with a new value
+func (ua *UnitAsset) setMin_temp(f forms.SignalA_v1a) {
+	ua.Min_temp = f.Value
+	log.Printf("new minimum temperature: %.1f", f.Value)
+}
+
+// getMax_temp is used for reading the current value of Min_price
+func (ua *UnitAsset) getMax_temp() (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Value = ua.Max_temp
+	f.Unit = "Celsius"
+	f.Timestamp = time.Now()
+	return f
+}
+
+// setMax_temp updates the current minimum price set by the user with a new value
+func (ua *UnitAsset) setMax_temp(f forms.SignalA_v1a) {
+	ua.Max_temp = f.Value
+	log.Printf("new maximum temperature: %.1f", f.Value)
+}
 
 //TODO: This fuction is used for checking the electric price ones every x hours and so on
 //TODO: Needs to be modified to match our needs, not using processFeedbacklopp

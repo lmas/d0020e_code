@@ -66,17 +66,18 @@ func main() {
 	time.Sleep(2 * time.Second) // allow the go routines to be executed, which might take more time than the main routine to end
 }
 
+// TODO: change the namne, will get one function for each of the four cases
 // Serving handles the resources services. NOTE: it exepcts those names from the request URL path
 func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath string) {
 	switch servicePath {
 	case "min_temperature":
-		t.set_temp(w, r)
+		t.set_minTemp(w, r)
 	case "max_temperature":
-		t.set_temp(w, r)
+		t.set_maxTemp(w, r)
 	case "max_price":
-		t.set_price(w, r)
+		t.set_minPrice(w, r)
 	case "min_price":
-		t.set_price(w, r)
+		t.set_maxPrice(w, r)
 	case "SEK_price":
 		//t.set_SEKprice(w, r)
 	default:
@@ -98,14 +99,28 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 		}
 	}
 */
-func (rsc *UnitAsset) set_temp(w http.ResponseWriter, r *http.Request) {
+
+// TODO: split up this function to two sepreate function that sets on max and min price.
+func (rsc *UnitAsset) set_minTemp(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			log.Println("Error with the setting request of the position ", err)
 		}
-		rsc.set_minMaxtemp(sig)
+		rsc.setMin_temp(sig)
+	default:
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+	}
+}
+func (rsc *UnitAsset) set_maxTemp(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		sig, err := usecases.HTTPProcessSetRequest(w, r)
+		if err != nil {
+			log.Println("Error with the setting request of the position ", err)
+		}
+		rsc.setMax_temp(sig)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
@@ -115,14 +130,28 @@ func (rsc *UnitAsset) set_temp(w http.ResponseWriter, r *http.Request) {
 // LOOK AT: so not the GET!
 // For PUT - the "HTTPProcessSetRequest(w, r)" is called to prosses the data given from the user and if no error, call set_minMaxprice with the value
 // wich updates the value in thge struct
-func (rsc *UnitAsset) set_price(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) set_minPrice(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			log.Println("Error with the setting request of the position ", err)
 		}
-		rsc.set_minMaxprice(sig)
+		rsc.setMin_price(sig)
+	default:
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+
+	}
+}
+
+func (rsc *UnitAsset) set_maxPrice(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		sig, err := usecases.HTTPProcessSetRequest(w, r)
+		if err != nil {
+			log.Println("Error with the setting request of the position ", err)
+		}
+		rsc.setMax_price(sig)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 
