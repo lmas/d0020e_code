@@ -1,13 +1,13 @@
 package main
 
 import (
-	"context"
+	//"context"
 	"log"
 	"time"
 
 	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
-	"github.com/sdoque/mbaigo/usecases"
+	//"github.com/sdoque/mbaigo/usecases"
 )
 
 // A UnitAsset models an interface or API for a smaller part of a whole system, for example a single temperature sensor.
@@ -83,7 +83,7 @@ func initTemplate() components.UnitAsset {
 	setMax_price := components.Service{
 		Definition:  "max_price",
 		SubPath:     "max_price",
-		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}, "Value": {"0"}},
+		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the maximum price the user wants to pay (using a GET request)",
 	}
 	setMin_price := components.Service{
@@ -123,14 +123,16 @@ func initTemplate() components.UnitAsset {
 // aswell as a function that can perform any cleanup when the system is shutting down.
 func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Service) (components.UnitAsset, func()) {
 
-	sProtocol := components.SProtocols(sys.Husk.ProtoPort)
+	//	sProtocol := components.SProtocols(sys.Husk.ProtoPort)
 
 	// the Cervice that is to be consumed by zigbee, there fore the name with the C
-	t := &components.Cervice{
-		Name:   "max_price",
-		Protos: sProtocol,
-		Url:    make([]string, 0),
-	}
+	/*
+		t := &components.Cervice{
+			Name:   "max_price",
+			Protos: sProtocol,
+			Url:    make([]string, 0),
+		}
+	*/
 	ua := &UnitAsset{
 		// Filling in public fields using the given data
 		Name:        uac.Name,
@@ -139,22 +141,23 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 		ServicesMap: components.CloneServices(servs),
 		Period:      uac.Period,
 		CervicesMap: components.Cervices{
-			t.Name: t,
+			//t.Name: t,
 		},
 	}
-
-	var ref components.Service
-	for _, s := range servs {
-		if s.Definition == "max_price" {
-			ref = s
+	/*
+		var ref components.Service
+		for _, s := range servs {
+			if s.Definition == "max_price" {
+				ref = s
+			}
 		}
-	}
 
-	ua.CervicesMap["max_price"].Details = components.MergeDetails(ua.Details, ref.Details)
+		ua.CervicesMap["max_price"].Details = components.MergeDetails(ua.Details, ref.Details)
+	*/
 	//		ua.CervicesMap["rotation"].Details = components.MergeDetails(ua.Details, map[string][]string{"Unit": {"Percent"}, "Forms": {"SignalA_v1a"}})
 
 	// start the unit asset(s)
-	go ua.feedbackLoop(sys.Ctx)
+	//go ua.feedbackLoop(sys.Ctx)
 
 	// Optionally start background tasks here! Example:
 	go func() {
@@ -267,7 +270,7 @@ func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 	}
 }
 */
-
+/*
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 	// Initialize a ticker for periodic execution
@@ -284,29 +287,32 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 		}
 	}
 }
+*/
+//
 
-func (ua *UnitAsset) processFeedbackLoop() {
-	//	jitterStart := time.Now()
+//func (ua *UnitAsset) processFeedbackLoop() {
+//	jitterStart := time.Now()
 
-	/*	// get the current temperature
-		tf, err := usecases.GetState(ua.CervicesMap["setpoint"], ua.Owner)
-		if err != nil {
-			log.Printf("\n unable to obtain a setpoint reading error: %s\n", err)
-			return
-		}
-		// Perform a type assertion to convert the returned Form to SignalA_v1a
-		tup, ok := tf.(*forms.SignalA_v1a)
-		if !ok {
-			log.Println("problem unpacking the setpoint signal form")
-			return
-		}
-	*/
+/*	// get the current temperature
+	tf, err := usecases.GetState(ua.CervicesMap["setpoint"], ua.Owner)
+	if err != nil {
+		log.Printf("\n unable to obtain a setpoint reading error: %s\n", err)
+		return
+	}
+	// Perform a type assertion to convert the returned Form to SignalA_v1a
+	tup, ok := tf.(*forms.SignalA_v1a)
+	if !ok {
+		log.Println("problem unpacking the setpoint signal form")
+		return
+	}
+*/
 
-	// perform the control algorithm
-	//	ua.deviation = ua.Setpt - tup.Value
-	//	output := ua.calculateOutput(ua.deviation)
+// perform the control algorithm
+//	ua.deviation = ua.Setpt - tup.Value
+//	output := ua.calculateOutput(ua.deviation)
 
-	// prepare the form to send
+// prepare the form to send
+/*
 	var of forms.SignalA_v1a
 	of.NewForm()
 	of.Value = ua.getMax_price().Value
@@ -325,3 +331,4 @@ func (ua *UnitAsset) processFeedbackLoop() {
 		return
 	}
 }
+*/

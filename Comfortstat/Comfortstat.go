@@ -109,6 +109,9 @@ func (rsc *UnitAsset) set_minTemp(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error with the setting request of the position ", err)
 		}
 		rsc.setMin_temp(sig)
+	case "GET":
+		signalErr := rsc.getMin_temp()
+		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
@@ -121,6 +124,9 @@ func (rsc *UnitAsset) set_maxTemp(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error with the setting request of the position ", err)
 		}
 		rsc.setMax_temp(sig)
+	case "GET":
+		signalErr := rsc.getMax_temp()
+		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
@@ -138,6 +144,9 @@ func (rsc *UnitAsset) set_minPrice(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error with the setting request of the position ", err)
 		}
 		rsc.setMin_price(sig)
+	case "GET":
+		signalErr := rsc.getMin_price()
+		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 
@@ -152,6 +161,9 @@ func (rsc *UnitAsset) set_maxPrice(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error with the setting request of the position ", err)
 		}
 		rsc.setMax_price(sig)
+	case "GET":
+		signalErr := rsc.getMax_price()
+		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 
