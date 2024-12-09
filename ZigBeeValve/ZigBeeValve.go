@@ -88,7 +88,7 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Fatal("Error with the setting desired temp ", err)
+			log.Println("Error with the setting desired temp ", err)
 		}
 		rsc.setSetPoint(sig)
 		// API call to set desired temp in smart thermostat
@@ -102,14 +102,17 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 
 		req, err := http.NewRequest(http.MethodPut, apiURL, body) // Put request is made
 		if err != nil {
-			log.Fatal("Error making new HTTP PUT request, error:", err)
+			log.Println("Error making new HTTP PUT request, error:", err)
+			return
 		}
 
 		req.Header.Set("Content-Type", "application/json") // Make sure it knows it's json
 		client := &http.Client{}                           // Make a client
 		resp, err := client.Do(req)                        // Perform the put request
+		defer resp.Body.Close()
 		if err != nil {
-			log.Fatal("Error sending HTTP PUT request, error:", err)
+			log.Println("Error sending HTTP PUT request, error:", err)
+			return
 		}
 
 		/* TEST
@@ -127,9 +130,9 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 		fmt.Println(string(respBody))
-		*/
 
 		defer resp.Body.Close()
+		*/
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}

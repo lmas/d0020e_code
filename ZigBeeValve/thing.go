@@ -112,22 +112,22 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 	// ours is index 0 since there's no other RaspBee/ZigBee gateways on the network
 	res, err := http.Get("https://phoscon.de/discover")
 	if err != nil {
-		log.Fatal("Couldn't get gateway, error:", err)
+		log.Println("Couldn't get gateway, error:", err)
 	}
 	body, err := io.ReadAll(res.Body) // Read the payload into body variable
 	if err != nil {
-		log.Fatal("Something went wrong while reading the body during discovery, error:", err)
+		log.Println("Something went wrong while reading the body during discovery, error:", err)
 	}
 	var gw []discoverJSON           // Create a list to hold the gateway json
 	err = json.Unmarshal(body, &gw) // "unpack" body from []byte to []discoverJSON, save errors
 	res.Body.Close()
 	if res.StatusCode > 299 {
-		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+		log.Printf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
 	}
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
-	// Save the gateway to our unitassets
+	// Save the gateway to our unitasset
 	s := fmt.Sprintf(`%s:%d`, gw[0].Internalipaddress, gw[0].Internalport)
 	ua.gateway = s
 
