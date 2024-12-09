@@ -18,7 +18,7 @@ func main() {
 	defer cancel()                                          // make sure all paths cancel the context to avoid context leak
 
 	// instantiate the System
-	sys := components.NewSystem("thermostat", ctx)
+	sys := components.NewSystem("Comfortstat", ctx)
 
 	// Instatiate the Capusle
 	sys.Husk = &components.Husk{
@@ -26,7 +26,7 @@ func main() {
 		Certificate: "ABCD",
 		Details:     map[string][]string{"Developer": {"Arrowhead"}},
 		ProtoPort:   map[string]int{"https": 0, "http": 8670, "coap": 0},
-		InfoLink:    "https://github.com/sdoque/systems/tree/master/thermostat",
+		InfoLink:    "https://github.com/lmas/d0020e_code/tree/master/Comfortstat",
 	}
 
 	// instantiate a template unit asset

@@ -136,17 +136,17 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 			t.Name: t,
 		},
 	}
-	//
-	var ref components.Service
-	for _, s := range servs {
-		if s.Definition == "setpoint" {
-			ref = s
+	/*
+		var ref components.Service
+		for _, s := range servs {
+			if s.Definition == "setpoint" {
+				ref = s
+			}
 		}
-	}
 
-	ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
-	ua.CervicesMap["rotation"].Details = components.MergeDetails(ua.Details, map[string][]string{"Unit": {"Percent"}, "Forms": {"SignalA_v1a"}})
-
+		ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
+		ua.CervicesMap["rotation"].Details = components.MergeDetails(ua.Details, map[string][]string{"Unit": {"Percent"}, "Forms": {"SignalA_v1a"}})
+	*/
 	// Optionally start background tasks here! Example:
 	go func() {
 		log.Println("Starting up " + ua.Name)
