@@ -45,7 +45,7 @@ func main() {
 		if err := json.Unmarshal(raw, &uac); err != nil {
 			log.Fatalf("Resource configuration error: %+v\n", err)
 		}
-		ua, cleanup := newResource(uac, &sys, servsTemp)
+		ua, cleanup := newUnitAsset(uac, &sys, servsTemp)
 		defer cleanup()
 		sys.UAssets[ua.GetName()] = &ua
 	}
@@ -78,7 +78,7 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 	case "min_price":
 		t.set_price(w, r)
 	case "SEK_price":
-		t.set_SEKprice(w, r)
+		//t.set_SEKprice(w, r)
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
 	}
