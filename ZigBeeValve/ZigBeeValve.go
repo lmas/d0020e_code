@@ -4,10 +4,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"time"
@@ -57,25 +57,6 @@ func main() {
 	// Generate PKI keys and CSR to obtain a authentication certificate from the CA
 	usecases.RequestCertificate(&sys)
 
-	// https://pkg.go.dev/net/http#Get
-	// GET https://phoscon.de/discover	// to find gateways, array of JSONs is returned in http body, we'll only have one for now so take index 0,
-	// this could be done once at start (main) and saved in the struct to make it easy and fast to reach zigbee gateway
-	res, err := http.Get("https://phoscon.de/discover")
-	if err != nil {
-		log.Fatal("Couldn't get gateway, error:", err)
-	}
-	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
-	if res.StatusCode > 299 {
-		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// TODO: SEE IF THIS WORKS
-	ua.gateway := body[0].internalipaddress + ":" + body[0].internalport
-
 	// Register the (system) and its services
 	usecases.RegisterServices(&sys)
 
@@ -107,14 +88,48 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error with the setting desired temp ", err)
+			log.Fatal("Error with the setting desired temp ", err)
 		}
 		rsc.setSetPoint(sig)
 		// API call to set desired temp in smart thermostat
-		// SET URL/api/<apikey>/sensor/config
-		URL = rsc.gateway + "/api/" + rsc.apikey + "/sensor/config" // not 100% sure of this
-		// TODO FIND OUT HOW THIS SHIT WORKS
+		// PUT call should be sent to  URL/api/apikey/sensors/2/config (hardcoded for now, could use /sensors to get all sensors, and then go through all of 'em with a loop)
+		// Looking for a specific keyword, like kitchen and save the id of all thermostats or w/e in the kitchen in an array to then change them all one at a time with a loop
+		apiURL := "http://" + rsc.gateway + "/api/" + rsc.Apikey + "/sensors/2/config"
+		// Create http friendly payload
+		s := fmt.Sprintf(`{"heatsetpoint":%f}`, rsc.Setpt*100) // payload
+		data := []byte(s)                                      // Turned into byte array
+		body := bytes.NewBuffer(data)                          // and put into buffer
 
+		req, err := http.NewRequest(http.MethodPut, apiURL, body) // Put request is made
+		if err != nil {
+			log.Fatal("Error making new HTTP PUT request, error:", err)
+		}
+
+		req.Header.Set("Content-Type", "application/json") // Make sure it knows it's json
+		client := &http.Client{}                           // Make a client
+		resp, err := client.Do(req)                        // Perform the put request
+		if err != nil {
+			log.Fatal("Error sending HTTP PUT request, error:", err)
+		}
+
+		/* TEST
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(resp.StatusCode)
+		if resp.StatusCode == 429 {
+			fmt.Println("too many requests")
+			return
+		}
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(respBody))
+		*/
+
+		defer resp.Body.Close()
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}

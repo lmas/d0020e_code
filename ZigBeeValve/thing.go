@@ -4,12 +4,27 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
 )
+
+//------------------------------------
+
+type discoverJSON struct {
+	Id                string `json:"id"`
+	Internalipaddress string `json:"internalipaddress"`
+	Macaddress        string `json:"macaddress"`
+	Internalport      int    `json:"internalport"`
+	Name              string `json:"name"`
+	Publicipaddress   string `json:"publicipaddress"`
+}
 
 //-------------------------------------Define the unit asset
 
@@ -23,7 +38,7 @@ type UnitAsset struct {
 	//
 	Setpt   float64 `json:"setpoint"`
 	gateway string  `json:"-"`
-	apikey  string  `json:"-"`
+	Apikey  string  `json:"APIkey"`
 }
 
 // GetName returns the name of the Resource.
@@ -66,7 +81,7 @@ func initTemplate() components.UnitAsset {
 		Details: map[string][]string{"Location": {"Kitchen"}},
 		Setpt:   20,
 		gateway: "",
-		apikey:  "",
+		Apikey:  "",
 		ServicesMap: components.Services{
 			setPointService.SubPath: &setPointService,
 		},
@@ -87,9 +102,34 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		ServicesMap: components.CloneServices(servs),
 		Setpt:       uac.Setpt,
 		gateway:     uac.gateway,
-		apikey:      uac.apikey,
+		Apikey:      uac.Apikey,
 		CervicesMap: components.Cervices{},
 	}
+
+	// https://pkg.go.dev/net/http#Get
+	// GET https://phoscon.de/discover	// to find gateways, array of JSONs is returned in http body, we'll only have one for now so take index 0
+	// GET the gateway through phoscons built in discover tool, the get will return a response, and in its body an array with JSON elements
+	// ours is index 0 since there's no other RaspBee/ZigBee gateways on the network
+	res, err := http.Get("https://phoscon.de/discover")
+	if err != nil {
+		log.Fatal("Couldn't get gateway, error:", err)
+	}
+	body, err := io.ReadAll(res.Body) // Read the payload into body variable
+	if err != nil {
+		log.Fatal("Something went wrong while reading the body during discovery, error:", err)
+	}
+	var gw []discoverJSON           // Create a list to hold the gateway json
+	err = json.Unmarshal(body, &gw) // "unpack" body from []byte to []discoverJSON, save errors
+	res.Body.Close()
+	if res.StatusCode > 299 {
+		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Save the gateway to our unitassets
+	s := fmt.Sprintf(`%s:%d`, gw[0].Internalipaddress, gw[0].Internalport)
+	ua.gateway = s
 
 	return ua, func() {
 		log.Println("Shutting down zigbeevalve ", ua.Name)
