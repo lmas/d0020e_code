@@ -15,7 +15,7 @@ import (
 	"github.com/sdoque/mbaigo/forms"
 )
 
-//------------------------------------
+//------------------------------------ Used when discovering the gateway
 
 type discoverJSON struct {
 	Id                string `json:"id"`
@@ -77,7 +77,7 @@ func initTemplate() components.UnitAsset {
 
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
-		Name:    "ZigBeeValve",
+		Name:    "Smart Thermostat",
 		Details: map[string][]string{"Location": {"Kitchen"}},
 		Setpt:   20,
 		gateway: "",
@@ -106,6 +106,13 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		CervicesMap: components.Cervices{},
 	}
 
+	findGateway(ua)
+	return ua, func() {
+		log.Println("Shutting down zigbeevalve ", ua.Name)
+	}
+}
+
+func findGateway(ua *UnitAsset) {
 	// https://pkg.go.dev/net/http#Get
 	// GET https://phoscon.de/discover	// to find gateways, array of JSONs is returned in http body, we'll only have one for now so take index 0
 	// GET the gateway through phoscons built in discover tool, the get will return a response, and in its body an array with JSON elements
@@ -125,15 +132,13 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		log.Printf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
 	}
 	if err != nil {
-		log.Println(err)
+		log.Println("Error during Unmarshal, error:", err)
 	}
 	// Save the gateway to our unitasset
+	// NOTE: IF RASPBERRY PI IS NOT TURNED ON THE SYSTEM WONT TURN ON BECAUSE OF USING INDEX IN A LIST
 	s := fmt.Sprintf(`%s:%d`, gw[0].Internalipaddress, gw[0].Internalport)
 	ua.gateway = s
-
-	return ua, func() {
-		log.Println("Shutting down zigbeevalve ", ua.Name)
-	}
+	// log.Println("Gateway found:", s)
 }
 
 //-------------------------------------Thing's resource methods
@@ -150,5 +155,7 @@ func (ua *UnitAsset) getSetPoint() (f forms.SignalA_v1a) {
 // setSetPoint updates the thermal setpoint
 func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
 	ua.Setpt = f.Value
-	log.Printf("new set point: %.1f", f.Value)
+	log.Println("*---------------------*")
+	log.Printf("New set point: %.1f\n", f.Value)
+	log.Println("*---------------------*")
 }

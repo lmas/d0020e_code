@@ -26,7 +26,7 @@ func main() {
 
 	// Instatiate the Capusle
 	sys.Husk = &components.Husk{
-		Description: " is a controlled for smart thermostats connected with a RaspBee II",
+		Description: " is a controller for smart thermostats connected with a RaspBee II",
 		Certificate: "ABCD",
 		Details:     map[string][]string{"Developer": {"Arrowhead"}},
 		ProtoPort:   map[string]int{"https": 0, "http": 8670, "coap": 0},
@@ -92,11 +92,27 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		}
 		rsc.setSetPoint(sig)
 		// API call to set desired temp in smart thermostat
-		// PUT call should be sent to  URL/api/apikey/sensors/2/config (hardcoded for now, could use /sensors to get all sensors, and then go through all of 'em with a loop)
-		// Looking for a specific keyword, like kitchen and save the id of all thermostats or w/e in the kitchen in an array to then change them all one at a time with a loop
+		// PUT call should be sent to  URL/api/apikey/sensors/2/config
 		apiURL := "http://" + rsc.gateway + "/api/" + rsc.Apikey + "/sensors/2/config"
+		// URL is hardcoded for now, could use /sensors to get all sensors, and then go through all of 'em with a loop
+		// looking for a specific keywords, like kitchen and save the id of all thermostats or w/e in the kitchen
+		// in an array to then change them all one at a time with a loop
+		/*
+			// GET request, unmarshal to get the array of JSONS, containing all sensors/thermostats,
+			// save the array in an array called sensors
+			var changeArray []int
+			for int j = 0; i in range sensors;j++ {
+				if i.location == keyword {
+					// save its id to a new array
+					changeArray[j] = i.id
+
+				}
+			}
+			// Then loop through the array containing ids, and set all their configs (heatsetpoint) to desired temp
+		*/
+
 		// Create http friendly payload
-		s := fmt.Sprintf(`{"heatsetpoint":%f}`, rsc.Setpt*100) // payload
+		s := fmt.Sprintf(`{"heatsetpoint":%f}`, rsc.Setpt*100) // Create payload
 		data := []byte(s)                                      // Turned into byte array
 		body := bytes.NewBuffer(data)                          // and put into buffer
 
@@ -106,33 +122,15 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		req.Header.Set("Content-Type", "application/json") // Make sure it knows it's json
-		client := &http.Client{}                           // Make a client
-		resp, err := client.Do(req)                        // Perform the put request
+		req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
+
+		client := &http.Client{}    // Make a client
+		resp, err := client.Do(req) // Perform the put request
 		defer resp.Body.Close()
 		if err != nil {
 			log.Println("Error sending HTTP PUT request, error:", err)
-			return
 		}
 
-		/* TEST
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(resp.StatusCode)
-		if resp.StatusCode == 429 {
-			fmt.Println("too many requests")
-			return
-		}
-		respBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(string(respBody))
-
-		defer resp.Body.Close()
-		*/
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
