@@ -80,6 +80,8 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 		t.set_minPrice(w, r)
 	case "SEK_price":
 		//t.set_SEKprice(w, r)
+	case "desired_temp":
+		t.set_desiredTemp(w, r)
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
 	}
@@ -167,5 +169,21 @@ func (rsc *UnitAsset) set_maxPrice(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 
+	}
+}
+
+func (rsc *UnitAsset) set_desiredTemp(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		sig, err := usecases.HTTPProcessSetRequest(w, r)
+		if err != nil {
+			log.Println("Error with the setting request of the position ", err)
+		}
+		rsc.setDesired_temp(sig)
+	case "GET":
+		signalErr := rsc.getDesired_temp()
+		usecases.HTTPProcessGetRequest(w, r, &signalErr)
+	default:
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
 }
