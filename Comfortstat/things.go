@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/sdoque/mbaigo/components"
@@ -23,12 +27,21 @@ type UnitAsset struct {
 	//
 	Period time.Duration `json:"samplingPeriod"`
 	//
-	Desired_temp float64 `json:"desired_temp"`
-	SEK_price    float64 `json:"SEK_per_kWh"`
-	Min_price    float64 `json:"min_price"`
-	Max_price    float64 `json:"max_price"`
-	Min_temp     float64 `json:"min_temp"`
-	Max_temp     float64 `json:"max_temp"`
+	Daily_prices []API_data `json:"-"`
+	Desired_temp float64    `json:"desired_temp"`
+	SEK_price    float64    `json:"SEK_per_kWh"`
+	Min_price    float64    `json:"min_price"`
+	Max_price    float64    `json:"max_price"`
+	Min_temp     float64    `json:"min_temp"`
+	Max_temp     float64    `json:"max_temp"`
+}
+
+type API_data struct {
+	SEK_price  float64 `json:"SEK_per_kWh"`
+	EUR_price  float64 `json:"EUR_per_kWh"`
+	EXR        float64 `json:"EXR"`
+	Time_start string  `json:"time_start"`
+	Time_end   string  `json:"time_end"`
 }
 
 // GetName returns the name of the Resource.
@@ -104,12 +117,12 @@ func initTemplate() components.UnitAsset {
 		Name:         "Set Values",
 		Details:      map[string][]string{"Location": {"Kitchen"}},
 		SEK_price:    7.5,  // Example electricity price in SEK per kWh
-		Min_price:    5.0,  // Minimum price allowed
-		Max_price:    10.0, // Maximum price allowed
+		Min_price:    0.0,  // Minimum price allowed
+		Max_price:    0.02, // Maximum price allowed
 		Min_temp:     20.0, // Minimum temperature
 		Max_temp:     25.0, // Maximum temprature allowed
 		Desired_temp: 0,    // Desired temp calculated by system
-		Period:       10,
+		Period:       5,
 
 		// Don't forget to map the provided services from above!
 		ServicesMap: components.Services{
@@ -172,6 +185,7 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 
 	// start the unit asset(s)
 	go ua.feedbackLoop(sys.Ctx)
+	go ua.API_feedbackLoop(sys.Ctx)
 
 	// Optionally start background tasks here! Example:
 	go func() {
@@ -283,7 +297,7 @@ func (ua *UnitAsset) setDesired_temp(f forms.SignalA_v1a) {
 //TODO: Needs to be modified to match our needs, not using processFeedbacklopp
 //TODO: So mayby the period is every hour, call the api to receive the current price ( could be every 24 hours)
 //TODO: This function is may be better in the COMFORTSTAT MAIN
-/*
+
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 	// Initialize a ticker for periodic execution
@@ -294,13 +308,47 @@ func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			ua.processFeedbackLoop() // either modifiy processFeedback loop or write a new one
+			retrieveAPI_price(ua)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
-*/
+
+func retrieveAPI_price(ua *UnitAsset) {
+	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%d-%d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+	log.Printf("URL:", url)
+
+	res, err := http.Get(url)
+	if err != nil {
+		log.Println("Couldn't get the url, error:", err)
+	}
+	body, err := io.ReadAll(res.Body) // Read the payload into body variable
+	if err != nil {
+		log.Println("Something went wrong while reading the body during discovery, error:", err)
+	}
+	var data []API_data               // Create a list to hold the gateway json
+	err = json.Unmarshal(body, &data) // "unpack" body from []byte to []discoverJSON, save errors
+	res.Body.Close()                  // defer res.Body.Close()
+
+	if res.StatusCode > 299 {
+		log.Printf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+	}
+	if err != nil {
+		log.Println("Error during Unmarshal, error:", err)
+	}
+
+	/////////
+	now := fmt.Sprintf(`%d-%d-%dT%d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
+	for _, i := range data {
+		if i.Time_start == now {
+			ua.SEK_price = i.SEK_price
+			log.Println("Price in loop is:", i.SEK_price)
+		}
+
+	}
+	log.Println("current el-pris is:", ua.SEK_price)
+}
 
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
@@ -337,12 +385,14 @@ func (ua *UnitAsset) processFeedbackLoop() {
 			return
 		}
 	*/
-	miT := ua.getMin_temp().Value
-	maT := ua.getMax_temp().Value
-	miP := ua.getMin_price().Value
-	maP := ua.getMax_price().Value
-
-	ua.Desired_temp = ua.calculateDesiredTemp(miT, maT, miP, maP, ua.getSEK_price().Value)
+	/*
+		miT := ua.getMin_temp().Value
+		maT := ua.getMax_temp().Value
+		miP := ua.getMin_price().Value
+		maP := ua.getMax_price().Value
+	*/
+	//ua.Desired_temp = ua.calculateDesiredTemp(miT, maT, miP, maP, ua.getSEK_price().Value)
+	ua.Desired_temp = ua.calculateDesiredTemp()
 
 	// perform the control algorithm
 	//	ua.deviation = ua.Setpt - tup.Value
@@ -368,9 +418,17 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	}
 }
 
-func (ua *UnitAsset) calculateDesiredTemp(min_temp float64, max_temp float64, min_price float64, max_price float64, current_price float64) float64 {
-	k := (min_temp - max_temp) / (max_price - min_price)
-	m := max_temp - (k * min_price)
-	desired_temp := k*current_price + m
+func (ua *UnitAsset) calculateDesiredTemp() float64 {
+	if ua.SEK_price <= ua.Min_price {
+		return ua.Max_temp
+	}
+	if ua.SEK_price >= ua.Max_price {
+		return ua.Min_temp
+	}
+
+	k := -(ua.Max_temp - ua.Min_temp) / (ua.Max_price - ua.Min_price)
+	//m := max_temp - (k * min_price)
+	//m := max_temp
+	desired_temp := k*(ua.SEK_price-ua.Min_price) + ua.Min_temp // y - y_min = k*(x-x_min), solve for y ("desired temp")
 	return desired_temp
 }

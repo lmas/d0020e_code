@@ -79,7 +79,7 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 	case "min_price":
 		t.set_minPrice(w, r)
 	case "SEK_price":
-		//t.set_SEKprice(w, r)
+		t.set_SEKprice(w, r)
 	case "desired_temp":
 		t.set_desiredTemp(w, r)
 	default:
@@ -87,20 +87,15 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 	}
 }
 
-/*
-	func (rsc *UnitAsset) set_SEKprice(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "PUT":
-			sig, err := usecases.HTTPProcessSetRequest(w, r)
-			if err != nil {
-				log.Println("Error with the setting request of the position ", err)
-			}
-			rsc.set_SEKprice(sig)
-		default:
-			http.Error(w, "Method is not supported.", http.StatusNotFound)
-		}
+func (rsc *UnitAsset) set_SEKprice(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		signalErr := rsc.getSEK_price()
+		usecases.HTTPProcessGetRequest(w, r, &signalErr)
+	default:
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
-*/
+}
 
 // TODO: split up this function to two sepreate function that sets on max and min price.
 func (rsc *UnitAsset) set_minTemp(w http.ResponseWriter, r *http.Request) {
