@@ -4,7 +4,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -22,7 +21,7 @@ func main() {
 	defer cancel()                                          // make sure all paths cancel the context to avoid context leak
 
 	// instantiate the System
-	sys := components.NewSystem("ZigBeeValve", ctx)
+	sys := components.NewSystem("ZigBee", ctx)
 
 	// Instatiate the Capusle
 	sys.Husk = &components.Husk{
@@ -74,7 +73,15 @@ func main() {
 func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath string) {
 	switch servicePath {
 	case "setpoint":
+		/* DEBUGGING, TAKES LONG TIME TO CHANGE SETPT.. SOMETIMES
+		log.Println("Serving called at: ", time.Now())
+		starttime := time.Now()
+		*/
 		t.setpt(w, r)
+		/*
+			diff := time.Since(starttime)
+			log.Println("Time for serving to complete:", diff)
+		*/
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
 	}
@@ -91,46 +98,7 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error with the setting desired temp ", err)
 		}
 		rsc.setSetPoint(sig)
-		// API call to set desired temp in smart thermostat
-		// PUT call should be sent to  URL/api/apikey/sensors/2/config
-		apiURL := "http://" + rsc.gateway + "/api/" + rsc.Apikey + "/sensors/2/config"
-		// URL is hardcoded for now, could use /sensors to get all sensors, and then go through all of 'em with a loop
-		// looking for a specific keywords, like kitchen and save the id of all thermostats or w/e in the kitchen
-		// in an array to then change them all one at a time with a loop
-		/*
-			// GET request, unmarshal to get the array of JSONS, containing all sensors/thermostats,
-			// save the array in an array called sensors
-			var changeArray []int
-			for int j = 0; i in range sensors;j++ {
-				if i.location == keyword {
-					// save its id to a new array
-					changeArray[j] = i.id
-
-				}
-			}
-			// Then loop through the array containing ids, and set all their configs (heatsetpoint) to desired temp
-		*/
-
-		// Create http friendly payload
-		s := fmt.Sprintf(`{"heatsetpoint":%f}`, rsc.Setpt*100) // Create payload
-		data := []byte(s)                                      // Turned into byte array
-		body := bytes.NewBuffer(data)                          // and put into buffer
-
-		req, err := http.NewRequest(http.MethodPut, apiURL, body) // Put request is made
-		if err != nil {
-			log.Println("Error making new HTTP PUT request, error:", err)
-			return
-		}
-
-		req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
-
-		client := &http.Client{}    // Make a client
-		resp, err := client.Do(req) // Perform the put request
-		defer resp.Body.Close()
-		if err != nil {
-			log.Println("Error sending HTTP PUT request, error:", err)
-		}
-
+		rsc.sendSetPoint()
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}

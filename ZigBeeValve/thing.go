@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -77,7 +78,7 @@ func initTemplate() components.UnitAsset {
 
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
-		Name:    "Smart Thermostat",
+		Name:    "2",
 		Details: map[string][]string{"Location": {"Kitchen"}},
 		Setpt:   20,
 		gateway: "",
@@ -107,6 +108,7 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 	}
 
 	findGateway(ua)
+	ua.sendSetPoint()
 	return ua, func() {
 		log.Println("Shutting down zigbeevalve ", ua.Name)
 	}
@@ -114,7 +116,7 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 
 func findGateway(ua *UnitAsset) {
 	// https://pkg.go.dev/net/http#Get
-	// GET https://phoscon.de/discover	// to find gateways, array of JSONs is returned in http body, we'll only have one for now so take index 0
+	// GET https://phoscon.de/discover	// to find gateways, array of JSONs is returned in http body, we'll only have one so take index 0
 	// GET the gateway through phoscons built in discover tool, the get will return a response, and in its body an array with JSON elements
 	// ours is index 0 since there's no other RaspBee/ZigBee gateways on the network
 	res, err := http.Get("https://phoscon.de/discover")
@@ -138,7 +140,7 @@ func findGateway(ua *UnitAsset) {
 	// NOTE: IF RASPBERRY PI IS NOT TURNED ON THE SYSTEM WONT TURN ON BECAUSE OF USING INDEX IN A LIST
 	s := fmt.Sprintf(`%s:%d`, gw[0].Internalipaddress, gw[0].Internalport)
 	ua.gateway = s
-	// log.Println("Gateway found:", s)
+	//log.Println("Gateway found:", s)
 }
 
 //-------------------------------------Thing's resource methods
@@ -158,4 +160,30 @@ func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
 	log.Println("*---------------------*")
 	log.Printf("New set point: %.1f\n", f.Value)
 	log.Println("*---------------------*")
+}
+
+func (ua *UnitAsset) sendSetPoint() {
+	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
+	apiURL := "http://" + ua.gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Name + "/config"
+
+	// Create http friendly payload
+	s := fmt.Sprintf(`{"heatsetpoint":%f}`, ua.Setpt*100) // Create payload
+	data := []byte(s)                                     // Turned into byte array
+	body := bytes.NewBuffer(data)                         // and put into buffer
+
+	req, err := http.NewRequest(http.MethodPut, apiURL, body) // Put request is made
+	if err != nil {
+		log.Println("Error making new HTTP PUT request, error:", err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
+
+	client := &http.Client{}    // Make a client
+	resp, err := client.Do(req) // Perform the put request
+	if err != nil {
+		log.Println("Error sending HTTP PUT request, error:", err)
+		return
+	}
+	defer resp.Body.Close()
 }
