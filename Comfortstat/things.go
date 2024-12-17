@@ -25,7 +25,8 @@ type UnitAsset struct {
 	ServicesMap components.Services `json:"-"`
 	CervicesMap components.Cervices `json:"-"`
 	//
-	Period time.Duration `json:"samplingPeriod"`
+	SamplingPeriod time.Duration `json:"samplingPeriod"`
+	UpdatePeriod   time.Duration `json:"updatePeriod"`
 	//
 	Daily_prices []API_data `json:"-"`
 	Desired_temp float64    `json:"desired_temp"`
@@ -114,15 +115,16 @@ func initTemplate() components.UnitAsset {
 
 	return &UnitAsset{
 		// TODO: These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
-		Name:         "Set Values",
-		Details:      map[string][]string{"Location": {"Kitchen"}},
-		SEK_price:    7.5,  // Example electricity price in SEK per kWh
-		Min_price:    0.0,  // Minimum price allowed
-		Max_price:    0.02, // Maximum price allowed
-		Min_temp:     20.0, // Minimum temperature
-		Max_temp:     25.0, // Maximum temprature allowed
-		Desired_temp: 0,    // Desired temp calculated by system
-		Period:       5,
+		Name:           "Set Values",
+		Details:        map[string][]string{"Location": {"Kitchen"}},
+		SEK_price:      7.5,  // Example electricity price in SEK per kWh
+		Min_price:      0.0,  // Minimum price allowed
+		Max_price:      0.02, // Maximum price allowed
+		Min_temp:       20.0, // Minimum temperature
+		Max_temp:       25.0, // Maximum temprature allowed
+		Desired_temp:   0,    // Desired temp calculated by system
+		SamplingPeriod: 3600,
+		UpdatePeriod:   15,
 
 		// Don't forget to map the provided services from above!
 		ServicesMap: components.Services{
@@ -156,17 +158,18 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 
 	ua := &UnitAsset{
 		// Filling in public fields using the given data
-		Name:         uac.Name,
-		Owner:        sys,
-		Details:      uac.Details,
-		ServicesMap:  components.CloneServices(servs),
-		SEK_price:    uac.SEK_price,
-		Min_price:    uac.Min_price,
-		Max_price:    uac.Max_price,
-		Min_temp:     uac.Min_temp,
-		Max_temp:     uac.Max_temp,
-		Desired_temp: uac.Desired_temp,
-		Period:       uac.Period,
+		Name:           uac.Name,
+		Owner:          sys,
+		Details:        uac.Details,
+		ServicesMap:    components.CloneServices(servs),
+		SEK_price:      uac.SEK_price,
+		Min_price:      uac.Min_price,
+		Max_price:      uac.Max_price,
+		Min_temp:       uac.Min_temp,
+		Max_temp:       uac.Max_temp,
+		Desired_temp:   uac.Desired_temp,
+		SamplingPeriod: uac.SamplingPeriod,
+		UpdatePeriod:   uac.UpdatePeriod,
 		CervicesMap: components.Cervices{
 			t.Name: t,
 		},
@@ -301,7 +304,7 @@ func (ua *UnitAsset) setDesired_temp(f forms.SignalA_v1a) {
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 	// Initialize a ticker for periodic execution
-	ticker := time.NewTicker(ua.Period * time.Second)
+	ticker := time.NewTicker(ua.SamplingPeriod * time.Second)
 	defer ticker.Stop()
 
 	// start the control loop
@@ -353,7 +356,7 @@ func retrieveAPI_price(ua *UnitAsset) {
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 	// Initialize a ticker for periodic execution
-	ticker := time.NewTicker(ua.Period * time.Second)
+	ticker := time.NewTicker(ua.UpdatePeriod * time.Second)
 	defer ticker.Stop()
 
 	// start the control loop
