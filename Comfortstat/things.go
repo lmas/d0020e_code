@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"time"
 
@@ -28,13 +29,14 @@ type UnitAsset struct {
 	SamplingPeriod time.Duration `json:"samplingPeriod"`
 	UpdatePeriod   time.Duration `json:"updatePeriod"`
 	//
-	Daily_prices []API_data `json:"-"`
-	Desired_temp float64    `json:"desired_temp"`
-	SEK_price    float64    `json:"SEK_per_kWh"`
-	Min_price    float64    `json:"min_price"`
-	Max_price    float64    `json:"max_price"`
-	Min_temp     float64    `json:"min_temp"`
-	Max_temp     float64    `json:"max_temp"`
+	Daily_prices     []API_data `json:"-"`
+	Desired_temp     float64    `json:"desired_temp"`
+	old_desired_temp float64    // keep this field private!
+	SEK_price        float64    `json:"SEK_per_kWh"`
+	Min_price        float64    `json:"min_price"`
+	Max_price        float64    `json:"max_price"`
+	Min_temp         float64    `json:"min_temp"`
+	Max_temp         float64    `json:"max_temp"`
 }
 
 type API_data struct {
@@ -351,6 +353,14 @@ func retrieveAPI_price(ua *UnitAsset) {
 
 	}
 	log.Println("current el-pris is:", ua.SEK_price)
+
+	// Don't send temperature updates if the difference is too low
+	// (this could potentially save on battery!)
+	new_temp := ua.calculateDesiredTemp()
+	if math.Abs(ua.Desired_temp-new_temp) < 0.5 {
+		return
+	}
+	ua.Desired_temp = new_temp
 }
 
 // feedbackLoop is THE control loop (IPR of the system)
@@ -395,7 +405,12 @@ func (ua *UnitAsset) processFeedbackLoop() {
 		maP := ua.getMax_price().Value
 	*/
 	//ua.Desired_temp = ua.calculateDesiredTemp(miT, maT, miP, maP, ua.getSEK_price().Value)
-	ua.Desired_temp = ua.calculateDesiredTemp()
+	// Only send temperature update when we have a new value.
+	if ua.Desired_temp == ua.old_desired_temp {
+		return
+	}
+	// Keep track of previous value
+	ua.old_desired_temp = ua.Desired_temp
 
 	// perform the control algorithm
 	//	ua.deviation = ua.Setpt - tup.Value
