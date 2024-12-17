@@ -1,3 +1,7 @@
 *.json
 *.html
 *.out
+
+# Ignore built system binaries
+comfortstat
+ZigBee*
