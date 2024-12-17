@@ -38,8 +38,8 @@ type UnitAsset struct {
 	CervicesMap components.Cervices `json:"-"`
 	//
 	Setpt   float64 `json:"setpoint"`
-	gateway string  `json:"-"`
-	Apikey  string  `json:"APIkey"`
+	gateway string
+	Apikey  string `json:"APIkey"`
 }
 
 // GetName returns the name of the Resource.
@@ -137,7 +137,7 @@ func findGateway(ua *UnitAsset) {
 		log.Println("Error during Unmarshal, error:", err)
 	}
 	// Save the gateway to our unitasset
-	// NOTE: IF RASPBERRY PI IS NOT TURNED ON THE SYSTEM WONT TURN ON BECAUSE OF USING INDEX IN A LIST
+	// NOTE: IF RASPBERRY PI AND deCONZ PROGRAM IS NOT TURNED ON, THE SYSTEM WONT TURN ON BECAUSE OF USING INDEX IN A LIST
 	s := fmt.Sprintf(`%s:%d`, gw[0].Internalipaddress, gw[0].Internalport)
 	ua.gateway = s
 	//log.Println("Gateway found:", s)
@@ -186,4 +186,11 @@ func (ua *UnitAsset) sendSetPoint() {
 		return
 	}
 	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body) // Read the payload into body variable
+	if err != nil {
+		log.Println("Something went wrong while reading the body during discovery, error:", err)
+	}
+	if resp.StatusCode > 299 {
+		log.Printf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, string(b))
+	}
 }

@@ -28,7 +28,7 @@ func main() {
 		Description: " is a controller for smart thermostats connected with a RaspBee II",
 		Certificate: "ABCD",
 		Details:     map[string][]string{"Developer": {"Arrowhead"}},
-		ProtoPort:   map[string]int{"https": 0, "http": 8670, "coap": 0},
+		ProtoPort:   map[string]int{"https": 0, "http": 8870, "coap": 0},
 		InfoLink:    "https://github.com/sdoque/systems/tree/master/ZigBeeValve",
 	}
 
