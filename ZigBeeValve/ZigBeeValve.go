@@ -97,8 +97,14 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("Error with the setting desired temp ", err)
 		}
+		log.Println("sig:", sig)
+		log.Println("URL:", r.URL)
+		log.Println("Model:", rsc.Model)
 		rsc.setSetPoint(sig)
-		rsc.sendSetPoint()
+		if rsc.Model == "SmartThermostat" {
+			rsc.sendSetPoint()
+		}
+
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}

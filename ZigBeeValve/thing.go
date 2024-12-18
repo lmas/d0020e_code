@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
+	"github.com/sdoque/mbaigo/usecases"
 )
 
 //------------------------------------ Used when discovering the gateway
@@ -37,7 +39,9 @@ type UnitAsset struct {
 	ServicesMap components.Services `json:"-"`
 	CervicesMap components.Cervices `json:"-"`
 	//
-	Setpt   float64 `json:"setpoint"`
+	Model   string        `json:"model"`
+	Period  time.Duration `json:"period"`
+	Setpt   float64       `json:"setpoint"`
 	gateway string
 	Apikey  string `json:"APIkey"`
 }
@@ -80,6 +84,8 @@ func initTemplate() components.UnitAsset {
 	uat := &UnitAsset{
 		Name:    "2",
 		Details: map[string][]string{"Location": {"Kitchen"}},
+		Model:   "",
+		Period:  10,
 		Setpt:   20,
 		gateway: "",
 		Apikey:  "",
@@ -94,6 +100,15 @@ func initTemplate() components.UnitAsset {
 
 // newResource creates the Resource resource with its pointers and channels based on the configuration using the tConig structs
 func newResource(uac UnitAsset, sys *components.System, servs []components.Service) (components.UnitAsset, func()) {
+	// deterimine the protocols that the system supports
+	sProtocols := components.SProtocols(sys.Husk.ProtoPort)
+
+	// instantiate the consumed services
+	t := &components.Cervice{
+		Name:   "temperature",
+		Protos: sProtocols,
+		Url:    make([]string, 0),
+	}
 
 	// intantiate the unit asset
 	ua := &UnitAsset{
@@ -101,17 +116,78 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		Owner:       sys,
 		Details:     uac.Details,
 		ServicesMap: components.CloneServices(servs),
+		Model:       uac.Model,
+		Period:      uac.Period,
 		Setpt:       uac.Setpt,
 		gateway:     uac.gateway,
 		Apikey:      uac.Apikey,
-		CervicesMap: components.Cervices{},
+		CervicesMap: components.Cervices{
+			t.Name: t,
+		},
 	}
 
 	findGateway(ua)
-	ua.sendSetPoint()
+
+	var ref components.Service
+	for _, s := range servs {
+		if s.Definition == "setpoint" {
+			ref = s
+		}
+	}
+
+	ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
+
+	if uac.Model == "SmartThermostat" {
+		ua.sendSetPoint()
+	} else if uac.Model == "SmartPlug" {
+		// start the unit asset(s)
+		go ua.feedbackLoop(sys.Ctx)
+	}
+
 	return ua, func() {
 		log.Println("Shutting down zigbeevalve ", ua.Name)
 	}
+}
+
+func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
+	// Initialize a ticker for periodic execution
+	ticker := time.NewTicker(ua.Period * time.Second)
+	defer ticker.Stop()
+
+	// start the control loop
+	for {
+		select {
+		case <-ticker.C:
+			ua.processFeedbackLoop()
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (ua *UnitAsset) processFeedbackLoop() {
+	// get the current temperature
+	tf, err := usecases.GetState(ua.CervicesMap["temperature"], ua.Owner)
+	if err != nil {
+		log.Printf("\n unable to obtain a temperature reading error: %s\n", err)
+		return
+	}
+
+	// Perform a type assertion to convert the returned Form to SignalA_v1a
+	tup, ok := tf.(*forms.SignalA_v1a)
+	if !ok {
+		log.Println("problem unpacking the temperature signal form")
+		return
+	}
+
+	// TODO: Check diff instead of a hard over/under value?
+	if tup.Value < ua.Setpt {
+		ua.toggleState(true)
+	} else {
+		ua.toggleState(false)
+	}
+	//log.Println("Feedback loop done.")
+
 }
 
 func findGateway(ua *UnitAsset) {
@@ -169,7 +245,21 @@ func (ua *UnitAsset) sendSetPoint() {
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"heatsetpoint":%f}`, ua.Setpt*100) // Create payload
 	data := []byte(s)                                     // Turned into byte array
-	body := bytes.NewBuffer(data)                         // and put into buffer
+	sendRequest(data, apiURL)
+}
+
+func (ua *UnitAsset) toggleState(state bool) {
+	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
+	apiURL := "http://" + ua.gateway + "/api/" + ua.Apikey + "/lights/" + ua.Name + "/state"
+
+	// Create http friendly payload
+	s := fmt.Sprintf(`{"on":%t}`, state) // Create payload
+	data := []byte(s)                    // Turned into byte array
+	sendRequest(data, apiURL)
+}
+
+func sendRequest(data []byte, apiURL string) {
+	body := bytes.NewBuffer(data) // Put data into buffer
 
 	req, err := http.NewRequest(http.MethodPut, apiURL, body) // Put request is made
 	if err != nil {
