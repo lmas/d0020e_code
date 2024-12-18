@@ -73,15 +73,7 @@ func main() {
 func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath string) {
 	switch servicePath {
 	case "setpoint":
-		/* DEBUGGING, TAKES LONG TIME TO CHANGE SETPT.. SOMETIMES
-		log.Println("Serving called at: ", time.Now())
-		starttime := time.Now()
-		*/
 		t.setpt(w, r)
-		/*
-			diff := time.Since(starttime)
-			log.Println("Time for serving to complete:", diff)
-		*/
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
 	}
