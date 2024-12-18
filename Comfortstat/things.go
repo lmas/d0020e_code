@@ -26,8 +26,7 @@ type UnitAsset struct {
 	ServicesMap components.Services `json:"-"`
 	CervicesMap components.Cervices `json:"-"`
 	//
-	SamplingPeriod time.Duration `json:"samplingPeriod"`
-	UpdatePeriod   time.Duration `json:"updatePeriod"`
+	Period time.Duration `json:"samplingPeriod"`
 	//
 	Daily_prices     []API_data `json:"-"`
 	Desired_temp     float64    `json:"desired_temp"`
@@ -117,16 +116,15 @@ func initTemplate() components.UnitAsset {
 
 	return &UnitAsset{
 		// TODO: These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
-		Name:           "Set Values",
-		Details:        map[string][]string{"Location": {"Kitchen"}},
-		SEK_price:      7.5,  // Example electricity price in SEK per kWh
-		Min_price:      0.0,  // Minimum price allowed
-		Max_price:      0.02, // Maximum price allowed
-		Min_temp:       20.0, // Minimum temperature
-		Max_temp:       25.0, // Maximum temprature allowed
-		Desired_temp:   0,    // Desired temp calculated by system
-		SamplingPeriod: 3600,
-		UpdatePeriod:   15,
+		Name:         "Set Values",
+		Details:      map[string][]string{"Location": {"Kitchen"}},
+		SEK_price:    7.5,  // Example electricity price in SEK per kWh
+		Min_price:    0.0,  // Minimum price allowed
+		Max_price:    0.02, // Maximum price allowed
+		Min_temp:     20.0, // Minimum temperature
+		Max_temp:     25.0, // Maximum temprature allowed
+		Desired_temp: 0,    // Desired temp calculated by system
+		Period:       15,
 
 		// Don't forget to map the provided services from above!
 		ServicesMap: components.Services{
@@ -160,18 +158,17 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 
 	ua := &UnitAsset{
 		// Filling in public fields using the given data
-		Name:           uac.Name,
-		Owner:          sys,
-		Details:        uac.Details,
-		ServicesMap:    components.CloneServices(servs),
-		SEK_price:      uac.SEK_price,
-		Min_price:      uac.Min_price,
-		Max_price:      uac.Max_price,
-		Min_temp:       uac.Min_temp,
-		Max_temp:       uac.Max_temp,
-		Desired_temp:   uac.Desired_temp,
-		SamplingPeriod: uac.SamplingPeriod,
-		UpdatePeriod:   uac.UpdatePeriod,
+		Name:         uac.Name,
+		Owner:        sys,
+		Details:      uac.Details,
+		ServicesMap:  components.CloneServices(servs),
+		SEK_price:    uac.SEK_price,
+		Min_price:    uac.Min_price,
+		Max_price:    uac.Max_price,
+		Min_temp:     uac.Min_temp,
+		Max_temp:     uac.Max_temp,
+		Desired_temp: uac.Desired_temp,
+		Period:       uac.Period,
 		CervicesMap: components.Cervices{
 			t.Name: t,
 		},
@@ -303,10 +300,15 @@ func (ua *UnitAsset) setDesired_temp(f forms.SignalA_v1a) {
 //TODO: So mayby the period is every hour, call the api to receive the current price ( could be every 24 hours)
 //TODO: This function is may be better in the COMFORTSTAT MAIN
 
+// It's _strongly_ encouraged to not send requests to the API for more than once per hour.
+// Making this period a private constant prevents a user from changing this value
+// in the config file.
+const apiFetchPeriod int = 3600
+
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 	// Initialize a ticker for periodic execution
-	ticker := time.NewTicker(ua.SamplingPeriod * time.Second)
+	ticker := time.NewTicker(time.Duration(apiFetchPeriod) * time.Second)
 	defer ticker.Stop()
 
 	// start the control loop
@@ -322,7 +324,7 @@ func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 
 func retrieveAPI_price(ua *UnitAsset) {
 	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%d-%d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
-	log.Printf("URL:", url)
+	log.Println("URL:", url)
 
 	res, err := http.Get(url)
 	if err != nil {
@@ -366,7 +368,7 @@ func retrieveAPI_price(ua *UnitAsset) {
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 	// Initialize a ticker for periodic execution
-	ticker := time.NewTicker(ua.UpdatePeriod * time.Second)
+	ticker := time.NewTicker(ua.Period * time.Second)
 	defer ticker.Stop()
 
 	// start the control loop
