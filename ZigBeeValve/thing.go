@@ -180,7 +180,7 @@ func (ua *UnitAsset) processFeedbackLoop() {
 		return
 	}
 
-	// TODO: Check diff instead of a hard over/under value?
+	// TODO: Check diff instead of a hard over/under value? meaning it'll only turn on/off if diff is over 0.5 degrees
 	if tup.Value < ua.Setpt {
 		ua.toggleState(true)
 	} else {
