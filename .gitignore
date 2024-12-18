@@ -1,6 +1,7 @@
 *.json
 *.html
 *.out
+*.txt
 
 # Ignore built system binaries
 comfortstat
