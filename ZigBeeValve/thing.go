@@ -123,21 +123,24 @@ func findGateway(ua *UnitAsset) {
 	if err != nil {
 		log.Println("Couldn't get gateway, error:", err)
 	}
+	defer res.Body.Close()
+	if res.StatusCode > 299 {
+		log.Printf("Response failed with status code: %d and\n", res.StatusCode)
+	}
 	body, err := io.ReadAll(res.Body) // Read the payload into body variable
 	if err != nil {
 		log.Println("Something went wrong while reading the body during discovery, error:", err)
 	}
 	var gw []discoverJSON           // Create a list to hold the gateway json
 	err = json.Unmarshal(body, &gw) // "unpack" body from []byte to []discoverJSON, save errors
-	res.Body.Close()
-	if res.StatusCode > 299 {
-		log.Printf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-	}
 	if err != nil {
 		log.Println("Error during Unmarshal, error:", err)
 	}
+	if len(gw) < 1 {
+		log.Println("No gateway was found")
+		return
+	}
 	// Save the gateway to our unitasset
-	// NOTE: IF RASPBERRY PI IS NOT TURNED ON THE SYSTEM WONT TURN ON BECAUSE OF USING INDEX IN A LIST
 	s := fmt.Sprintf(`%s:%d`, gw[0].Internalipaddress, gw[0].Internalport)
 	ua.gateway = s
 	//log.Println("Gateway found:", s)
