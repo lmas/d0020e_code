@@ -28,7 +28,7 @@ func main() {
 		Description: " is a controller for smart thermostats connected with a RaspBee II",
 		Certificate: "ABCD",
 		Details:     map[string][]string{"Developer": {"Arrowhead"}},
-		ProtoPort:   map[string]int{"https": 0, "http": 8670, "coap": 0},
+		ProtoPort:   map[string]int{"https": 0, "http": 8870, "coap": 0},
 		InfoLink:    "https://github.com/sdoque/systems/tree/master/ZigBeeValve",
 	}
 
@@ -73,15 +73,7 @@ func main() {
 func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath string) {
 	switch servicePath {
 	case "setpoint":
-		/* DEBUGGING, TAKES LONG TIME TO CHANGE SETPT.. SOMETIMES
-		log.Println("Serving called at: ", time.Now())
-		starttime := time.Now()
-		*/
 		t.setpt(w, r)
-		/*
-			diff := time.Since(starttime)
-			log.Println("Time for serving to complete:", diff)
-		*/
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
 	}
@@ -97,8 +89,14 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("Error with the setting desired temp ", err)
 		}
+		log.Println("sig:", sig)
+		log.Println("URL:", r.URL)
+		log.Println("Model:", rsc.Model)
 		rsc.setSetPoint(sig)
-		rsc.sendSetPoint()
+		if rsc.Model == "SmartThermostat" {
+			rsc.sendSetPoint()
+		}
+
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
