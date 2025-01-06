@@ -323,16 +323,18 @@ func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 }
 
 func retrieveAPI_price(ua *UnitAsset) {
-	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%d-%d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
 	log.Println("URL:", url)
 
 	res, err := http.Get(url)
 	if err != nil {
 		log.Println("Couldn't get the url, error:", err)
+		return
 	}
 	body, err := io.ReadAll(res.Body) // Read the payload into body variable
 	if err != nil {
 		log.Println("Something went wrong while reading the body during discovery, error:", err)
+		return
 	}
 	var data []API_data               // Create a list to hold the gateway json
 	err = json.Unmarshal(body, &data) // "unpack" body from []byte to []discoverJSON, save errors
@@ -340,13 +342,15 @@ func retrieveAPI_price(ua *UnitAsset) {
 
 	if res.StatusCode > 299 {
 		log.Printf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+		return
 	}
 	if err != nil {
 		log.Println("Error during Unmarshal, error:", err)
+		return
 	}
 
 	/////////
-	now := fmt.Sprintf(`%d-%d-%dT%d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
+	now := fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
 	for _, i := range data {
 		if i.Time_start == now {
 			ua.SEK_price = i.SEK_price
