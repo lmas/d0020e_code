@@ -3,6 +3,9 @@
 *.out
 *.txt
 
+# Ignores some windows WSL crap
+*.Identifier
+
 # Ignore built system binaries
 comfortstat
 ZigBee*
