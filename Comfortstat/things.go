@@ -313,9 +313,10 @@ func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 
 	// start the control loop
 	for {
+		retrieveAPI_price(ua)
 		select {
 		case <-ticker.C:
-			retrieveAPI_price(ua)
+			// Block the loop until the next period
 		case <-ctx.Done():
 			return
 		}
@@ -389,7 +390,6 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 //
 
 func (ua *UnitAsset) processFeedbackLoop() {
-
 	// get the current temperature
 	/*
 		tf, err := usecases.GetState(ua.CervicesMap["setpoint"], ua.Owner)
