@@ -7,5 +7,5 @@
 *.Identifier
 
 # Ignore built system binaries
-comfortstat
-ZigBee*
+Comfortstat/Comfortstat
+ZigBeeValve/ZigBeeValve
