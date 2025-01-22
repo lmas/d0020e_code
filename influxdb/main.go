@@ -24,12 +24,12 @@ func main() {
 	// Create a new Eclipse Arrowhead application system and then wrap it with a
 	// "husk" (aka a wrapper or shell), which then sets up various properties and
 	// operations that's required of an Arrowhead system.
-	sys := components.NewSystem("ethermostat", ctx)
+	sys := components.NewSystem("influxdb", ctx)
 	sys.Husk = &components.Husk{
 		Description: "reads the temperature from sensors",
 		Details:     map[string][]string{"Developer": {"Group10"}},
 		ProtoPort:   map[string]int{"https": 8691, "http": 8690, "coap": 0},
-		InfoLink:    "https://github.com/lmas/d0020e_code/tree/master/ethermostat",
+		InfoLink:    "https://github.com/lmas/d0020e_code/tree/master/influxdb",
 	}
 
 	// Try loading the config file (in JSON format) for this deployment,

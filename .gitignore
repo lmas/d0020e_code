@@ -1,3 +1,11 @@
 *.json
 *.html
 *.out
+*.txt
+
+# Ignores some windows WSL crap
+*.Identifier
+
+# Ignore built system binaries
+Comfortstat/Comfortstat
+ZigBeeValve/ZigBeeValve
