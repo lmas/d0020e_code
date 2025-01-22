@@ -411,6 +411,7 @@ func (ua *UnitAsset) processFeedbackLoop() {
 		maP := ua.getMax_price().Value
 	*/
 	//ua.Desired_temp = ua.calculateDesiredTemp(miT, maT, miP, maP, ua.getSEK_price().Value)
+	ua.Desired_temp = ua.calculateDesiredTemp()
 	// Only send temperature update when we have a new value.
 	if ua.Desired_temp == ua.old_desired_temp {
 		return
@@ -450,9 +451,9 @@ func (ua *UnitAsset) calculateDesiredTemp() float64 {
 		return ua.Min_temp
 	}
 
-	k := -(ua.Max_temp - ua.Min_temp) / (ua.Max_price - ua.Min_price)
-	//m := max_temp - (k * min_price)
+	k := (ua.Min_temp - ua.Max_temp) / (ua.Max_price - ua.Min_price)
+	m := ua.Max_temp - (k * ua.Min_price)
 	//m := max_temp
-	desired_temp := k*(ua.SEK_price-ua.Min_price) + ua.Min_temp // y - y_min = k*(x-x_min), solve for y ("desired temp")
+	desired_temp := k*(ua.SEK_price) + m // y - y_min = k*(x-x_min), solve for y ("desired temp")
 	return desired_temp
 }
