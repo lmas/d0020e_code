@@ -396,9 +396,9 @@ func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 }
 
 func retrieveAPI_price(ua *UnitAsset) {
-	//	if globalPrice.SEK_price == 0 {
-	//		time.Sleep(1 * time.Second)
-	//	}
+	if globalPrice.SEK_price == 0 {
+		time.Sleep(1 * time.Second)
+	}
 	ua.SEK_price = globalPrice.SEK_price
 	// Don't send temperature updates if the difference is too low
 	// (this could potentially save on battery!)
