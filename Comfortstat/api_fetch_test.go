@@ -7,10 +7,13 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sdoque/mbaigo/forms"
 )
 
 // mockTransport is used for replacing the default network Transport (used by
 // http.DefaultClient) and it will intercept network requests.
+
 type mockTransport struct {
 	hits map[string]int
 }
@@ -25,6 +28,7 @@ func newMockTransport() mockTransport {
 }
 
 // domainHits returns the number of requests to a domain (or -1 if domain wasn't found).
+
 func (t mockTransport) domainHits(domain string) int {
 	for u, hits := range t.hits {
 		if u == domain {
@@ -35,17 +39,19 @@ func (t mockTransport) domainHits(domain string) int {
 }
 
 // TODO: this might need to be expanded to a full JSON array?
+
 const priceExample string = `[{
-	"SEK_per_kWh": 0.26673,
-	"EUR_per_kWh": 0.02328,
-	"EXR": 11.457574,
-	"time_start": "2025-01-06T%02d:00:00+01:00",
-	"time_end": "2025-01-06T%02d:00:00+01:00"
-}]`
+		"SEK_per_kWh": 0.26673,
+		"EUR_per_kWh": 0.02328,
+		"EXR": 11.457574,
+		"time_start": "2025-01-06T%02d:00:00+01:00",
+		"time_end": "2025-01-06T%02d:00:00+01:00"
+	}]`
 
 // RoundTrip method is required to fulfil the RoundTripper interface (as required by the DefaultClient).
 // It prevents the request from being sent over the network and count how many times
 // a domain was requested.
+
 func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	hour := time.Now().Local().Hour()
 	fakeBody := fmt.Sprintf(priceExample, hour, hour+1)
@@ -102,4 +108,42 @@ func TestMultipleUnitAssetOneAPICall(t *testing.T) {
 	}
 
 	// TODO: more test cases??
+}
+
+func Test_structupdate_minTemp(t *testing.T) {
+
+	asset := UnitAsset{
+		Min_temp: 20.0,
+	}
+	// Simulate the input signal
+	Min_inputSignal := forms.SignalA_v1a{
+		Value: 17.0,
+	}
+	// Call the setMin_temp function
+	asset.setMin_temp(Min_inputSignal)
+
+	// check if the temprature has changed correctly
+	if asset.Min_temp != 17.0 {
+		t.Errorf("expected Min_temp to be 17.0, got %f", asset.Min_temp)
+	}
+
+}
+
+func Test_structupdate_maxTemp(t *testing.T) {
+
+	asset := UnitAsset{
+		Max_temp: 30.0,
+	}
+	// Simulate the input signal
+	inputSignal := forms.SignalA_v1a{
+		Value: 21.0,
+	}
+	// Call the setMin_temp function
+	asset.setMax_temp(inputSignal)
+
+	// check if the temprature has changed correctly
+	if asset.Min_temp != 21.0 {
+		t.Errorf("expected Min_temp to be 21.0, got %f", asset.Max_temp)
+	}
+
 }
