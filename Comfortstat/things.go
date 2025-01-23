@@ -15,6 +15,22 @@ import (
 	"github.com/sdoque/mbaigo/usecases"
 )
 
+type GlobalPriceData struct {
+	SEK_price  float64 `json:"SEK_per_kWh"`
+	EUR_price  float64 `json:"EUR_per_kWh"`
+	EXR        float64 `json:"EXR"`
+	Time_start string  `json:"time_start"`
+	Time_end   string  `json:"time_end"`
+}
+
+var globalPrice = GlobalPriceData{
+	SEK_price:  0,
+	EUR_price:  0,
+	EXR:        0,
+	Time_start: "0",
+	Time_end:   "0",
+}
+
 // A UnitAsset models an interface or API for a smaller part of a whole system, for example a single temperature sensor.
 // This type must implement the go interface of "components.UnitAsset"
 type UnitAsset struct {
@@ -44,6 +60,60 @@ type API_data struct {
 	EXR        float64 `json:"EXR"`
 	Time_start string  `json:"time_start"`
 	Time_end   string  `json:"time_end"`
+}
+
+func priceFeedbackLoop() {
+	// Initialize a ticker for periodic execution
+	ticker := time.NewTicker(time.Duration(apiFetchPeriod) * time.Second)
+	defer ticker.Stop()
+
+	// start the control loop
+	for {
+		getAPIPriceData()
+		select {
+		case <-ticker.C:
+			// Block the loop until the next period
+		}
+	}
+}
+
+func getAPIPriceData() {
+	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+	log.Println("URL:", url)
+
+	res, err := http.Get(url)
+	if err != nil {
+		log.Println("Couldn't get the url, error:", err)
+		return
+	}
+	body, err := io.ReadAll(res.Body) // Read the payload into body variable
+	if err != nil {
+		log.Println("Something went wrong while reading the body during discovery, error:", err)
+		return
+	}
+	var data []GlobalPriceData        // Create a list to hold the gateway json
+	err = json.Unmarshal(body, &data) // "unpack" body from []byte to []discoverJSON, save errors
+	res.Body.Close()                  // defer res.Body.Close()
+
+	if res.StatusCode > 299 {
+		log.Printf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+		return
+	}
+	if err != nil {
+		log.Println("Error during Unmarshal, error:", err)
+		return
+	}
+
+	/////////
+	now := fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
+	for _, i := range data {
+		if i.Time_start == now {
+			globalPrice.SEK_price = i.SEK_price
+			log.Println("Price in loop is:", i.SEK_price)
+		}
+
+	}
+	log.Println("current el-pris is:", globalPrice.SEK_price)
 }
 
 // GetName returns the name of the Resource.
@@ -113,6 +183,8 @@ func initTemplate() components.UnitAsset {
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the desired temperature the system calculates based on user inputs (using a GET request)",
 	}
+
+	go priceFeedbackLoop()
 
 	return &UnitAsset{
 		// TODO: These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
@@ -324,43 +396,10 @@ func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 }
 
 func retrieveAPI_price(ua *UnitAsset) {
-	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
-	log.Println("URL:", url)
-
-	res, err := http.Get(url)
-	if err != nil {
-		log.Println("Couldn't get the url, error:", err)
-		return
-	}
-	body, err := io.ReadAll(res.Body) // Read the payload into body variable
-	if err != nil {
-		log.Println("Something went wrong while reading the body during discovery, error:", err)
-		return
-	}
-	var data []API_data               // Create a list to hold the gateway json
-	err = json.Unmarshal(body, &data) // "unpack" body from []byte to []discoverJSON, save errors
-	res.Body.Close()                  // defer res.Body.Close()
-
-	if res.StatusCode > 299 {
-		log.Printf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-		return
-	}
-	if err != nil {
-		log.Println("Error during Unmarshal, error:", err)
-		return
-	}
-
-	/////////
-	now := fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
-	for _, i := range data {
-		if i.Time_start == now {
-			ua.SEK_price = i.SEK_price
-			log.Println("Price in loop is:", i.SEK_price)
-		}
-
-	}
-	log.Println("current el-pris is:", ua.SEK_price)
-
+	//	if globalPrice.SEK_price == 0 {
+	//		time.Sleep(1 * time.Second)
+	//	}
+	ua.SEK_price = globalPrice.SEK_price
 	// Don't send temperature updates if the difference is too low
 	// (this could potentially save on battery!)
 	new_temp := ua.calculateDesiredTemp()
