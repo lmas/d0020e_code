@@ -129,21 +129,92 @@ func Test_structupdate_minTemp(t *testing.T) {
 
 }
 
-func Test_structupdate_maxTemp(t *testing.T) {
+func Test_GetTemprature(t *testing.T) {
+	expectedminTemp := 25.0
+	expectedmaxTemp := 30.0
+	expectedminPrice := 1.0
+	expectedmaxPrice := 5.0
+	expectedDesiredTemp := 22.5
 
-	asset := UnitAsset{
-		Max_temp: 30.0,
+	uasset := UnitAsset{
+		Min_temp:     expectedminTemp,
+		Max_temp:     expectedmaxTemp,
+		Min_price:    expectedminPrice,
+		Max_price:    expectedmaxPrice,
+		Desired_temp: expectedDesiredTemp,
 	}
-	// Simulate the input signal
-	inputSignal := forms.SignalA_v1a{
-		Value: 21.0,
-	}
-	// Call the setMin_temp function
-	asset.setMax_temp(inputSignal)
+	//call the fuctions
+	result := uasset.getMin_temp()
+	result2 := uasset.getMax_temp()
+	result3 := uasset.getMin_price()
+	result4 := uasset.getMax_price()
+	result5 := uasset.getDesired_temp()
 
-	// check if the temprature has changed correctly
-	if asset.Min_temp != 21.0 {
-		t.Errorf("expected Min_temp to be 21.0, got %f", asset.Max_temp)
+	////MinTemp////
+	// check if the value from the struct is the acctual value that the func is getting
+	if result.Value != expectedminTemp {
+		t.Errorf("expected Value to be %v, got %v", expectedminTemp, result.Value)
+	}
+	//check that the Unit is correct
+	if result.Unit != "Celsius" {
+		t.Errorf("expected Unit to be 'Celsius', got %v", result.Unit)
+		////MaxTemp////
+	}
+	if result2.Value != expectedmaxTemp {
+		t.Errorf("expected Value of the Min_temp is to be %v, got %v", expectedmaxTemp, result2.Value)
+	}
+	//check that the Unit is correct
+	if result2.Unit != "Celsius" {
+		t.Errorf("expected Unit of the Max_temp is to be 'Celsius', got %v", result2.Unit)
+	}
+	////MinPrice////
+	// check if the value from the struct is the acctual value that the func is getting
+	if result3.Value != expectedminPrice {
+		t.Errorf("expected Value of the maxPrice is to be %v, got %v", expectedminPrice, result3.Value)
+	}
+	//check that the Unit is correct
+	if result3.Unit != "SEK" {
+		t.Errorf("expected Unit to be 'SEK', got %v", result3.Unit)
+	}
+
+	////MaxPrice////
+	// check if the value from the struct is the acctual value that the func is getting
+	if result4.Value != expectedmaxPrice {
+		t.Errorf("expected Value of the maxPrice is  to be %v, got %v", expectedmaxPrice, result4.Value)
+	}
+	//check that the Unit is correct
+	if result4.Unit != "SEK" {
+		t.Errorf("expected Unit to be 'SEK', got %v", result4.Unit)
+	}
+	////DesierdTemp////
+	// check if the value from the struct is the acctual value that the func is getting
+	if result5.Value != expectedDesiredTemp {
+		t.Errorf("expected desired temprature is to be %v, got %v", expectedDesiredTemp, result5.Value)
+	}
+	//check that the Unit is correct
+	if result5.Unit != "Celsius" {
+		t.Errorf("expected Unit to be 'Celsius', got %v", result5.Unit)
 	}
 
 }
+
+/*
+func Test_structupdate_maxTemp(t *testing.T) {
+
+	asset := &UnitAsset{
+		Max_temp: 30.0,
+	}
+	// Simulate the input signal
+	Max_inputSignal := forms.SignalA_v1a{
+		Value: 21.0,
+	}
+	// Call the setMin_temp function
+	asset.setMax_temp(Max_inputSignal)
+
+	// check if the temprature has changed correctly
+	if asset.Max_temp != 21.0 {
+		t.Errorf("expected Max_temp to be 21.0, got %f", asset.Max_temp)
+	}
+
+}
+*/
