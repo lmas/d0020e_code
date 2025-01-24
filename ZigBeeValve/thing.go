@@ -198,19 +198,23 @@ func findGateway(ua *UnitAsset) {
 	res, err := http.Get("https://phoscon.de/discover")
 	if err != nil {
 		log.Println("Couldn't get gateway, error:", err)
+		return
 	}
 	defer res.Body.Close()
 	if res.StatusCode > 299 {
 		log.Printf("Response failed with status code: %d and\n", res.StatusCode)
+		return
 	}
 	body, err := io.ReadAll(res.Body) // Read the payload into body variable
 	if err != nil {
 		log.Println("Something went wrong while reading the body during discovery, error:", err)
+		return
 	}
 	var gw []discoverJSON           // Create a list to hold the gateway json
 	err = json.Unmarshal(body, &gw) // "unpack" body from []byte to []discoverJSON, save errors
 	if err != nil {
 		log.Println("Error during Unmarshal, error:", err)
+		return
 	}
 	if len(gw) < 1 {
 		log.Println("No gateway was found")
@@ -282,8 +286,10 @@ func sendRequest(data []byte, apiURL string) {
 	b, err := io.ReadAll(resp.Body) // Read the payload into body variable
 	if err != nil {
 		log.Println("Something went wrong while reading the body during discovery, error:", err)
+		return
 	}
 	if resp.StatusCode > 299 {
 		log.Printf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, string(b))
+		return
 	}
 }
