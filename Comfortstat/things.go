@@ -305,7 +305,7 @@ func (ua *UnitAsset) getMin_price() (f forms.SignalA_v1a) {
 func (ua *UnitAsset) setMin_price(f forms.SignalA_v1a) {
 	ua.Min_price = f.Value
 	log.Printf("new minimum price: %.1f", f.Value)
-	ua.processFeedbackLoop()
+	//ua.processFeedbackLoop()
 }
 
 // getMax_price is used for reading the current value of Max_price
@@ -321,7 +321,7 @@ func (ua *UnitAsset) getMax_price() (f forms.SignalA_v1a) {
 func (ua *UnitAsset) setMax_price(f forms.SignalA_v1a) {
 	ua.Max_price = f.Value
 	log.Printf("new maximum price: %.1f", f.Value)
-	ua.processFeedbackLoop()
+	//ua.processFeedbackLoop()
 }
 
 // getMin_temp is used for reading the current minimum temerature value
@@ -337,7 +337,7 @@ func (ua *UnitAsset) getMin_temp() (f forms.SignalA_v1a) {
 func (ua *UnitAsset) setMin_temp(f forms.SignalA_v1a) {
 	ua.Min_temp = f.Value
 	log.Printf("new minimum temperature: %.1f", f.Value)
-	ua.processFeedbackLoop()
+	//ua.processFeedbackLoop()
 }
 
 // getMax_temp is used for reading the current value of Min_price
@@ -353,7 +353,7 @@ func (ua *UnitAsset) getMax_temp() (f forms.SignalA_v1a) {
 func (ua *UnitAsset) setMax_temp(f forms.SignalA_v1a) {
 	ua.Max_temp = f.Value
 	log.Printf("new maximum temperature: %.1f", f.Value)
-	ua.processFeedbackLoop()
+	//ua.processFeedbackLoop()
 }
 
 func (ua *UnitAsset) getDesired_temp() (f forms.SignalA_v1a) {
