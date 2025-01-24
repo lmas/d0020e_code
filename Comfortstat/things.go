@@ -286,7 +286,7 @@ func (ua *UnitAsset) getSEK_price() (f forms.SignalA_v1a) {
 // setSEK_price updates the current electric price with the new current electric hourly price
 func (ua *UnitAsset) setSEK_price(f forms.SignalA_v1a) {
 	ua.SEK_price = f.Value
-	log.Printf("new electric price: %.1f", f.Value)
+	//log.Printf("new electric price: %.1f", f.Value)
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -304,7 +304,7 @@ func (ua *UnitAsset) getMin_price() (f forms.SignalA_v1a) {
 // setMin_price updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMin_price(f forms.SignalA_v1a) {
 	ua.Min_price = f.Value
-	log.Printf("new minimum price: %.1f", f.Value)
+	//log.Printf("new minimum price: %.1f", f.Value)
 	//ua.processFeedbackLoop()
 }
 
@@ -320,7 +320,7 @@ func (ua *UnitAsset) getMax_price() (f forms.SignalA_v1a) {
 // setMax_price updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMax_price(f forms.SignalA_v1a) {
 	ua.Max_price = f.Value
-	log.Printf("new maximum price: %.1f", f.Value)
+	//log.Printf("new maximum price: %.1f", f.Value)
 	//ua.processFeedbackLoop()
 }
 
@@ -336,7 +336,7 @@ func (ua *UnitAsset) getMin_temp() (f forms.SignalA_v1a) {
 // setMin_temp updates the current minimum temperature set by the user with a new value
 func (ua *UnitAsset) setMin_temp(f forms.SignalA_v1a) {
 	ua.Min_temp = f.Value
-	log.Printf("new minimum temperature: %.1f", f.Value)
+	//log.Printf("new minimum temperature: %.1f", f.Value)
 	//ua.processFeedbackLoop()
 }
 
@@ -352,7 +352,7 @@ func (ua *UnitAsset) getMax_temp() (f forms.SignalA_v1a) {
 // setMax_temp updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMax_temp(f forms.SignalA_v1a) {
 	ua.Max_temp = f.Value
-	log.Printf("new maximum temperature: %.1f", f.Value)
+	//log.Printf("new maximum temperature: %.1f", f.Value)
 	//ua.processFeedbackLoop()
 }
 
