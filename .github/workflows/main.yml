@@ -10,8 +10,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: master
       - name: Setup go
         uses: actions/setup-go@v5
         with:
@@ -26,8 +24,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: master
       - name: Setup go
         uses: actions/setup-go@v5
         with:

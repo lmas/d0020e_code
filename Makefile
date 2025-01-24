@@ -23,8 +23,7 @@ analyse:
 
 # Updates 3rd party packages and tools
 deps:
-	go get -u $$(go list ./... | grep -v /tmp)
-	go mod tidy
+	go mod download
 	go install github.com/securego/gosec/v2/cmd/gosec@latest
 	go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
 
