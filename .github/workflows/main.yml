@@ -10,8 +10,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: master
       - name: Setup go
         uses: actions/setup-go@v5
         with:
@@ -26,12 +24,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: master
       - name: Setup go
         uses: actions/setup-go@v5
         with:
           go-version: 1.23
+      - name: Install dependencies
+        run: make deps
       - name: Run tests
         run: make test
       - name: Report stats
