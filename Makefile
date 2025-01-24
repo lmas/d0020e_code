@@ -12,6 +12,7 @@ lint:
 	test -z $$(gofmt -l .) || (echo "Code isn't gofmt'ed!" && exit 1)
 	go vet $$(go list ./... | grep -v /tmp)
 	gosec -quiet -fmt=golint -exclude-dir="tmp" ./...
+	pointerinterface ./...
 
 # Generate pretty coverage report
 analyse:
@@ -26,6 +27,7 @@ deps:
 	go mod download
 	go install github.com/securego/gosec/v2/cmd/gosec@latest
 	go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+	go install code.larus.se/lmas/pointerinterface@latest
 
 # Show documentation of public parts of package, in the current dir
 docs:
@@ -41,4 +43,3 @@ build:
 clean:
 	go clean
 	rm .cover.out cover.html
-	# TODO: add raspberrypi bins
