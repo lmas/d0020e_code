@@ -31,6 +31,7 @@ func main() {
 
 	// instantiate a template unit asset
 	assetTemplate := initTemplate()
+	initAPI()
 	assetName := assetTemplate.GetName()
 	sys.UAssets[assetName] = &assetTemplate
 
