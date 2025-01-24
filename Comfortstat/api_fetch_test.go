@@ -223,3 +223,48 @@ func Test_GetMethods(t *testing.T) {
 	//}
 
 }
+
+func Test_initTemplet(t *testing.T) {
+	uasset := initTemplate().(*UnitAsset)
+
+	name := uasset.GetName()
+	Services := uasset.GetServices()
+	//Cervices := uasset.GetCervices()
+	Details := uasset.GetDetails()
+
+	//// unnecessary test, but good for practicing
+	if name != "Set Values" {
+		t.Errorf("expected name of the resource is %v, got %v", uasset.Name, name)
+	}
+	if Services == nil {
+		t.Fatalf("If Services is nil, not worth to continue testing")
+	}
+	////Services////
+	if Services["SEK_price"].Definition != "SEK_price" {
+		t.Errorf("expected service defenition to be SEKprice")
+	}
+	if Services["max_temperature"].Definition != "max_temperature" {
+		t.Errorf("expected service defenition to be max_temperature")
+	}
+	if Services["min_temperature"].Definition != "min_temperature" {
+		t.Errorf("expected service defenition to be min_temperature")
+	}
+	if Services["max_price"].Definition != "max_price" {
+		t.Errorf("expected service defenition to be max_price")
+	}
+	if Services["min_price"].Definition != "min_price" {
+		t.Errorf("expected service defenition to be min_price")
+	}
+	if Services["desired_temp"].Definition != "desired_temp" {
+		t.Errorf("expected service defenition to be desired_temp")
+	}
+	//// Testing GetCervice
+	//if Cervices == nil {
+	//	t.Fatalf("If cervises is nil, not worth to continue testing")
+	//}
+	//// Testing Details
+	if Details == nil {
+		t.Errorf("expected a map, but Details was nil, ")
+	}
+
+}
