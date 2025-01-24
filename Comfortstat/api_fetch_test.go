@@ -113,18 +113,23 @@ func TestMultipleUnitAssetOneAPICall(t *testing.T) {
 func Test_structupdate_minTemp(t *testing.T) {
 
 	asset := UnitAsset{
-		Min_temp: 20.0,
+		Min_temp:  20.0,
+		Max_temp:  30.0,
+		Max_price: 10.0,
+		Min_price: 5.0,
+		SEK_price: 7.0,
 	}
 	// Simulate the input signal
 	Min_inputSignal := forms.SignalA_v1a{
-		Value: 17.0,
+		Value: 1.0,
+		
 	}
 	// Call the setMin_temp function
 	asset.setMin_temp(Min_inputSignal)
 
 	// check if the temprature has changed correctly
-	if asset.Min_temp != 17.0 {
-		t.Errorf("expected Min_temp to be 17.0, got %f", asset.Min_temp)
+	if asset.Min_temp != 1.0 {
+		t.Errorf("expected Min_temp to be 1.0, got %f", asset.Min_temp)
 	}
 
 }
@@ -198,11 +203,14 @@ func Test_GetTemprature(t *testing.T) {
 
 }
 
-/*
 func Test_structupdate_maxTemp(t *testing.T) {
 
 	asset := &UnitAsset{
-		Max_temp: 30.0,
+		Min_temp:  20.0,
+		Max_temp:  30.0,
+		Max_price: 10.0,
+		Min_price: 5.0,
+		SEK_price: 7.0,
 	}
 	// Simulate the input signal
 	Max_inputSignal := forms.SignalA_v1a{
@@ -217,4 +225,3 @@ func Test_structupdate_maxTemp(t *testing.T) {
 	}
 
 }
-*/
