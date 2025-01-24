@@ -82,7 +82,7 @@ func initTemplate() components.UnitAsset {
 
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
-		Name:    "2",
+		Name:    "Template",
 		Details: map[string][]string{"Location": {"Kitchen"}},
 		Model:   "",
 		Period:  10,

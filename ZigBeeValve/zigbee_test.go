@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
 )
 
@@ -68,10 +70,10 @@ func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err er
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const thermostatDomain string = "http://localhost:port/api/apikey/sensors/thermostat_index/config"
-const plugDomain string = "http://localhost:port/api/apikey/lights/plug_index/config"
+const thermostatDomain string = "http://localhost:8870/api/B3AFB6415A/sensors/2/config"
+const plugDomain string = "http://localhost:8870/api/B3AFB6415A/lights/1/config"
 
-func TestUnitAssetChanged(t *testing.T) {
+func TestUnitAsset(t *testing.T) {
 
 	// Don't understand how to check my own deConz API calls, will extend the test with this once i understand
 	trans := newMockTransport()
@@ -82,10 +84,9 @@ func TestUnitAssetChanged(t *testing.T) {
 	}
 
 	// Creates a single UnitAsset and assert it changes
-	ua := UnitAsset{
-		Setpt: 20.0,
-	}
+	ua := initTemplate().(*UnitAsset)
 
+	// Change Setpt
 	ua.setSetPoint(f)
 
 	if ua.Setpt != 27.0 {
@@ -97,4 +98,50 @@ func TestUnitAssetChanged(t *testing.T) {
 	if hits > 1 {
 		t.Errorf("Expected number of api requests = 1, got %d requests", hits)
 	}
+}
+
+func TestGetters(t *testing.T) {
+	ua := initTemplate().(*UnitAsset)
+
+	name := ua.GetName()
+	if name != "Template" {
+		t.Errorf("Expected name to be 2, instead got %s", name)
+	}
+
+	services := ua.GetServices()
+	if services == nil {
+		t.Fatalf("Expected services not to be nil")
+	}
+	if services["setpoint"].Definition != "setpoint" {
+		t.Errorf("Expected definition to be setpoint")
+	}
+
+	details := ua.GetDetails()
+	if details == nil {
+		t.Fatalf("Details was nil, expected map")
+	}
+	if len(details["Location"]) == 0 {
+		t.Fatalf("Location was nil, expected kitchen")
+	}
+
+	if details["Location"][0] != "Kitchen" {
+		t.Errorf("Expected location to be Kitchen")
+	}
+
+	cervices := ua.GetCervices()
+	if cervices != nil {
+		t.Errorf("Expected no cervices")
+	}
+}
+
+func TestNewResource(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var uac UnitAsset
+	sys := components.NewSystem("testsys", ctx)
+	servsTemp := []components.Service{}
+
+	ua, cleanup := newResource(uac, &sys, servsTemp)
+
 }
