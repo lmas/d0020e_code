@@ -62,6 +62,10 @@ type API_data struct {
 	Time_end   string  `json:"time_end"`
 }
 
+func initAPI() {
+	go priceFeedbackLoop()
+}
+
 func priceFeedbackLoop() {
 	// Initialize a ticker for periodic execution
 	ticker := time.NewTicker(time.Duration(apiFetchPeriod) * time.Second)
@@ -183,8 +187,6 @@ func initTemplate() components.UnitAsset {
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the desired temperature the system calculates based on user inputs (using a GET request)",
 	}
-
-	go priceFeedbackLoop()
 
 	return &UnitAsset{
 		// TODO: These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
