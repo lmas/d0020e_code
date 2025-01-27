@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"testing"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
+	"github.com/sdoque/mbaigo/usecases"
 )
 
 // mockTransport is used for replacing the default network Transport (used by
@@ -138,11 +141,6 @@ func TestNewResource(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	uac := UnitAsset{
-		Name:  "Test",
-		Model: "SmartThermostat",
-	}
-
 	sys := components.NewSystem("testsys", ctx)
 
 	sys.Husk = &components.Husk{
@@ -153,21 +151,22 @@ func TestNewResource(t *testing.T) {
 		InfoLink:    "https://github.com/sdoque/systems/tree/master/ZigBeeValve",
 	}
 
-	setPointService := components.Service{
-		Definition:  "setpoint",
-		SubPath:     "setpoint",
-		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
-		Description: "provides the current thermal setpoint (GET) or sets it (PUT)",
+	assetTemplate := initTemplate()
+	assetName := assetTemplate.GetName()
+	sys.UAssets[assetName] = &assetTemplate
+
+	rawResources, servsTemp, err := usecases.Configure(&sys)
+	if err != nil {
+		log.Fatalf("Configuration error: %v\n", err)
 	}
-
-	// TODO: fix servsTemp and make sure the test works
-	servsTemp := components.Service{
-		setPointService.SubPath: &setPointService,
-	}
-
-	ua, _ := newResource(uac, &sys, servsTemp)
-
-	if ua.GetName() != uac.Name {
-		t.Errorf("Expected ua.Name to be %s, but it was %s", uac.Name, ua.GetName())
+	sys.UAssets = make(map[string]*components.UnitAsset) // clear the unit asset map (from the template)
+	for _, raw := range rawResources {
+		var uac UnitAsset
+		if err := json.Unmarshal(raw, &uac); err != nil {
+			log.Fatalf("Resource configuration error: %+v\n", err)
+		}
+		ua, startup := newResource(uac, &sys, servsTemp)
+		startup()
+		sys.UAssets[ua.GetName()] = &ua
 	}
 }
