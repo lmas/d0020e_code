@@ -9,8 +9,6 @@ bench:
 
 # Runs source code linters and catches common errors
 lint:
-	enable: 
-	- gocyclo
 	test -z $$(gofmt -l .) || (echo "Code isn't gofmt'ed!" && exit 1)
 	go vet $$(go list ./... | grep -v /tmp)
 	gosec -quiet -fmt=golint -exclude-dir="tmp" ./...
