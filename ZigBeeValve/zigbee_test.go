@@ -138,10 +138,36 @@ func TestNewResource(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var uac UnitAsset
+	uac := UnitAsset{
+		Name:  "Test",
+		Model: "SmartThermostat",
+	}
+
 	sys := components.NewSystem("testsys", ctx)
-	servsTemp := []components.Service{}
 
-	ua, cleanup := newResource(uac, &sys, servsTemp)
+	sys.Husk = &components.Husk{
+		Description: " is a controller for smart thermostats connected with a RaspBee II",
+		Certificate: "ABCD",
+		Details:     map[string][]string{"Developer": {"Arrowhead"}},
+		ProtoPort:   map[string]int{"https": 0, "http": 8870, "coap": 0},
+		InfoLink:    "https://github.com/sdoque/systems/tree/master/ZigBeeValve",
+	}
 
+	setPointService := components.Service{
+		Definition:  "setpoint",
+		SubPath:     "setpoint",
+		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the current thermal setpoint (GET) or sets it (PUT)",
+	}
+
+	// TODO: fix servsTemp and make sure the test works
+	servsTemp := components.Service{
+		setPointService.SubPath: &setPointService,
+	}
+
+	ua, _ := newResource(uac, &sys, servsTemp)
+
+	if ua.GetName() != uac.Name {
+		t.Errorf("Expected ua.Name to be %s, but it was %s", uac.Name, ua.GetName())
+	}
 }

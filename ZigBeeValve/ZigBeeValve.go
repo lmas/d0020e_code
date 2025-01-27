@@ -48,8 +48,8 @@ func main() {
 		if err := json.Unmarshal(raw, &uac); err != nil {
 			log.Fatalf("Resource configuration error: %+v\n", err)
 		}
-		ua, cleanup := newResource(uac, &sys, servsTemp)
-		defer cleanup()
+		ua, startup := newResource(uac, &sys, servsTemp)
+		startup()
 		sys.UAssets[ua.GetName()] = &ua
 	}
 
@@ -58,6 +58,9 @@ func main() {
 
 	// Register the (system) and its services
 	usecases.RegisterServices(&sys)
+
+	// Find zigbee gateway and store it in a global variable for reuse
+	findGateway()
 
 	// start the http handler and server
 	go usecases.SetoutServers(&sys)

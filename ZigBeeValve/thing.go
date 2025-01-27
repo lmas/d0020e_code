@@ -126,8 +126,6 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		},
 	}
 
-	findGateway(ua)
-
 	var ref components.Service
 	for _, s := range servs {
 		if s.Definition == "setpoint" {
@@ -137,15 +135,13 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 
 	ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
 
-	if uac.Model == "SmartThermostat" {
-		ua.sendSetPoint()
-	} else if uac.Model == "SmartPlug" {
-		// start the unit asset(s)
-		go ua.feedbackLoop(sys.Ctx)
-	}
-
 	return ua, func() {
-		log.Println("Shutting down zigbeevalve ", ua.Name)
+		if ua.Model == "SmartThermostat" {
+			ua.sendSetPoint()
+		} else if ua.Model == "SmartPlug" {
+			// start the unit asset(s)
+			go ua.feedbackLoop(ua.Owner.Ctx)
+		}
 	}
 }
 
@@ -190,7 +186,9 @@ func (ua *UnitAsset) processFeedbackLoop() {
 
 }
 
-func findGateway(ua *UnitAsset) {
+var gateway string
+
+func findGateway() {
 	// https://pkg.go.dev/net/http#Get
 	// GET https://phoscon.de/discover	// to find gateways, array of JSONs is returned in http body, we'll only have one so take index 0
 	// GET the gateway through phoscons built in discover tool, the get will return a response, and in its body an array with JSON elements
@@ -222,7 +220,7 @@ func findGateway(ua *UnitAsset) {
 	}
 	// Save the gateway to our unitasset
 	s := fmt.Sprintf(`%s:%d`, gw[0].Internalipaddress, gw[0].Internalport)
-	ua.gateway = s
+	gateway = s
 	//log.Println("Gateway found:", s)
 }
 
@@ -247,7 +245,7 @@ func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
 
 func (ua *UnitAsset) sendSetPoint() {
 	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
-	apiURL := "http://" + ua.gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Name + "/config"
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Name + "/config"
 
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"heatsetpoint":%f}`, ua.Setpt*100) // Create payload
@@ -257,7 +255,7 @@ func (ua *UnitAsset) sendSetPoint() {
 
 func (ua *UnitAsset) toggleState(state bool) {
 	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
-	apiURL := "http://" + ua.gateway + "/api/" + ua.Apikey + "/lights/" + ua.Name + "/state"
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.Name + "/state"
 
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"on":%t}`, state) // Create payload
