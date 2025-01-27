@@ -1,8 +1,3 @@
-# Updates 3rd party packages and tools
-deps:
-	go mod download
-	go install github.com/securego/gosec/v2/cmd/gosec@latest
-	go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
 
 # Run tests and log the test coverage
 test:
@@ -14,6 +9,8 @@ bench:
 
 # Runs source code linters and catches common errors
 lint:
+	enable: 
+	- gocyclo
 	test -z $$(gofmt -l .) || (echo "Code isn't gofmt'ed!" && exit 1)
 	go vet $$(go list ./... | grep -v /tmp)
 	gosec -quiet -fmt=golint -exclude-dir="tmp" ./...
@@ -25,6 +22,12 @@ analyse:
 	go tool cover -func=.cover.out
 	@echo -e "\nCYCLOMATIC COMPLEXITY\n===================="
 	gocyclo -avg -top 10 .
+
+# Updates 3rd party packages and tools
+deps:
+	go mod download
+	go install github.com/securego/gosec/v2/cmd/gosec@latest
+	go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
 
 # Show documentation of public parts of package, in the current dir
 docs:
