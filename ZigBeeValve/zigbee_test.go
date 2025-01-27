@@ -166,20 +166,18 @@ func TestNewResource(t *testing.T) {
 		if err := json.Unmarshal(raw, &uac); err != nil {
 			log.Fatalf("Resource configuration error: %+v\n", err)
 		}
-		ua, startup := newResource(uac, &sys, servsTemp)
-		startup()
+		ua, _ := newResource(uac, &sys, servsTemp)
+		//startup()
 		sys.UAssets[ua.GetName()] = &ua
 	}
 }
 
-func TestfeedbackLoop() {
+func TestFeedbackLoop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// instantiate the System
 	sys := components.NewSystem("testsys", ctx)
 
-	// Instatiate the Capusle
 	sys.Husk = &components.Husk{
 		Description: " is a controller for smart thermostats connected with a RaspBee II",
 		Certificate: "ABCD",
@@ -188,26 +186,30 @@ func TestfeedbackLoop() {
 		InfoLink:    "https://github.com/sdoque/systems/tree/master/ZigBeeValve",
 	}
 
-	// instantiate a template unit asset
 	assetTemplate := initTemplate()
 	assetName := assetTemplate.GetName()
 	sys.UAssets[assetName] = &assetTemplate
 
-	// Configure the system
 	rawResources, servsTemp, err := usecases.Configure(&sys)
 	if err != nil {
 		log.Fatalf("Configuration error: %v\n", err)
 	}
+
 	sys.UAssets = make(map[string]*components.UnitAsset) // clear the unit asset map (from the template)
 	for _, raw := range rawResources {
 		var uac UnitAsset
 		if err := json.Unmarshal(raw, &uac); err != nil {
 			log.Fatalf("Resource configuration error: %+v\n", err)
 		}
-		ua, startup := newResource(uac, &sys, servsTemp)
-		startup()
+		ua, _ := newResource(uac, &sys, servsTemp)
+		//startup()
 		sys.UAssets[ua.GetName()] = &ua
 	}
 
 	// TODO: Test feedbackloop and processfeedbackloop
+	/*
+		ua.feedbackLoop(ctx)
+		cancel()
+		time.Sleep(2 * time.Second)
+	*/
 }

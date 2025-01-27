@@ -182,8 +182,6 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	} else {
 		ua.toggleState(false)
 	}
-	//log.Println("Feedback loop done.")
-
 }
 
 var gateway string
