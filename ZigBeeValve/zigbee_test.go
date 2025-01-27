@@ -159,6 +159,7 @@ func TestNewResource(t *testing.T) {
 	if err != nil {
 		log.Fatalf("Configuration error: %v\n", err)
 	}
+
 	sys.UAssets = make(map[string]*components.UnitAsset) // clear the unit asset map (from the template)
 	for _, raw := range rawResources {
 		var uac UnitAsset

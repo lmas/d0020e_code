@@ -254,7 +254,7 @@ func (ua *UnitAsset) sendSetPoint() {
 }
 
 func (ua *UnitAsset) toggleState(state bool) {
-	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
+	// API call turn smart plug on/off, PUT call should be sent to  URL/api/apikey/lights/sensor_id/config
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.Name + "/state"
 
 	// Create http friendly payload
