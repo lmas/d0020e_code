@@ -329,3 +329,62 @@ func Test_calculateDesiredTemp(t *testing.T) {
 		t.Errorf("Expected calculated temp is %v, got %v", True_result, result)
 	}
 }
+
+func Test_specialcalculate(t *testing.T) {
+	asset := UnitAsset{
+		SEK_price: 3.0,
+		Max_price: 2.0,
+		Min_temp:  17.0,
+	}
+
+	result := asset.calculateDesiredTemp()
+
+	if result != asset.Min_temp {
+		t.Errorf("Expected temperature to be %v, got %v", asset.Min_temp, result)
+	}
+}
+
+// Define a simple implementation for usecases.Pack and usecases.SetState
+func dummyPack(data interface{}, contentType string) ([]byte, error) {
+	// Simulate successful packing of the data
+	return []byte("dummy-packed-data"), nil
+}
+
+func dummySetState(service interface{}, owner string, data []byte) error {
+	// Simulate successful state setting
+	return nil
+}
+
+func Test_processFeedbackLoop(t *testing.T) {
+
+	unit := initTemplate().(*UnitAsset)
+	// Create a sample UnitAsset with necessary fields initialized
+	/*
+		unit := UnitAsset{
+			Desired_temp:     20.0, // Initial desired temperature
+			old_desired_temp: 15.0,
+			CervicesMap: map[string]Service{
+				"setpoint": {
+					Details: map[string][]string{
+						"Unit": {"C"},
+					},
+				},
+			},
+			Owner: "TestOwner",
+		}
+	*/
+
+	// Replace usecases.Pack and usecases.SetState with dummy implementations
+	usecases.Pack = dummyPack
+	usecases.SetState = dummySetState
+
+	// Run the processFeedbackLoop method
+	unit.processFeedbackLoop()
+
+	// Verify the results
+	if unit.old_desired_temp != unit.Desired_temp {
+		t.Errorf("Expected old_desired_temp to be updated to %v, got %v", unit.Desired_temp, unit.old_desired_temp)
+	}
+
+	// Add more assertions as needed, such as checking if dummySetState was called
+}
