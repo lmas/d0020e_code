@@ -133,7 +133,11 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 
 	return ua, func() {
 		if ua.Model == "SmartThermostat" {
-			ua.sendSetPoint()
+			err := ua.sendSetPoint()
+			if err != nil {
+				log.Println("Error occured:", err)
+				// TODO: Turn off system if this startup() fails
+			}
 		} else if ua.Model == "SmartPlug" {
 			// start the unit asset(s)
 			go ua.feedbackLoop(ua.Owner.Ctx)
@@ -174,48 +178,61 @@ func (ua *UnitAsset) processFeedbackLoop() {
 
 	// TODO: Check diff instead of a hard over/under value? meaning it'll only turn on/off if diff is over 0.5 degrees
 	if tup.Value < ua.Setpt {
-		ua.toggleState(true)
+		err = ua.toggleState(true)
+		if err != nil {
+			log.Println("Error occured: ", err)
+		}
 	} else {
-		ua.toggleState(false)
+		err = ua.toggleState(false)
+		if err != nil {
+			log.Println("Error occured: ", err)
+		}
 	}
 }
 
 var gateway string
 
-func findGateway() {
+const discoveryURL string = "https://phoscon.de/discover"
+
+var errStatusCode error = fmt.Errorf("bad status code")
+var errMissingGateway error = fmt.Errorf("missing gateway")
+
+func findGateway() (err error) {
 	// https://pkg.go.dev/net/http#Get
 	// GET https://phoscon.de/discover	// to find gateways, array of JSONs is returned in http body, we'll only have one so take index 0
 	// GET the gateway through phoscons built in discover tool, the get will return a response, and in its body an array with JSON elements
 	// ours is index 0 since there's no other RaspBee/ZigBee gateways on the network
-	res, err := http.Get("https://phoscon.de/discover")
+	res, err := http.Get(discoveryURL)
 	if err != nil {
-		log.Println("Couldn't get gateway, error:", err)
+		//log.Println("Couldn't get gateway, error:", err)
 		return
 	}
 	defer res.Body.Close()
 	if res.StatusCode > 299 {
-		log.Printf("Response failed with status code: %d and\n", res.StatusCode)
-		return
+		//log.Printf("Response failed with status code: %d and\n", res.StatusCode)
+		return errStatusCode
 	}
 	body, err := io.ReadAll(res.Body) // Read the payload into body variable
 	if err != nil {
-		log.Println("Something went wrong while reading the body during discovery, error:", err)
+		//log.Println("Something went wrong while reading the body during discovery, error:", err)
 		return
 	}
 	var gw []discoverJSON           // Create a list to hold the gateway json
 	err = json.Unmarshal(body, &gw) // "unpack" body from []byte to []discoverJSON, save errors
 	if err != nil {
-		log.Println("Error during Unmarshal, error:", err)
+		//log.Println("Error during Unmarshal, error:", err)
 		return
 	}
+
 	if len(gw) < 1 {
-		log.Println("No gateway was found")
-		return
+		//log.Println("No gateway was found")
+		return errMissingGateway
 	}
 	// Save the gateway
 	s := fmt.Sprintf(`%s:%d`, gw[0].Internalipaddress, gw[0].Internalport)
 	gateway = s
-	log.Println("Gateway found:", s)
+	//log.Println("Gateway found:", s)
+	return
 }
 
 //-------------------------------------Thing's resource methods
@@ -237,33 +254,34 @@ func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
 	log.Println("*---------------------*")
 }
 
-func (ua *UnitAsset) sendSetPoint() {
+func (ua *UnitAsset) sendSetPoint() (err error) {
 	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Name + "/config"
 
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"heatsetpoint":%f}`, ua.Setpt*100) // Create payload
 	data := []byte(s)                                     // Turned into byte array
-	sendRequest(data, apiURL)
+	return sendRequest(data, apiURL)
 }
 
-func (ua *UnitAsset) toggleState(state bool) {
+func (ua *UnitAsset) toggleState(state bool) (err error) {
 	// API call turn smart plug on/off, PUT call should be sent to  URL/api/apikey/lights/sensor_id/config
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.Name + "/state"
 
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"on":%t}`, state) // Create payload
 	data := []byte(s)                    // Turned into byte array
-	sendRequest(data, apiURL)
+	err = sendRequest(data, apiURL)
+	return err
 }
 
-func sendRequest(data []byte, apiURL string) {
+func sendRequest(data []byte, apiURL string) (err error) {
 	body := bytes.NewBuffer(data) // Put data into buffer
 
 	req, err := http.NewRequest(http.MethodPut, apiURL, body) // Put request is made
 	if err != nil {
-		log.Println("Error making new HTTP PUT request, error:", err)
-		return
+		// log.Println("Error making new HTTP PUT request, error:", err)
+		return err
 	}
 
 	req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
@@ -271,17 +289,18 @@ func sendRequest(data []byte, apiURL string) {
 	client := &http.Client{}    // Make a client
 	resp, err := client.Do(req) // Perform the put request
 	if err != nil {
-		log.Println("Error sending HTTP PUT request, error:", err)
-		return
+		// log.Println("Error sending HTTP PUT request, error:", err)
+		return err
 	}
 	defer resp.Body.Close()
-	b, err := io.ReadAll(resp.Body) // Read the payload into body variable
+	_, err = io.ReadAll(resp.Body) // Read the payload into body variable
 	if err != nil {
-		log.Println("Something went wrong while reading payload into body variable, error:", err)
-		return
+		// log.Println("Something went wrong while reading payload into body variable, error:", err)
+		return err
 	}
 	if resp.StatusCode > 299 {
-		log.Printf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, string(b))
-		return
+		// log.Printf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, string(b))
+		return err
 	}
+	return
 }

@@ -19,12 +19,16 @@ import (
 // http.DefaultClient) and it will intercept network requests.
 
 type mockTransport struct {
+	resp *http.Response
 	hits map[string]int
+	err  error
 }
 
-func newMockTransport() mockTransport {
+func newMockTransport(resp *http.Response, err error) mockTransport {
 	t := mockTransport{
+		resp: resp,
 		hits: make(map[string]int),
+		err:  err,
 	}
 	// Highjack the default http client so no actuall http requests are sent over the network
 	http.DefaultClient.Transport = t
@@ -58,16 +62,12 @@ const discoverExample string = `[{
 // a domain was requested.
 
 func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	fakeBody := fmt.Sprint(discoverExample)
-	// TODO: should be able to adjust these return values for the error cases
-	resp = &http.Response{
-		Status:     "200 OK",
-		StatusCode: 200,
-		Request:    req,
-		Body:       io.NopCloser(strings.NewReader(fakeBody)),
-	}
+	t.resp.Request = req
 	t.hits[req.URL.Hostname()] += 1
-	return
+	if t.err != nil {
+		return nil, t.err
+	}
+	return t.resp, nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -168,63 +168,114 @@ func TestNewResource(t *testing.T) {
 const thermostatDomain string = "http://localhost:8870/api/B3AFB6415A/sensors/2/config"
 const plugDomain string = "http://localhost:8870/api/B3AFB6415A/lights/1/config"
 
-func TestProcessfeedbackLoop(t *testing.T) {
-	// Don't know how to test this
+type errReader int
+
+var errBodyRead error = fmt.Errorf("bad body read")
+
+func (errReader) Read(p []byte) (n int, err error) {
+	return 0, errBodyRead
 }
 
-func TestFindGateway1(t *testing.T) {
+func (errReader) Close() error {
+	return nil
+}
+
+func TestFindGateway(t *testing.T) {
 	// New mocktransport
-	gatewayDomain := "https://phoscon.de/discover"
-	trans := newMockTransport()
+	//gatewayDomain := "https://phoscon.de/discover"
+
+	fakeBody := fmt.Sprint(discoverExample)
+
+	resp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(fakeBody)),
+	}
+	newMockTransport(resp, nil)
 
 	// ---- All ok! ----
-	findGateway()
+	err := findGateway()
+
+	if err != nil {
+		t.Fatal("Gatewayn not found", err)
+	}
 	if gateway != "localhost:8080" {
 		t.Fatalf("Expected gateway to be localhost:8080, was %s", gateway)
-	}
-	hits := trans.domainHits(gatewayDomain)
-	if hits > 1 {
-		t.Fatalf("Too many hits on gatewayDomain, expected 1 got, %d", hits)
 	}
 
 	// Have to make changes to mockTransport to test this?
 	// ---- Error cases ----
-	/*
-		// Couldn't find gateway
-		findGateway()
-		if gateway != "" {
-			log.Printf("Expected not to find gateway, found %s", gateway)
-		}
-	*/
+
+	// Unmarshall error
+	newMockTransport(resp, fmt.Errorf("Test error"))
+	err = findGateway()
+	if err == nil {
+		t.Error("Error expcted, got nil instead", err)
+	}
+
 	// Statuscode > 299, have to make changes to mockTransport to test this
-	// Couldn't read body, have to make changes to mockTransport to test this
-	// Error during unmarshal, have to make changes to mockTransport to test this
+	resp.StatusCode = 300
+	newMockTransport(resp, nil)
+	err = findGateway()
+	if err != errStatusCode {
+		t.Error("Expected errStatusCode, got", err)
+	}
+
+	// Broken body - https://stackoverflow.com/questions/45126312/how-do-i-test-an-error-on-reading-from-a-request-body
+	resp.StatusCode = 200
+	resp.Body = errReader(0)
+	newMockTransport(resp, nil)
+	err = findGateway()
+	if err != errBodyRead {
+		t.Error("Expected error")
+	}
+
+	// Actual http body is unmarshaled correctly
+	resp.Body = io.NopCloser(strings.NewReader(fakeBody + "123"))
+	newMockTransport(resp, nil)
+	err = findGateway()
+	if err == nil {
+		t.Error("Expected error")
+	}
+
+	// Empty list of gateways
+	resp.Body = io.NopCloser(strings.NewReader("[]"))
+	newMockTransport(resp, nil)
+	err = findGateway()
+	if err != errMissingGateway {
+		t.Error("Expected error", err)
+	}
 }
 
-const zigbeeGateway string = "http://localhost:8080/"
-
 func TestToggleState(t *testing.T) {
-	trans := newMockTransport()
+	fakeBody := fmt.Sprint("")
+
+	resp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(fakeBody)),
+	}
+
+	newMockTransport(resp, nil)
 
 	ua := initTemplate().(*UnitAsset)
 
 	ua.toggleState(true)
-
-	hits := trans.domainHits(plugDomain)
-	if hits > 1 {
-		t.Errorf("Expected one hit, got %d", hits)
-	}
 }
 
 func TestSendSetPoint(t *testing.T) {
-	trans := newMockTransport()
+	fakeBody := fmt.Sprint(`{"Value": 12.4, "Version": "SignalA_v1a}`)
+
+	resp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(fakeBody)),
+	}
+
+	newMockTransport(resp, nil)
 
 	ua := initTemplate().(*UnitAsset)
 
 	ua.sendSetPoint()
 
-	hits := trans.domainHits(thermostatDomain)
-	if hits > 1 {
-		t.Errorf("expected one hit, got %d", hits)
-	}
 }

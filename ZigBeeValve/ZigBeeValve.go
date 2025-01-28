@@ -60,7 +60,10 @@ func main() {
 	usecases.RegisterServices(&sys)
 
 	// Find zigbee gateway and store it in a global variable for reuse
-	findGateway()
+	err = findGateway()
+	if err != nil {
+		log.Fatal("Error getting gateway, shutting down:", err)
+	}
 
 	// start the http handler and server
 	go usecases.SetoutServers(&sys)
@@ -97,7 +100,11 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		log.Println("Model:", rsc.Model)
 		rsc.setSetPoint(sig)
 		if rsc.Model == "SmartThermostat" {
-			rsc.sendSetPoint()
+			err = rsc.sendSetPoint()
+			if err != nil {
+				log.Println("Error sending setpoint:", err)
+				http.Error(w, "Couldn't send setpoint.", http.StatusInternalServerError)
+			}
 		}
 
 	default:
