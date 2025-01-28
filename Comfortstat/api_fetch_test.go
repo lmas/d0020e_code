@@ -344,47 +344,52 @@ func Test_specialcalculate(t *testing.T) {
 	}
 }
 
-// Define a simple implementation for usecases.Pack and usecases.SetState
-func dummyPack(data interface{}, contentType string) ([]byte, error) {
-	// Simulate successful packing of the data
-	return []byte("dummy-packed-data"), nil
-}
+func Test_processfeedbackLoop(t *testing.T) {
+	ua := initTemplate().(*UnitAsset)
 
-func dummySetState(service interface{}, owner string, data []byte) error {
-	// Simulate successful state setting
-	return nil
-}
-
-func Test_processFeedbackLoop(t *testing.T) {
-
-	unit := initTemplate().(*UnitAsset)
-	// Create a sample UnitAsset with necessary fields initialized
-	/*
-		unit := UnitAsset{
-			Desired_temp:     20.0, // Initial desired temperature
-			old_desired_temp: 15.0,
-			CervicesMap: map[string]Service{
-				"setpoint": {
-					Details: map[string][]string{
-						"Unit": {"C"},
-					},
-				},
-			},
-			Owner: "TestOwner",
-		}
-	*/
-
-	// Replace usecases.Pack and usecases.SetState with dummy implementations
-	usecases.Pack = dummyPack
-	usecases.SetState = dummySetState
-
-	// Run the processFeedbackLoop method
-	unit.processFeedbackLoop()
-
-	// Verify the results
-	if unit.old_desired_temp != unit.Desired_temp {
-		t.Errorf("Expected old_desired_temp to be updated to %v, got %v", unit.Desired_temp, unit.old_desired_temp)
+	// Set the calculateDesiredTemp function to simulate a new temperature value
+	ua.calculateDesiredTemp = func() float64 {
+		return 23.0 // Just return a new temp value to trigger a change
 	}
 
-	// Add more assertions as needed, such as checking if dummySetState was called
+	// Override the Pack function to simulate no error and return dummy data
+	usecases.Pack = func(form *forms.SignalA_v1a, contentType string) ([]byte, error) {
+		return []byte("packed data"), nil
+	}
+
+	// Override the SetState function to simulate a successful update
+	usecases.SetState = func(setpoint interface{}, owner interface{}, op []byte) error {
+		return nil
+	}
+
+	// Create a variable to hold the SignalA_v1a form to compare later
+	// Set the form's value, unit, and timestamp to simulate what the method does
+	var of forms.SignalA_v1a
+	of.NewForm()
+	of.Value = ua.Desired_temp
+	of.Unit = ua.CervicesMap["setpoint"].Details["Unit"][0] // This matches the code that fetches the "Unit"
+	of.Timestamp = time.Now()
+
+	// Run the processFeedbackLoop method
+	ua.processFeedbackLoop()
+
+	// Check if the Desired_temp was updated
+	if ua.Desired_temp != 23.0 {
+		t.Errorf("Expected Desired_temp to be 23.0, but got %f", ua.Desired_temp)
+	}
+
+	// Check if the old_desired_temp was updated
+	if ua.old_desired_temp != 23.0 {
+		t.Errorf("Expected old_desired_temp to be 23.0, but got %f", ua.old_desired_temp)
+	}
+
+	// Optionally, check if the values in the form match what was expected
+	if of.Value != ua.Desired_temp {
+		t.Errorf("Expected form Value to be %f, but got %f", ua.Desired_temp, of.Value)
+	}
+
+	if of.Unit != "Celsius" {
+		t.Errorf("Expected form Unit to be 'Celsius', but got '%s'", of.Unit)
+	}
+
 }
