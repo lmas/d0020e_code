@@ -18,8 +18,7 @@ import (
 	"github.com/sdoque/mbaigo/usecases"
 )
 
-//------------------------------------ Used when discovering the gateway
-
+// ------------------------------------ Used when discovering the gateway
 type discoverJSON struct {
 	Id                string `json:"id"`
 	Internalipaddress string `json:"internalipaddress"`
@@ -39,11 +38,10 @@ type UnitAsset struct {
 	ServicesMap components.Services `json:"-"`
 	CervicesMap components.Cervices `json:"-"`
 	//
-	Model   string        `json:"model"`
-	Period  time.Duration `json:"period"`
-	Setpt   float64       `json:"setpoint"`
-	gateway string
-	Apikey  string `json:"APIkey"`
+	Model  string        `json:"model"`
+	Period time.Duration `json:"period"`
+	Setpt  float64       `json:"setpoint"`
+	Apikey string        `json:"APIkey"`
 }
 
 // GetName returns the name of the Resource.
@@ -87,8 +85,7 @@ func initTemplate() components.UnitAsset {
 		Model:   "",
 		Period:  10,
 		Setpt:   20,
-		gateway: "",
-		Apikey:  "",
+		Apikey:  "1234",
 		ServicesMap: components.Services{
 			setPointService.SubPath: &setPointService,
 		},
@@ -119,7 +116,6 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		Model:       uac.Model,
 		Period:      uac.Period,
 		Setpt:       uac.Setpt,
-		gateway:     uac.gateway,
 		Apikey:      uac.Apikey,
 		CervicesMap: components.Cervices{
 			t.Name: t,
@@ -216,10 +212,10 @@ func findGateway() {
 		log.Println("No gateway was found")
 		return
 	}
-	// Save the gateway to our unitasset
+	// Save the gateway
 	s := fmt.Sprintf(`%s:%d`, gw[0].Internalipaddress, gw[0].Internalport)
 	gateway = s
-	//log.Println("Gateway found:", s)
+	log.Println("Gateway found:", s)
 }
 
 //-------------------------------------Thing's resource methods
@@ -281,7 +277,7 @@ func sendRequest(data []byte, apiURL string) {
 	defer resp.Body.Close()
 	b, err := io.ReadAll(resp.Body) // Read the payload into body variable
 	if err != nil {
-		log.Println("Something went wrong while reading the body during discovery, error:", err)
+		log.Println("Something went wrong while reading payload into body variable, error:", err)
 		return
 	}
 	if resp.StatusCode > 299 {

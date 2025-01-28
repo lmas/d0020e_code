@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
@@ -45,21 +44,21 @@ func (t mockTransport) domainHits(domain string) int {
 
 // TODO: this might need to be expanded to a full JSON array?
 
-const priceExample string = `[{
-	"SEK_per_kWh": 0.26673,
-	"EUR_per_kWh": 0.02328,
-	"EXR": 11.457574,
-	"time_start": "2025-01-06T%02d:00:00+01:00",
-	"time_end": "2025-01-06T%02d:00:00+01:00"
-}]`
+const discoverExample string = `[{
+		"Id": "123",
+		"Internalipaddress": "localhost",
+		"Macaddress": "test",
+		"Internalport": 8080,
+		"Name": "My gateway",
+		"Publicipaddress": "test"
+	}]`
 
 // RoundTrip method is required to fulfil the RoundTripper interface (as required by the DefaultClient).
 // It prevents the request from being sent over the network and count how many times
 // a domain was requested.
 
 func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	hour := time.Now().Local().Hour()
-	fakeBody := fmt.Sprintf(priceExample, hour, hour+1)
+	fakeBody := fmt.Sprint(discoverExample)
 	// TODO: should be able to adjust these return values for the error cases
 	resp = &http.Response{
 		Status:     "200 OK",
@@ -73,14 +72,7 @@ func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err er
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const thermostatDomain string = "http://localhost:8870/api/B3AFB6415A/sensors/2/config"
-const plugDomain string = "http://localhost:8870/api/B3AFB6415A/lights/1/config"
-
 func TestUnitAsset(t *testing.T) {
-
-	// Don't understand how to check my own deConz API calls, will extend the test with this once i understand
-	trans := newMockTransport()
-
 	// Create a form
 	f := forms.SignalA_v1a{
 		Value: 27.0,
@@ -96,10 +88,11 @@ func TestUnitAsset(t *testing.T) {
 		t.Errorf("Expected Setpt to be 27.0, instead got %f", ua.Setpt)
 	}
 
-	// TODO: Add api call to make sure it only sends update to HW once.
-	hits := trans.domainHits(thermostatDomain)
-	if hits > 1 {
-		t.Errorf("Expected number of api requests = 1, got %d requests", hits)
+	// Fetch Setpt w/ a form
+	f2 := ua.getSetPoint()
+
+	if f2.Value != f.Value {
+		t.Errorf("Expected %f, instead got %f", f.Value, f2.Value)
 	}
 }
 
@@ -172,44 +165,66 @@ func TestNewResource(t *testing.T) {
 	}
 }
 
-func TestFeedbackLoop(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+const thermostatDomain string = "http://localhost:8870/api/B3AFB6415A/sensors/2/config"
+const plugDomain string = "http://localhost:8870/api/B3AFB6415A/lights/1/config"
 
-	sys := components.NewSystem("testsys", ctx)
+func TestProcessfeedbackLoop(t *testing.T) {
+	// Don't know how to test this
+}
 
-	sys.Husk = &components.Husk{
-		Description: " is a controller for smart thermostats connected with a RaspBee II",
-		Certificate: "ABCD",
-		Details:     map[string][]string{"Developer": {"Arrowhead"}},
-		ProtoPort:   map[string]int{"https": 0, "http": 8870, "coap": 0},
-		InfoLink:    "https://github.com/sdoque/systems/tree/master/ZigBeeValve",
+func TestFindGateway1(t *testing.T) {
+	// New mocktransport
+	gatewayDomain := "https://phoscon.de/discover"
+	trans := newMockTransport()
+
+	// ---- All ok! ----
+	findGateway()
+	if gateway != "localhost:8080" {
+		t.Fatalf("Expected gateway to be localhost:8080, was %s", gateway)
+	}
+	hits := trans.domainHits(gatewayDomain)
+	if hits > 1 {
+		t.Fatalf("Too many hits on gatewayDomain, expected 1 got, %d", hits)
 	}
 
-	assetTemplate := initTemplate()
-	assetName := assetTemplate.GetName()
-	sys.UAssets[assetName] = &assetTemplate
-
-	rawResources, servsTemp, err := usecases.Configure(&sys)
-	if err != nil {
-		log.Fatalf("Configuration error: %v\n", err)
-	}
-
-	sys.UAssets = make(map[string]*components.UnitAsset) // clear the unit asset map (from the template)
-	for _, raw := range rawResources {
-		var uac UnitAsset
-		if err := json.Unmarshal(raw, &uac); err != nil {
-			log.Fatalf("Resource configuration error: %+v\n", err)
-		}
-		ua, _ := newResource(uac, &sys, servsTemp)
-		//startup()
-		sys.UAssets[ua.GetName()] = &ua
-	}
-
-	// TODO: Test feedbackloop and processfeedbackloop
+	// Have to make changes to mockTransport to test this?
+	// ---- Error cases ----
 	/*
-		ua.feedbackLoop(ctx)
-		cancel()
-		time.Sleep(2 * time.Second)
+		// Couldn't find gateway
+		findGateway()
+		if gateway != "" {
+			log.Printf("Expected not to find gateway, found %s", gateway)
+		}
 	*/
+	// Statuscode > 299, have to make changes to mockTransport to test this
+	// Couldn't read body, have to make changes to mockTransport to test this
+	// Error during unmarshal, have to make changes to mockTransport to test this
+}
+
+const zigbeeGateway string = "http://localhost:8080/"
+
+func TestToggleState(t *testing.T) {
+	trans := newMockTransport()
+
+	ua := initTemplate().(*UnitAsset)
+
+	ua.toggleState(true)
+
+	hits := trans.domainHits(plugDomain)
+	if hits > 1 {
+		t.Errorf("Expected one hit, got %d", hits)
+	}
+}
+
+func TestSendSetPoint(t *testing.T) {
+	trans := newMockTransport()
+
+	ua := initTemplate().(*UnitAsset)
+
+	ua.sendSetPoint()
+
+	hits := trans.domainHits(thermostatDomain)
+	if hits > 1 {
+		t.Errorf("expected one hit, got %d", hits)
+	}
 }
