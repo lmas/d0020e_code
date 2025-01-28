@@ -283,12 +283,13 @@ func (ua *UnitAsset) getSEK_price() (f forms.SignalA_v1a) {
 	return f
 }
 
+/*
 // setSEK_price updates the current electric price with the new current electric hourly price
 func (ua *UnitAsset) setSEK_price(f forms.SignalA_v1a) {
 	ua.SEK_price = f.Value
 	//log.Printf("new electric price: %.1f", f.Value)
 }
-
+*/
 /////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
@@ -454,6 +455,7 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	of.Timestamp = time.Now()
 
 	// pack the new valve state form
+	// Pack() converting the data in "of" into JSON format
 	op, err := usecases.Pack(&of, "application/json")
 	if err != nil {
 		return
