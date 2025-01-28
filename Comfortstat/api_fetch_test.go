@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
+	"github.com/sdoque/mbaigo/usecases"
 )
 
 // mockTransport is used for replacing the default network Transport (used by
@@ -267,4 +272,60 @@ func Test_initTemplet(t *testing.T) {
 		t.Errorf("expected a map, but Details was nil, ")
 	}
 
+}
+
+func Test_newUnitAsset(t *testing.T) {
+	// prepare for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background()) // create a context that can be cancelled
+	defer cancel()                                          // make sure all paths cancel the context to avoid context leak
+
+	// instantiate the System
+	sys := components.NewSystem("Comfortstat", ctx)
+
+	// Instatiate the Capusle
+	sys.Husk = &components.Husk{
+		Description: " is a controller for a consumed servo motor position based on a consumed temperature",
+		Certificate: "ABCD",
+		Details:     map[string][]string{"Developer": {"Arrowhead"}},
+		ProtoPort:   map[string]int{"https": 0, "http": 8670, "coap": 0},
+		InfoLink:    "https://github.com/lmas/d0020e_code/tree/master/Comfortstat",
+	}
+
+	// instantiate a template unit asset
+	assetTemplate := initTemplate()
+	//initAPI()
+	assetName := assetTemplate.GetName()
+	sys.UAssets[assetName] = &assetTemplate
+
+	// Configure the system
+	rawResources, servsTemp, err := usecases.Configure(&sys)
+	if err != nil {
+		log.Fatalf("Configuration error: %v\n", err)
+	}
+	sys.UAssets = make(map[string]*components.UnitAsset) // clear the unit asset map (from the template)
+	for _, raw := range rawResources {
+		var uac UnitAsset
+		if err := json.Unmarshal(raw, &uac); err != nil {
+			log.Fatalf("Resource configuration error: %+v\n", err)
+		}
+		ua, cleanup := newUnitAsset(uac, &sys, servsTemp)
+		defer cleanup()
+		sys.UAssets[ua.GetName()] = &ua
+	}
+
+	// Skriv if-satser som kollar namn och services
+	// testa calculatedeiserdTemp(nytt test)
+	// processfeedbackloop(nytt test)
+	//
+}
+
+func Test_calculateDesiredTemp(t *testing.T) {
+	var True_result float64 = 22.5
+	asset := initTemplate().(*UnitAsset)
+
+	result := asset.calculateDesiredTemp()
+
+	if result != True_result {
+		t.Errorf("Expected calculated temp is %v, got %v", True_result, result)
+	}
 }

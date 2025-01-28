@@ -192,9 +192,9 @@ func initTemplate() components.UnitAsset {
 		// TODO: These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
 		Name:         "Set Values",
 		Details:      map[string][]string{"Location": {"Kitchen"}},
-		SEK_price:    7.5,  // Example electricity price in SEK per kWh
-		Min_price:    0.0,  // Minimum price allowed
-		Max_price:    0.02, // Maximum price allowed
+		SEK_price:    1.5,  // Example electricity price in SEK per kWh
+		Min_price:    1.0,  // Minimum price allowed
+		Max_price:    2.0,  // Maximum price allowed
 		Min_temp:     20.0, // Minimum temperature
 		Max_temp:     25.0, // Maximum temprature allowed
 		Desired_temp: 0,    // Desired temp calculated by system
@@ -432,25 +432,7 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 
 func (ua *UnitAsset) processFeedbackLoop() {
 	// get the current temperature
-	/*
-		tf, err := usecases.GetState(ua.CervicesMap["setpoint"], ua.Owner)
-		if err != nil {
-			log.Printf("\n unable to obtain a setpoint reading error: %s\n", err)
-			return
-		}
-		// Perform a type assertion to convert the returned Form to SignalA_v1a
-		tup, ok := tf.(*forms.SignalA_v1a)
-		if !ok {
-			log.Println("problem unpacking the setpoint signal form")
-			return
-		}
-	*/
-	/*
-		miT := ua.getMin_temp().Value
-		maT := ua.getMax_temp().Value
-		miP := ua.getMin_price().Value
-		maP := ua.getMax_price().Value
-	*/
+
 	//ua.Desired_temp = ua.calculateDesiredTemp(miT, maT, miP, maP, ua.getSEK_price().Value)
 	ua.Desired_temp = ua.calculateDesiredTemp()
 	// Only send temperature update when we have a new value.
