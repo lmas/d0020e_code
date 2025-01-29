@@ -1,0 +1,105 @@
+
+# Documentation: https://docs.docker.com/reference/compose-file/
+
+version: "3"
+services:
+  # WARN: using localhost in docker networking is highly discouraged!
+  # But the way mbaigo is built, service discovery is done using localhost by default
+  # so have to add `network_mode: "host"` so the systems can discover each other.
+  #
+  # It's a really bad idea, exposing the host's network to the containers
+  # but it solves the problem for now...
+  #
+  # Source: https://stackoverflow.com/a/43554707
+
+  # Build and run the core systems
+
+  registrar:
+    image: registrar:0.1.0
+    build:
+      context: ./mbaigo
+      args:
+        - SRC=./sregistrar/*.go
+        - PORT=8443
+    network_mode: "host"
+    volumes:
+      - ./data/registrar:/data
+
+  orchestrator:
+    image: orchestrator:0.1.0
+    build:
+      context: ./mbaigo
+      args:
+        - SRC=./orchestrator/*.go
+        - PORT=8445
+    depends_on:
+      - registrar
+    network_mode: "host"
+    volumes:
+      - ./data/orchestrator:/data
+
+  # Build and run business systems
+
+  ds18b20:
+    image: ds18b20:0.1.0
+    build:
+      context: ./mbaigo
+      args:
+        - SRC=./ds18b20/*.go
+        - PORT=8690
+    depends_on:
+      - registrar
+      - orchestrator
+    network_mode: "host"
+    volumes:
+      - ./data/ds18b20:/data
+
+  comfortstat:
+    image: comfortstat:0.2.0
+    build:
+      context: ./src
+      args:
+        - SRC=./Comfortstat/*.go
+        - PORT=8670
+    depends_on:
+      - registrar
+      - orchestrator
+    network_mode: "host"
+    volumes:
+      - ./data/comfortstat:/data
+
+  zigbee:
+    image: zigbee:0.2.0
+    build:
+      context: ./src
+      args:
+        - SRC=./ZigBeeValve/*.go
+        - PORT=8870
+    depends_on:
+      - registrar
+      - orchestrator
+      - ds18b20
+    network_mode: "host"
+    volumes:
+      - ./data/zigbee:/data
+
+  # influxdb:
+  #   image: influxdb:x.x.x-alpine
+  #   ports:
+  #   volumes:
+  #     - ./data/influxdb:xxx
+  #
+  ## TODO: yeah gonna need a better name here
+  # influx:
+  #   build: ./src/influxdb/
+  #   image: influx:0.2.0
+  #   depends_on:
+  #     - ds18b20
+  #     - influxdb
+  #     - zigbee
+  #     - comfortstat
+  #   ports:
+  #     - 8870:8870
+  #   volumes:
+  #     - ./data/influxdb:/data
+
