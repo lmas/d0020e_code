@@ -34,8 +34,6 @@ var globalPrice = GlobalPriceData{
 // A UnitAsset models an interface or API for a smaller part of a whole system, for example a single temperature sensor.
 // This type must implement the go interface of "components.UnitAsset"
 type UnitAsset struct {
-	// Public fields
-	// TODO: Why have these public and then provide getter methods? Might need refactor..
 	Name        string              `json:"name"`    // Must be a unique name, ie. a sensor ID
 	Owner       *components.System  `json:"-"`       // The parent system this UA is part of
 	Details     map[string][]string `json:"details"` // Metadata or details about this UA
@@ -96,7 +94,7 @@ func getAPIPriceData() {
 		return
 	}
 	var data []GlobalPriceData        // Create a list to hold the gateway json
-	err = json.Unmarshal(body, &data) // "unpack" body from []byte to []discoverJSON, save errors
+	err = json.Unmarshal(body, &data) // "unpack" body from []byte to []GlobalPriceData, save errors
 	res.Body.Close()                  // defer res.Body.Close()
 
 	if res.StatusCode > 299 {
