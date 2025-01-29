@@ -156,9 +156,9 @@ func initTemplate() components.UnitAsset {
 	}
 
 	setMax_temp := components.Service{
-		Definition:  "max_temperature",                                                  // TODO: this get's incorrectly linked to the below subpath
-		SubPath:     "max_temperature",                                                  // TODO: this path needs to be setup in Serving() too
-		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}}, // TODO: why this form here??
+		Definition:  "max_temperature",
+		SubPath:     "max_temperature",
+		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the maximum temp the user wants (using a GET request)",
 	}
 	setMin_temp := components.Service{
@@ -198,7 +198,7 @@ func initTemplate() components.UnitAsset {
 		Desired_temp: 0,    // Desired temp calculated by system
 		Period:       15,
 
-		// Don't forget to map the provided services from above!
+		// maps the provided services from above
 		ServicesMap: components.Services{
 			setMax_temp.SubPath:     &setMax_temp,
 			setMin_temp.SubPath:     &setMin_temp,
@@ -220,7 +220,7 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 
 	sProtocol := components.SProtocols(sys.Husk.ProtoPort)
 
-	// the Cervice that is to be consumed by zigbee, there fore the name with the C
+	// the Cervice that is to be consumed by zigbee, therefore the name with the C
 
 	t := &components.Cervice{
 		Name:   "setpoint",
@@ -254,8 +254,6 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 	}
 
 	ua.CervicesMap["setpoint"].Details = components.MergeDetails(ua.Details, ref.Details)
-
-	// ua.CervicesMap["setPoint"].Details = components.MergeDetails(ua.Details, map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}})
 
 	// start the unit asset(s)
 	go ua.feedbackLoop(sys.Ctx)
@@ -303,8 +301,6 @@ func (ua *UnitAsset) getMin_price() (f forms.SignalA_v1a) {
 // setMin_price updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMin_price(f forms.SignalA_v1a) {
 	ua.Min_price = f.Value
-	//log.Printf("new minimum price: %.1f", f.Value)
-	//ua.processFeedbackLoop()
 }
 
 // getMax_price is used for reading the current value of Max_price
@@ -319,8 +315,6 @@ func (ua *UnitAsset) getMax_price() (f forms.SignalA_v1a) {
 // setMax_price updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMax_price(f forms.SignalA_v1a) {
 	ua.Max_price = f.Value
-	//log.Printf("new maximum price: %.1f", f.Value)
-	//ua.processFeedbackLoop()
 }
 
 // getMin_temp is used for reading the current minimum temerature value
@@ -335,8 +329,6 @@ func (ua *UnitAsset) getMin_temp() (f forms.SignalA_v1a) {
 // setMin_temp updates the current minimum temperature set by the user with a new value
 func (ua *UnitAsset) setMin_temp(f forms.SignalA_v1a) {
 	ua.Min_temp = f.Value
-	//log.Printf("new minimum temperature: %.1f", f.Value)
-	//ua.processFeedbackLoop()
 }
 
 // getMax_temp is used for reading the current value of Min_price
@@ -351,8 +343,6 @@ func (ua *UnitAsset) getMax_temp() (f forms.SignalA_v1a) {
 // setMax_temp updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMax_temp(f forms.SignalA_v1a) {
 	ua.Max_temp = f.Value
-	//log.Printf("new maximum temperature: %.1f", f.Value)
-	//ua.processFeedbackLoop()
 }
 
 func (ua *UnitAsset) getDesired_temp() (f forms.SignalA_v1a) {
@@ -430,7 +420,7 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 //
 
 func (ua *UnitAsset) processFeedbackLoop() {
-	// get the current temperature
+	// get the current best temperature
 
 	//ua.Desired_temp = ua.calculateDesiredTemp(miT, maT, miP, maP, ua.getSEK_price().Value)
 	ua.Desired_temp = ua.calculateDesiredTemp()
@@ -440,10 +430,6 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	}
 	// Keep track of previous value
 	ua.old_desired_temp = ua.Desired_temp
-
-	// perform the control algorithm
-	//	ua.deviation = ua.Setpt - tup.Value
-	//	output := ua.calculateOutput(ua.deviation)
 
 	// prepare the form to send
 	var of forms.SignalA_v1a
@@ -466,7 +452,10 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	}
 }
 
+// Calculates the new most optimal temprature (desierdTemp) based on the price/temprature intervalls
+// and the current electricity price
 func (ua *UnitAsset) calculateDesiredTemp() float64 {
+
 	if ua.SEK_price <= ua.Min_price {
 		return ua.Max_temp
 	}
@@ -476,7 +465,7 @@ func (ua *UnitAsset) calculateDesiredTemp() float64 {
 
 	k := (ua.Min_temp - ua.Max_temp) / (ua.Max_price - ua.Min_price)
 	m := ua.Max_temp - (k * ua.Min_price)
-	//m := max_temp
-	desired_temp := k*(ua.SEK_price) + m // y - y_min = k*(x-x_min), solve for y ("desired temp")
+	desired_temp := k*(ua.SEK_price) + m
+
 	return desired_temp
 }
