@@ -204,7 +204,6 @@ func findGateway() (err error) {
 	// ours is index 0 since there's no other RaspBee/ZigBee gateways on the network
 	res, err := http.Get(discoveryURL)
 	if err != nil {
-		//log.Println("Couldn't get gateway, error:", err)
 		return
 	}
 	defer res.Body.Close()
@@ -214,13 +213,11 @@ func findGateway() (err error) {
 	}
 	body, err := io.ReadAll(res.Body) // Read the payload into body variable
 	if err != nil {
-		//log.Println("Something went wrong while reading the body during discovery, error:", err)
 		return
 	}
 	var gw []discoverJSON           // Create a list to hold the gateway json
 	err = json.Unmarshal(body, &gw) // "unpack" body from []byte to []discoverJSON, save errors
 	if err != nil {
-		//log.Println("Error during Unmarshal, error:", err)
 		return
 	}
 
@@ -260,8 +257,11 @@ func (ua *UnitAsset) sendSetPoint() (err error) {
 
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"heatsetpoint":%f}`, ua.Setpt*100) // Create payload
-	data := []byte(s)                                     // Turned into byte array
-	return sendRequest(data, apiURL)
+	req, err := createRequest(s, apiURL)
+	if err != nil {
+		return
+	}
+	return sendRequest(req)
 }
 
 func (ua *UnitAsset) toggleState(state bool) (err error) {
@@ -270,37 +270,37 @@ func (ua *UnitAsset) toggleState(state bool) (err error) {
 
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"on":%t}`, state) // Create payload
-	data := []byte(s)                    // Turned into byte array
-	err = sendRequest(data, apiURL)
-	return err
+	req, err := createRequest(s, apiURL)
+	if err != nil {
+		return
+	}
+	return sendRequest(req)
 }
 
-func sendRequest(data []byte, apiURL string) (err error) {
-	body := bytes.NewBuffer(data) // Put data into buffer
-
-	req, err := http.NewRequest(http.MethodPut, apiURL, body) // Put request is made
+func createRequest(data string, apiURL string) (req *http.Request, err error) {
+	body := bytes.NewReader([]byte(data))                    // Put data into buffer
+	req, err = http.NewRequest(http.MethodPut, apiURL, body) // Put request is made
 	if err != nil {
-		// log.Println("Error making new HTTP PUT request, error:", err)
-		return err
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
+	return req, err
+}
 
-	client := &http.Client{}    // Make a client
-	resp, err := client.Do(req) // Perform the put request
+func sendRequest(req *http.Request) (err error) {
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		// log.Println("Error sending HTTP PUT request, error:", err)
 		return err
 	}
+
 	defer resp.Body.Close()
 	_, err = io.ReadAll(resp.Body) // Read the payload into body variable
 	if err != nil {
-		// log.Println("Something went wrong while reading payload into body variable, error:", err)
-		return err
+		return
 	}
 	if resp.StatusCode > 299 {
-		// log.Printf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, string(b))
-		return err
+		return errStatusCode
 	}
 	return
 }

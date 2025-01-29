@@ -19,31 +19,22 @@ import (
 // http.DefaultClient) and it will intercept network requests.
 
 type mockTransport struct {
-	resp *http.Response
-	hits map[string]int
-	err  error
+	returnError bool
+	resp        *http.Response
+	hits        map[string]int
+	err         error
 }
 
-func newMockTransport(resp *http.Response, err error) mockTransport {
+func newMockTransport(resp *http.Response, retErr bool, err error) mockTransport {
 	t := mockTransport{
-		resp: resp,
-		hits: make(map[string]int),
-		err:  err,
+		returnError: retErr,
+		resp:        resp,
+		hits:        make(map[string]int),
+		err:         err,
 	}
 	// Highjack the default http client so no actuall http requests are sent over the network
 	http.DefaultClient.Transport = t
 	return t
-}
-
-// domainHits returns the number of requests to a domain (or -1 if domain wasn't found).
-
-func (t mockTransport) domainHits(domain string) int {
-	for u, hits := range t.hits {
-		if u == domain {
-			return hits
-		}
-	}
-	return -1
 }
 
 // TODO: this might need to be expanded to a full JSON array?
@@ -61,12 +52,19 @@ const discoverExample string = `[{
 // It prevents the request from being sent over the network and count how many times
 // a domain was requested.
 
+var errHTTP error = fmt.Errorf("bad http request")
+
 func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	t.resp.Request = req
 	t.hits[req.URL.Hostname()] += 1
 	if t.err != nil {
 		return nil, t.err
 	}
+	if t.returnError != false {
+		req.GetBody = func() (io.ReadCloser, error) {
+			return nil, errHTTP
+		}
+	}
+	t.resp.Request = req
 	return t.resp, nil
 }
 
@@ -165,9 +163,6 @@ func TestNewResource(t *testing.T) {
 	}
 }
 
-const thermostatDomain string = "http://localhost:8870/api/B3AFB6415A/sensors/2/config"
-const plugDomain string = "http://localhost:8870/api/B3AFB6415A/lights/1/config"
-
 type errReader int
 
 var errBodyRead error = fmt.Errorf("bad body read")
@@ -180,10 +175,25 @@ func (errReader) Close() error {
 	return nil
 }
 
-func TestFindGateway(t *testing.T) {
-	// New mocktransport
-	//gatewayDomain := "https://phoscon.de/discover"
+func TestProcessFeedbackLoop(t *testing.T) {
+	// TODO: Test as much of the code as possible.
+	// Maybe try to pass arguments to processFeedbackLoop, to skip the GetState() function?
+	/*
+			fakeBody := // Find out what a form looks like, and pass it to this test function
 
+			resp := &http.Response{
+				Status:     "200 OK",
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader(fakeBody)),
+			}
+			newMockTransport(resp, false, nil)
+
+		ua := initTemplate().(*UnitAsset)
+		ua.processFeedbackLoop()
+	*/
+}
+
+func TestFindGateway(t *testing.T) {
 	fakeBody := fmt.Sprint(discoverExample)
 
 	resp := &http.Response{
@@ -191,7 +201,7 @@ func TestFindGateway(t *testing.T) {
 		StatusCode: 200,
 		Body:       io.NopCloser(strings.NewReader(fakeBody)),
 	}
-	newMockTransport(resp, nil)
+	newMockTransport(resp, false, nil)
 
 	// ---- All ok! ----
 	err := findGateway()
@@ -203,11 +213,10 @@ func TestFindGateway(t *testing.T) {
 		t.Fatalf("Expected gateway to be localhost:8080, was %s", gateway)
 	}
 
-	// Have to make changes to mockTransport to test this?
 	// ---- Error cases ----
 
 	// Unmarshall error
-	newMockTransport(resp, fmt.Errorf("Test error"))
+	newMockTransport(resp, false, fmt.Errorf("Test error"))
 	err = findGateway()
 	if err == nil {
 		t.Error("Error expcted, got nil instead", err)
@@ -215,7 +224,7 @@ func TestFindGateway(t *testing.T) {
 
 	// Statuscode > 299, have to make changes to mockTransport to test this
 	resp.StatusCode = 300
-	newMockTransport(resp, nil)
+	newMockTransport(resp, false, nil)
 	err = findGateway()
 	if err != errStatusCode {
 		t.Error("Expected errStatusCode, got", err)
@@ -224,7 +233,7 @@ func TestFindGateway(t *testing.T) {
 	// Broken body - https://stackoverflow.com/questions/45126312/how-do-i-test-an-error-on-reading-from-a-request-body
 	resp.StatusCode = 200
 	resp.Body = errReader(0)
-	newMockTransport(resp, nil)
+	newMockTransport(resp, false, nil)
 	err = findGateway()
 	if err != errBodyRead {
 		t.Error("Expected error")
@@ -232,7 +241,7 @@ func TestFindGateway(t *testing.T) {
 
 	// Actual http body is unmarshaled correctly
 	resp.Body = io.NopCloser(strings.NewReader(fakeBody + "123"))
-	newMockTransport(resp, nil)
+	newMockTransport(resp, false, nil)
 	err = findGateway()
 	if err == nil {
 		t.Error("Expected error")
@@ -240,7 +249,7 @@ func TestFindGateway(t *testing.T) {
 
 	// Empty list of gateways
 	resp.Body = io.NopCloser(strings.NewReader("[]"))
-	newMockTransport(resp, nil)
+	newMockTransport(resp, false, nil)
 	err = findGateway()
 	if err != errMissingGateway {
 		t.Error("Expected error", err)
@@ -248,7 +257,7 @@ func TestFindGateway(t *testing.T) {
 }
 
 func TestToggleState(t *testing.T) {
-	fakeBody := fmt.Sprint("")
+	fakeBody := fmt.Sprint(`{"on":true, "Version": "SignalA_v1a"}`)
 
 	resp := &http.Response{
 		Status:     "200 OK",
@@ -256,11 +265,15 @@ func TestToggleState(t *testing.T) {
 		Body:       io.NopCloser(strings.NewReader(fakeBody)),
 	}
 
-	newMockTransport(resp, nil)
-
+	newMockTransport(resp, false, nil)
 	ua := initTemplate().(*UnitAsset)
-
+	// All ok!
 	ua.toggleState(true)
+	// Error
+	// change gateway to bad character/url, return gateway to original value
+	gateway = brokenURL
+	ua.toggleState(true)
+	findGateway()
 }
 
 func TestSendSetPoint(t *testing.T) {
@@ -272,10 +285,79 @@ func TestSendSetPoint(t *testing.T) {
 		Body:       io.NopCloser(strings.NewReader(fakeBody)),
 	}
 
-	newMockTransport(resp, nil)
-
+	newMockTransport(resp, false, nil)
 	ua := initTemplate().(*UnitAsset)
+	// All ok!
+	gateway = ""
+	err := ua.sendSetPoint()
+	if err != nil {
+		t.Error("Unexpected error:", err)
+	}
 
+	// Error
+	gateway = brokenURL
 	ua.sendSetPoint()
+	findGateway()
+
+}
+
+// func createRequest(data string, apiURL string) (req *http.Request, err error)
+func TestCreateRequest(t *testing.T) {
+	data := "test"
+	apiURL := "http://localhost:8080/test"
+
+	_, err := createRequest(data, apiURL)
+	if err != nil {
+		t.Error("Error occured, expected none")
+	}
+
+	_, err = createRequest(data, brokenURL)
+	if err == nil {
+		t.Error("Expected error")
+	}
+
+}
+
+var brokenURL string = string([]byte{0x7f})
+
+func TestSendRequest(t *testing.T) {
+	// Set up standard response & catch http requests
+	fakeBody := fmt.Sprint(`Test`)
+
+	resp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(fakeBody)),
+	}
+
+	// All ok!
+	newMockTransport(resp, false, nil)
+	apiURL := "http://localhost:8080/test"
+	s := fmt.Sprintf(`{"heatsetpoint":%f}`, 25.0) // Create payload
+	req, _ := createRequest(s, apiURL)
+	err := sendRequest(req)
+	if err != nil {
+		t.Error("Expected no errors, error occured:", err)
+	}
+
+	// Error unpacking body
+	resp.Body = errReader(0)
+	newMockTransport(resp, false, nil)
+
+	err = sendRequest(req)
+
+	if err == nil {
+		t.Error("Expected errors, no error occured:")
+	}
+
+	// Error StatusCode
+	resp.Body = io.NopCloser(strings.NewReader(fakeBody))
+	resp.StatusCode = 300
+	newMockTransport(resp, false, nil)
+	err = sendRequest(req)
+
+	if err != errStatusCode {
+		t.Error("Expected errStatusCode, got", err)
+	}
 
 }
