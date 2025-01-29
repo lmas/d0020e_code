@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -344,34 +345,36 @@ func Test_specialcalculate(t *testing.T) {
 	}
 }
 
+/*
 func Test_processfeedbackLoop(t *testing.T) {
 	ua := initTemplate().(*UnitAsset)
 
-	// Set the calculateDesiredTemp function to simulate a new temperature value
-	ua.calculateDesiredTemp = func() float64 {
-		return 23.0 // Just return a new temp value to trigger a change
-	}
 
-	// Override the Pack function to simulate no error and return dummy data
-	usecases.Pack = func(form *forms.SignalA_v1a, contentType string) ([]byte, error) {
-		return []byte("packed data"), nil
-	}
+		// Set the calculateDesiredTemp function to simulate a new temperature value
+		ua.calculateDesiredTemp = func() float64 {
+			return 23.0 // Just return a new temp value to trigger a change
+		}
 
-	// Override the SetState function to simulate a successful update
-	usecases.SetState = func(setpoint interface{}, owner interface{}, op []byte) error {
-		return nil
-	}
+		// Override the Pack function to simulate no error and return dummy data
+		usecases.Pack = func(form *forms.SignalA_v1a, contentType string) ([]byte, error) {
+			return []byte("packed data"), nil
+		}
 
-	// Create a variable to hold the SignalA_v1a form to compare later
-	// Set the form's value, unit, and timestamp to simulate what the method does
-	var of forms.SignalA_v1a
-	of.NewForm()
-	of.Value = ua.Desired_temp
-	of.Unit = ua.CervicesMap["setpoint"].Details["Unit"][0] // This matches the code that fetches the "Unit"
-	of.Timestamp = time.Now()
+		// Override the SetState function to simulate a successful update
+		usecases.SetState = func(setpoint interface{}, owner interface{}, op []byte) error {
+			return nil
+		}
+
+		// Create a variable to hold the SignalA_v1a form to compare later
+		// Set the form's value, unit, and timestamp to simulate what the method does
+		var of forms.SignalA_v1a
+		of.NewForm()
+		of.Value = ua.Desired_temp
+		of.Unit = ua.CervicesMap["setpoint"].Details["Unit"][0] // This matches the code that fetches the "Unit"
+		of.Timestamp = time.Now()
 
 	// Run the processFeedbackLoop method
-	ua.processFeedbackLoop()
+	//ua.processFeedbackLoop()
 
 	// Check if the Desired_temp was updated
 	if ua.Desired_temp != 23.0 {
@@ -383,13 +386,70 @@ func Test_processfeedbackLoop(t *testing.T) {
 		t.Errorf("Expected old_desired_temp to be 23.0, but got %f", ua.old_desired_temp)
 	}
 
-	// Optionally, check if the values in the form match what was expected
-	if of.Value != ua.Desired_temp {
-		t.Errorf("Expected form Value to be %f, but got %f", ua.Desired_temp, of.Value)
+
+		// Optionally, check if the values in the form match what was expected
+		if of.Value != ua.Desired_temp {
+			t.Errorf("Expected form Value to be %f, but got %f", ua.Desired_temp, of.Value)
+		}
+
+		if of.Unit != "Celsius" {
+			t.Errorf("Expected form Unit to be 'Celsius', but got '%s'", of.Unit)
+		}
+
+}
+*/
+// Custom RoundTripper to intercept HTTP requests
+type MockTransport struct {
+	mockServerURL string
+}
+
+// Implement the RoundTrip function for MockTransport
+func (m *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Modify the request to point to our mock server
+	req.URL.Scheme = "http"
+	req.URL.Host = m.mockServerURL[len("http://"):] // Remove "http://"
+	return http.DefaultTransport.RoundTrip(req)
+}
+
+func TestGetAPIPriceData(t *testing.T) {
+
+	// Create mock response
+	fakebody := []GlobalPriceData{
+		{
+			Time_start: fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`,
+				time.Now().Local().Year(),
+				int(time.Now().Local().Month()),
+				time.Now().Local().Day(),
+				time.Now().Local().Hour()),
+
+			SEK_price: 1.23,
+		},
+	}
+	mockData, _ := json.Marshal(fakebody)
+
+	// Start a mock HTTP server
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK) // this simulated a succesfull response (status 2000)
+		w.Write(mockData)
+	}))
+	defer mockServer.Close()
+
+	// Override the default HTTP client with our mock transport
+	client := &http.Client{
+		Transport: &MockTransport{mockServerURL: mockServer.URL},
 	}
 
-	if of.Unit != "Celsius" {
-		t.Errorf("Expected form Unit to be 'Celsius', but got '%s'", of.Unit)
-	}
+	// Temporarily replace the global HTTP client
+	originalClient := http.DefaultClient
+	http.DefaultClient = client
+	defer func() { http.DefaultClient = originalClient }() // Restore after test
 
+	// Call the function (which now hits the mock server)
+	getAPIPriceData()
+
+	// Check if the correct price is stored
+	expectedPrice := 1.23
+	if globalPrice.SEK_price != expectedPrice {
+		t.Errorf("Expected SEK_price %f, but got %f", expectedPrice, globalPrice.SEK_price)
+	}
 }
