@@ -403,34 +403,75 @@ type MockTransport struct {
 	mockServerURL string
 }
 
-// Implement the RoundTrip function for MockTransport
+// Implement the RoundTrip function for MockTransport, here is where the logic on how HTTP request are handled
+// modify the request to point at the created mock server
 func (m *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Modify the request to point to our mock server
+
 	req.URL.Scheme = "http"
 	req.URL.Host = m.mockServerURL[len("http://"):] // Remove "http://"
+
 	return http.DefaultTransport.RoundTrip(req)
 }
 
+/*
 func TestGetAPIPriceData(t *testing.T) {
 
-	// Create mock response
-	fakebody := []GlobalPriceData{
-		{
-			Time_start: fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`,
-				time.Now().Local().Year(),
-				int(time.Now().Local().Month()),
-				time.Now().Local().Day(),
-				time.Now().Local().Hour()),
+			// Create mock response
+			fakebody := []GlobalPriceData{
+				{
+					Time_start: fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`,
+						time.Now().Local().Year(),
+						int(time.Now().Local().Month()),
+						time.Now().Local().Day(),
+						time.Now().Local().Hour()),
 
-			SEK_price: 1.23,
-		},
+					SEK_price: 1.23,
+				},
+			}
+
+		fakebody := fmt.Sprintf(priceExample)
+		resp := &http.Response{
+			Status:     "200 OK",
+			StatusCode: 200,
+			Body:       io.NopCloser(strings.NewReader(fakebody)),
+		}
+		mockData, _ := json.Marshal(fakebody)
+
+		// Start a mock HTTP server
+		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(resp) // this simulated a succesfull response (status 2000)
+			w.Write(mockData)
+		}))
+		defer mockServer.Close()
+
+		// Override the default HTTP client with our mock transport
+		client := &http.Client{
+			Transport: &MockTransport{mockServerURL: mockServer.URL},
+		}
+
+		// Temporarily replace the global HTTP client
+		originalClient := http.DefaultClient
+		http.DefaultClient = client
+		defer func() { http.DefaultClient = originalClient }() // Restore after test
+
+		// Call the function (which now hits the mock server)
+		getAPIPriceData()
+
+		// Check if the correct price is stored
+		expectedPrice := 1.23
+		if globalPrice.SEK_price != expectedPrice {
+			t.Errorf("Expected SEK_price %f, but got %f", expectedPrice, globalPrice.SEK_price)
+		}
 	}
-	mockData, _ := json.Marshal(fakebody)
+*/
+func TestGetAPIPriceData(t *testing.T) {
+	// Create fake response body for testing
+	fakeBody := fmt.Sprintf(priceExample, time.Now().Local().Hour(), time.Now().Local().Hour()+1)
 
 	// Start a mock HTTP server
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK) // this simulated a succesfull response (status 2000)
-		w.Write(mockData)
+		w.WriteHeader(http.StatusOK) // Simulate a successful response (status 200)
+		w.Write([]byte(fakeBody))    // Write the fake body to the response
 	}))
 	defer mockServer.Close()
 
