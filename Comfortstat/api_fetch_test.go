@@ -60,10 +60,6 @@ const priceExample string = `[{
 // a domain was requested.
 
 func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	hour := time.Now().Local().Hour()
-	fakeBody := fmt.Sprintf(priceExample, hour, hour+1)
-
-	t.resp.Body = io.NopCloser(strings.NewReader(fakeBody))
 	t.hits[req.URL.Hostname()] += 1
 	t.resp.Request = req
 	return t.resp, nil
@@ -386,37 +382,41 @@ func (errReader) Close() error {
 var brokenURL string = string([]byte{0x7f})
 
 func TestGetAPIPriceData(t *testing.T) {
-
+	hour := time.Now().Local().Hour()
+	fakeBody := fmt.Sprintf(priceExample, hour, hour+1)
 	resp := &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
-		Body:       io.NopCloser(strings.NewReader("")),
+		Body:       io.NopCloser(strings.NewReader(fakeBody)),
 	}
-	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
-	newMockTransport(resp)
-	err := getAPIPriceData(url) // goal is no errors
 
+	// Testing good cases
+
+	// Test case: goal is no errors
+	url := fmt.Sprintf(
+		`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`,
+		time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(),
+	)
+	newMockTransport(resp)
+	err := getAPIPriceData(url)
 	if err != nil {
 		t.Errorf("expected no errors but got %s :", err)
 	}
 
+	// Testing bad cases
+
+	// Test case: using wrong url leads to an error
 	newMockTransport(resp)
 	// Call the function (which now hits the mock server)
 	err = getAPIPriceData(brokenURL)
-
-	// Testing bad cases
-
-	// using wrong url leads to an error
 	if err == nil {
 		t.Errorf("Expected an error but got none!")
-
 	}
 
-	// Test if reading the body causes an error
+	// Test case: if reading the body causes an error
 	resp.Body = errReader(0)
 	newMockTransport(resp)
 	err = getAPIPriceData(url)
-
 	if err != errBodyRead {
 		t.Errorf("expected an error %v, got %v", errBodyRead, err)
 	}
