@@ -42,22 +42,13 @@ type UnitAsset struct {
 	//
 	Period time.Duration `json:"samplingPeriod"`
 	//
-	Daily_prices     []API_data `json:"-"`
-	Desired_temp     float64    `json:"desired_temp"`
-	old_desired_temp float64    // keep this field private!
-	SEK_price        float64    `json:"SEK_per_kWh"`
-	Min_price        float64    `json:"min_price"`
-	Max_price        float64    `json:"max_price"`
-	Min_temp         float64    `json:"min_temp"`
-	Max_temp         float64    `json:"max_temp"`
-}
-
-type API_data struct {
-	SEK_price  float64 `json:"SEK_per_kWh"`
-	EUR_price  float64 `json:"EUR_per_kWh"`
-	EXR        float64 `json:"EXR"`
-	Time_start string  `json:"time_start"`
-	Time_end   string  `json:"time_end"`
+	Desired_temp     float64 `json:"desired_temp"`
+	old_desired_temp float64 // keep this field private!
+	SEK_price        float64 `json:"SEK_per_kWh"`
+	Min_price        float64 `json:"min_price"`
+	Max_price        float64 `json:"max_price"`
+	Min_temp         float64 `json:"min_temp"`
+	Max_temp         float64 `json:"max_temp"`
 }
 
 func initAPI() {
@@ -69,9 +60,10 @@ func priceFeedbackLoop() {
 	ticker := time.NewTicker(time.Duration(apiFetchPeriod) * time.Second)
 	defer ticker.Stop()
 
+	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
 	// start the control loop
 	for {
-		getAPIPriceData()
+		getAPIPriceData(url)
 		select {
 		case <-ticker.C:
 			// Block the loop until the next period
@@ -79,19 +71,17 @@ func priceFeedbackLoop() {
 	}
 }
 
-func getAPIPriceData() {
-	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
-	log.Println("URL:", url)
+func getAPIPriceData(url string) error {
 
 	res, err := http.Get(url)
 	if err != nil {
-		log.Println("Couldn't get the url, error:", err)
-		return
+		return err
 	}
+
 	body, err := io.ReadAll(res.Body) // Read the payload into body variable
 	if err != nil {
 		log.Println("Something went wrong while reading the body during discovery, error:", err)
-		return
+		return err
 	}
 	var data []GlobalPriceData        // Create a list to hold the gateway json
 	err = json.Unmarshal(body, &data) // "unpack" body from []byte to []GlobalPriceData, save errors
@@ -99,11 +89,11 @@ func getAPIPriceData() {
 
 	if res.StatusCode > 299 {
 		log.Printf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-		return
+		return err
 	}
 	if err != nil {
 		log.Println("Error during Unmarshal, error:", err)
-		return
+		return err
 	}
 
 	/////////
@@ -116,6 +106,7 @@ func getAPIPriceData() {
 
 	}
 	log.Println("current el-pris is:", globalPrice.SEK_price)
+	return nil
 }
 
 // GetName returns the name of the Resource.

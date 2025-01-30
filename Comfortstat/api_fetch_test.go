@@ -20,11 +20,13 @@ import (
 // http.DefaultClient) and it will intercept network requests.
 
 type mockTransport struct {
+	resp *http.Response
 	hits map[string]int
 }
 
-func newMockTransport() mockTransport {
+func newMockTransport(resp *http.Response) mockTransport {
 	t := mockTransport{
+		resp: resp,
 		hits: make(map[string]int),
 	}
 	// Highjack the default http client so no actuall http requests are sent over the network
@@ -60,15 +62,11 @@ const priceExample string = `[{
 func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	hour := time.Now().Local().Hour()
 	fakeBody := fmt.Sprintf(priceExample, hour, hour+1)
-	// TODO: should be able to adjust these return values for the error cases
-	resp = &http.Response{
-		Status:     "200 OK",
-		StatusCode: 200,
-		Request:    req,
-		Body:       io.NopCloser(strings.NewReader(fakeBody)),
-	}
+
+	t.resp.Body = io.NopCloser(strings.NewReader(fakeBody))
 	t.hits[req.URL.Hostname()] += 1
-	return
+	t.resp.Request = req
+	return t.resp, nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -83,7 +81,12 @@ func TestAPIDataFetchPeriod(t *testing.T) {
 }
 
 func TestSingleUnitAssetOneAPICall(t *testing.T) {
-	trans := newMockTransport()
+	resp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		//Body:       io.NopCloser(strings.NewReader(fakeBody)),
+	}
+	trans := newMockTransport(resp)
 	// Creates a single UnitAsset and assert it only sends a single API request
 	ua := initTemplate().(*UnitAsset)
 	retrieveAPI_price(ua)
@@ -98,7 +101,12 @@ func TestSingleUnitAssetOneAPICall(t *testing.T) {
 }
 
 func TestMultipleUnitAssetOneAPICall(t *testing.T) {
-	trans := newMockTransport()
+	resp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		//Body:       io.NopCloser(strings.NewReader(fakeBody)),
+	}
+	trans := newMockTransport(resp)
 	// Creates multiple UnitAssets and monitor their API requests
 	units := 10
 	for i := 0; i < units; i++ {
@@ -345,59 +353,7 @@ func Test_specialcalculate(t *testing.T) {
 }
 
 // TODO: test getApi function
-/*
-func Test_processfeedbackLoop(t *testing.T) {
-	ua := initTemplate().(*UnitAsset)
 
-
-		// Set the calculateDesiredTemp function to simulate a new temperature value
-		ua.calculateDesiredTemp = func() float64 {
-			return 23.0 // Just return a new temp value to trigger a change
-		}
-
-		// Override the Pack function to simulate no error and return dummy data
-		usecases.Pack = func(form *forms.SignalA_v1a, contentType string) ([]byte, error) {
-			return []byte("packed data"), nil
-		}
-
-		// Override the SetState function to simulate a successful update
-		usecases.SetState = func(setpoint interface{}, owner interface{}, op []byte) error {
-			return nil
-		}
-
-		// Create a variable to hold the SignalA_v1a form to compare later
-		// Set the form's value, unit, and timestamp to simulate what the method does
-		var of forms.SignalA_v1a
-		of.NewForm()
-		of.Value = ua.Desired_temp
-		of.Unit = ua.CervicesMap["setpoint"].Details["Unit"][0] // This matches the code that fetches the "Unit"
-		of.Timestamp = time.Now()
-
-	// Run the processFeedbackLoop method
-	//ua.processFeedbackLoop()
-
-	// Check if the Desired_temp was updated
-	if ua.Desired_temp != 23.0 {
-		t.Errorf("Expected Desired_temp to be 23.0, but got %f", ua.Desired_temp)
-	}
-
-	// Check if the old_desired_temp was updated
-	if ua.old_desired_temp != 23.0 {
-		t.Errorf("Expected old_desired_temp to be 23.0, but got %f", ua.old_desired_temp)
-	}
-
-
-		// Optionally, check if the values in the form match what was expected
-		if of.Value != ua.Desired_temp {
-			t.Errorf("Expected form Value to be %f, but got %f", ua.Desired_temp, of.Value)
-		}
-
-		if of.Unit != "Celsius" {
-			t.Errorf("Expected form Unit to be 'Celsius', but got '%s'", of.Unit)
-		}
-
-}
-*/
 /*
 // Custom RoundTripper to intercept HTTP requests
 type MockTransport struct {
@@ -414,86 +370,62 @@ func (m *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return http.DefaultTransport.RoundTrip(req)
 }
 */
-/*
+// Fuctions that help creating bad body
+type errReader int
+
+var errBodyRead error = fmt.Errorf("bad body read")
+
+func (errReader) Read(p []byte) (n int, err error) {
+	return 0, errBodyRead
+}
+
+func (errReader) Close() error {
+	return nil
+}
+
+var brokenURL string = string([]byte{0x7f})
+
 func TestGetAPIPriceData(t *testing.T) {
 
-			// Create mock response
-			fakebody := []GlobalPriceData{
-				{
-					Time_start: fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`,
-						time.Now().Local().Year(),
-						int(time.Now().Local().Month()),
-						time.Now().Local().Day(),
-						time.Now().Local().Hour()),
+	resp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader("")),
+	}
+	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+	newMockTransport(resp)
+	err := getAPIPriceData(url) // goal is no errors
 
-					SEK_price: 1.23,
-				},
-			}
+	if err != nil {
+		t.Errorf("expected no errors but got %s :", err)
+	}
 
-		fakebody := fmt.Sprintf(priceExample)
-		resp := &http.Response{
-			Status:     "200 OK",
-			StatusCode: 200,
-			Body:       io.NopCloser(strings.NewReader(fakebody)),
-		}
-		mockData, _ := json.Marshal(fakebody)
+	newMockTransport(resp)
+	// Call the function (which now hits the mock server)
+	err = getAPIPriceData(brokenURL)
 
-		// Start a mock HTTP server
-		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(resp) // this simulated a succesfull response (status 2000)
-			w.Write(mockData)
-		}))
-		defer mockServer.Close()
+	// Testing bad cases
 
-		// Override the default HTTP client with our mock transport
-		client := &http.Client{
-			Transport: &MockTransport{mockServerURL: mockServer.URL},
-		}
+	// using wrong url leads to an error
+	if err == nil {
+		t.Errorf("Expected an error but got none!")
 
-		// Temporarily replace the global HTTP client
-		originalClient := http.DefaultClient
-		http.DefaultClient = client
-		defer func() { http.DefaultClient = originalClient }() // Restore after test
+	}
 
-		// Call the function (which now hits the mock server)
-		getAPIPriceData()
+	// Test if reading the body causes an error
+	resp.Body = errReader(0)
+	newMockTransport(resp)
+	err = getAPIPriceData(url)
 
+	if err != errBodyRead {
+		t.Errorf("expected an error %v, got %v", errBodyRead, err)
+	}
+
+	/*
 		// Check if the correct price is stored
-		expectedPrice := 1.23
+		expectedPrice := 0.26673
 		if globalPrice.SEK_price != expectedPrice {
 			t.Errorf("Expected SEK_price %f, but got %f", expectedPrice, globalPrice.SEK_price)
 		}
-	}
-*/
-/*
-func TestGetAPIPriceData(t *testing.T) {
-	// Create fake response body for testing
-	fakeBody := fmt.Sprintf(priceExample, time.Now().Local().Hour(), time.Now().Local().Hour()+1)
-
-	// Start a mock HTTP server
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK) // Simulate a successful response (status 200)
-		w.Write([]byte(fakeBody))    // Write the fake body to the response
-	}))
-	defer mockServer.Close()
-
-	// Override the default HTTP client with our mock transport
-	client := &http.Client{
-		Transport: &MockTransport{mockServerURL: mockServer.URL},
-	}
-
-	// Temporarily replace the global HTTP client
-	originalClient := http.DefaultClient
-	http.DefaultClient = client
-	defer func() { http.DefaultClient = originalClient }() // Restore after test
-
-	// Call the function (which now hits the mock server)
-	getAPIPriceData()
-
-	// Check if the correct price is stored
-	expectedPrice := 1.23
-	if globalPrice.SEK_price != expectedPrice {
-		t.Errorf("Expected SEK_price %f, but got %f", expectedPrice, globalPrice.SEK_price)
-	}
+	*/
 }
-*/
