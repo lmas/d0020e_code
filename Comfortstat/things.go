@@ -71,6 +71,8 @@ func priceFeedbackLoop() {
 	}
 }
 
+var err_statuscode error = fmt.Errorf("bad status code")
+
 func getAPIPriceData(url string) error {
 
 	res, err := http.Get(url)
@@ -88,11 +90,9 @@ func getAPIPriceData(url string) error {
 	res.Body.Close()                  // defer res.Body.Close()
 
 	if res.StatusCode > 299 {
-		log.Printf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-		return err
+		return err_statuscode
 	}
 	if err != nil {
-		log.Println("Error during Unmarshal, error:", err)
 		return err
 	}
 
@@ -101,11 +101,8 @@ func getAPIPriceData(url string) error {
 	for _, i := range data {
 		if i.Time_start == now {
 			globalPrice.SEK_price = i.SEK_price
-			log.Println("Price in loop is:", i.SEK_price)
 		}
-
 	}
-	log.Println("current el-pris is:", globalPrice.SEK_price)
 	return nil
 }
 

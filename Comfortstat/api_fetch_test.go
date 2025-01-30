@@ -47,13 +47,14 @@ func (t mockTransport) domainHits(domain string) int {
 
 // TODO: this might need to be expanded to a full JSON array?
 
-const priceExample string = `[{
+var priceExample string = fmt.Sprintf(`[{
 		"SEK_per_kWh": 0.26673,
 		"EUR_per_kWh": 0.02328,
 		"EXR": 11.457574,
-		"time_start": "2025-01-06T%02d:00:00+01:00",
-		"time_end": "2025-01-06T%02d:00:00+01:00"
-	}]`
+		"time_start": "%d-%02d-%02dT%02d:00:00+01:00",
+		"time_end": "2025-01-06T04:00:00+01:00"
+		}]`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour(),
+)
 
 // RoundTrip method is required to fulfil the RoundTripper interface (as required by the DefaultClient).
 // It prevents the request from being sent over the network and count how many times
@@ -238,7 +239,7 @@ func Test_initTemplet(t *testing.T) {
 
 	name := uasset.GetName()
 	Services := uasset.GetServices()
-	//Cervices := uasset.GetCervices()
+	Cervices := uasset.GetCervices()
 	Details := uasset.GetDetails()
 
 	//// unnecessary test, but good for practicing
@@ -268,9 +269,9 @@ func Test_initTemplet(t *testing.T) {
 		t.Errorf("expected service defenition to be desired_temp")
 	}
 	//// Testing GetCervice
-	//if Cervices == nil {
-	//	t.Fatalf("If cervises is nil, not worth to continue testing")
-	//}
+	if Cervices != nil {
+		t.Fatalf("If cervises not nil, not worth to continue testing")
+	}
 	//// Testing Details
 	if Details == nil {
 		t.Errorf("expected a map, but Details was nil, ")
@@ -382,8 +383,16 @@ func (errReader) Close() error {
 var brokenURL string = string([]byte{0x7f})
 
 func TestGetAPIPriceData(t *testing.T) {
-	hour := time.Now().Local().Hour()
-	fakeBody := fmt.Sprintf(priceExample, hour, hour+1)
+	priceExample = fmt.Sprintf(`[{
+		"SEK_per_kWh": 0.26673,
+		"EUR_per_kWh": 0.02328,
+		"EXR": 11.457574,
+		"time_start": "%d-%02d-%02dT%02d:00:00+01:00",
+		"time_end": "2025-01-06T04:00:00+01:00"
+		}]`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour(),
+	)
+
+	fakeBody := fmt.Sprintf(priceExample)
 	resp := &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
@@ -401,6 +410,13 @@ func TestGetAPIPriceData(t *testing.T) {
 	err := getAPIPriceData(url)
 	if err != nil {
 		t.Errorf("expected no errors but got %s :", err)
+	}
+
+	// Check if the correct price is stored
+	expectedPrice := 0.26673
+
+	if globalPrice.SEK_price != expectedPrice {
+		t.Errorf("Expected SEK_price %f, but got %f", expectedPrice, globalPrice.SEK_price)
 	}
 
 	// Testing bad cases
@@ -421,11 +437,25 @@ func TestGetAPIPriceData(t *testing.T) {
 		t.Errorf("expected an error %v, got %v", errBodyRead, err)
 	}
 
-	/*
-		// Check if the correct price is stored
-		expectedPrice := 0.26673
-		if globalPrice.SEK_price != expectedPrice {
-			t.Errorf("Expected SEK_price %f, but got %f", expectedPrice, globalPrice.SEK_price)
-		}
-	*/
+	//Test case: if status code > 299
+	resp.Body = io.NopCloser(strings.NewReader(fakeBody))
+	resp.StatusCode = 300
+	newMockTransport(resp)
+	err = getAPIPriceData(url)
+
+	if err != err_statuscode {
+		t.Errorf("expected an bad status code but got %v", err)
+
+	}
+
+	// test case: if unmarshal a bad body creates a error
+	resp.StatusCode = 200
+	resp.Body = io.NopCloser(strings.NewReader(fakeBody + "123"))
+	newMockTransport(resp)
+	err = getAPIPriceData(url)
+
+	if err == nil {
+		t.Errorf("expected an error, got %v :", err)
+	}
+
 }
