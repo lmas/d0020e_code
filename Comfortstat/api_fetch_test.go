@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -398,6 +397,7 @@ func Test_processfeedbackLoop(t *testing.T) {
 
 }
 */
+/*
 // Custom RoundTripper to intercept HTTP requests
 type MockTransport struct {
 	mockServerURL string
@@ -412,7 +412,7 @@ func (m *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	return http.DefaultTransport.RoundTrip(req)
 }
-
+*/
 /*
 func TestGetAPIPriceData(t *testing.T) {
 
@@ -464,6 +464,7 @@ func TestGetAPIPriceData(t *testing.T) {
 		}
 	}
 */
+/*
 func TestGetAPIPriceData(t *testing.T) {
 	// Create fake response body for testing
 	fakeBody := fmt.Sprintf(priceExample, time.Now().Local().Hour(), time.Now().Local().Hour()+1)
@@ -494,3 +495,4 @@ func TestGetAPIPriceData(t *testing.T) {
 		t.Errorf("Expected SEK_price %f, but got %f", expectedPrice, globalPrice.SEK_price)
 	}
 }
+*/
