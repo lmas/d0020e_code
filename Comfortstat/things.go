@@ -80,9 +80,9 @@ func getAPIPriceData(url string) error {
 
 	body, err := io.ReadAll(res.Body) // Read the payload into body variable
 	if err != nil {
-		log.Println("Something went wrong while reading the body during discovery, error:", err)
 		return err
 	}
+
 	var data []GlobalPriceData        // Create a list to hold the gateway json
 	err = json.Unmarshal(body, &data) // "unpack" body from []byte to []GlobalPriceData, save errors
 	res.Body.Close()                  // defer res.Body.Close()
