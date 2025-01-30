@@ -344,6 +344,7 @@ func Test_specialcalculate(t *testing.T) {
 	}
 }
 
+// TODO: test getApi function
 /*
 func Test_processfeedbackLoop(t *testing.T) {
 	ua := initTemplate().(*UnitAsset)
