@@ -67,7 +67,6 @@ func main() {
 	time.Sleep(2 * time.Second) // allow the go routines to be executed, which might take more time than the main routine to end
 }
 
-// TODO: change the namne, will get one function for each of the four cases
 // Serving handles the resources services. NOTE: it exepcts those names from the request URL path
 func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath string) {
 	switch servicePath {
@@ -98,7 +97,9 @@ func (rsc *UnitAsset) set_SEKprice(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TODO: split up this function to two sepreate function that sets on max and min price.
+// All these functions below handles HTTP "PUT" or "GET" requests to modefy or retrieve the MAX/MIN temprature/price and desierd temprature
+// For the PUT case - the "HTTPProcessSetRequest(w, r)" is called to prosses the data given from the user and if no error,
+// call the set functions in things.go with the value witch updates the value in the struct
 func (rsc *UnitAsset) set_minTemp(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
@@ -130,10 +131,6 @@ func (rsc *UnitAsset) set_maxTemp(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// LOOK AT: I guess that we probable only need to if there is a PUT from user?
-// LOOK AT: so not the GET!
-// For PUT - the "HTTPProcessSetRequest(w, r)" is called to prosses the data given from the user and if no error, call set_minMaxprice with the value
-// wich updates the value in thge struct
 func (rsc *UnitAsset) set_minPrice(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
@@ -182,5 +179,5 @@ func (rsc *UnitAsset) set_desiredTemp(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
-	// new branch works!!!
+
 }
