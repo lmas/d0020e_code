@@ -23,6 +23,7 @@ type GlobalPriceData struct {
 	Time_end   string  `json:"time_end"`
 }
 
+// initiate "globalPrice" with default values
 var globalPrice = GlobalPriceData{
 	SEK_price:  0,
 	EUR_price:  0,
@@ -73,6 +74,7 @@ func priceFeedbackLoop() {
 
 var err_statuscode error = fmt.Errorf("bad status code")
 
+// This function fetches the current electricity price from "https://www.elprisetjustnu.se/elpris-api", then prosess it and updates globalPrice
 func getAPIPriceData(url string) error {
 
 	res, err := http.Get(url)
@@ -96,7 +98,7 @@ func getAPIPriceData(url string) error {
 		return err
 	}
 
-	/////////
+	// extracts the electriciy price depending on the current time and updates globalPrice
 	now := fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
 	for _, i := range data {
 		if i.Time_start == now {
@@ -133,9 +135,9 @@ var _ components.UnitAsset = (*UnitAsset)(nil)
 
 // initTemplate initializes a new UA and prefils it with some default values.
 // The returned instance is used for generating the configuration file, whenever it's missing.
+// (see https://github.com/sdoque/mbaigo/blob/main/components/service.go for documentation)
 func initTemplate() components.UnitAsset {
-	// First predefine any exposed services
-	// (see https://github.com/sdoque/mbaigo/blob/main/components/service.go for documentation)
+
 	setSEK_price := components.Service{
 		Definition:  "SEK_price",
 		SubPath:     "SEK_price",
@@ -175,7 +177,7 @@ func initTemplate() components.UnitAsset {
 	}
 
 	return &UnitAsset{
-		// TODO: These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
+		//These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
 		Name:         "Set Values",
 		Details:      map[string][]string{"Location": {"Kitchen"}},
 		SEK_price:    1.5,  // Example electricity price in SEK per kWh
@@ -267,15 +269,7 @@ func (ua *UnitAsset) getSEK_price() (f forms.SignalA_v1a) {
 	return f
 }
 
-/*
-// setSEK_price updates the current electric price with the new current electric hourly price
-func (ua *UnitAsset) setSEK_price(f forms.SignalA_v1a) {
-	ua.SEK_price = f.Value
-	//log.Printf("new electric price: %.1f", f.Value)
-}
-*/
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
+//Get and set- metods for MIN/MAX price/temp and desierdTemp
 
 // getMin_price is used for reading the current value of Min_price
 func (ua *UnitAsset) getMin_price() (f forms.SignalA_v1a) {
@@ -346,17 +340,15 @@ func (ua *UnitAsset) setDesired_temp(f forms.SignalA_v1a) {
 	log.Printf("new desired temperature: %.1f", f.Value)
 }
 
-//TODO: This fuction is used for checking the electric price ones every x hours and so on
-//TODO: Needs to be modified to match our needs, not using processFeedbacklopp
-//TODO: So mayby the period is every hour, call the api to receive the current price ( could be every 24 hours)
-//TODO: This function is may be better in the COMFORTSTAT MAIN
-
+// NOTE//
 // It's _strongly_ encouraged to not send requests to the API for more than once per hour.
 // Making this period a private constant prevents a user from changing this value
 // in the config file.
 const apiFetchPeriod int = 3600
 
 // feedbackLoop is THE control loop (IPR of the system)
+// this loop runs a periodic control loop that continuously fetches the api-price data
+
 func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 	// Initialize a ticker for periodic execution
 	ticker := time.NewTicker(time.Duration(apiFetchPeriod) * time.Second)
@@ -405,8 +397,7 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 	}
 }
 
-//
-
+// this function adjust and sends a new desierd temprature to the zigbee system
 func (ua *UnitAsset) processFeedbackLoop() {
 	// get the current best temperature
 
