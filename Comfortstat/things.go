@@ -75,9 +75,9 @@ func priceFeedbackLoop() {
 var err_statuscode error = fmt.Errorf("bad status code")
 
 // This function fetches the current electricity price from "https://www.elprisetjustnu.se/elpris-api", then prosess it and updates globalPrice
-func getAPIPriceData(url string) error {
+func getAPIPriceData(apiURL string) error {
 
-	res, err := http.Get(url)
+	res, err := http.Get(apiURL)
 	if err != nil {
 		return err
 	}
@@ -245,7 +245,7 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 
 	ua.CervicesMap["setpoint"].Details = components.MergeDetails(ua.Details, ref.Details)
 
-	// Returns the loaded unit asset and an function to handle optional cleanup at shutdown
+	// Returns the loaded unit asset and an function to handle
 	return ua, func() {
 		// start the unit asset(s)
 		go ua.feedbackLoop(sys.Ctx)
