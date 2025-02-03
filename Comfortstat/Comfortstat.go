@@ -106,6 +106,9 @@ func (rsc *UnitAsset) set_minTemp(w http.ResponseWriter, r *http.Request) {
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			log.Println("Error with the setting request of the position ", err)
+			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			return
+
 		}
 		rsc.setMin_temp(sig)
 	case "GET":
@@ -121,6 +124,8 @@ func (rsc *UnitAsset) set_maxTemp(w http.ResponseWriter, r *http.Request) {
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			log.Println("Error with the setting request of the position ", err)
+			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			return
 		}
 		rsc.setMax_temp(sig)
 	case "GET":
@@ -137,6 +142,8 @@ func (rsc *UnitAsset) set_minPrice(w http.ResponseWriter, r *http.Request) {
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			log.Println("Error with the setting request of the position ", err)
+			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			return
 		}
 		rsc.setMin_price(sig)
 	case "GET":
@@ -154,6 +161,8 @@ func (rsc *UnitAsset) set_maxPrice(w http.ResponseWriter, r *http.Request) {
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			log.Println("Error with the setting request of the position ", err)
+			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			return
 		}
 		rsc.setMax_price(sig)
 	case "GET":
@@ -171,6 +180,8 @@ func (rsc *UnitAsset) set_desiredTemp(w http.ResponseWriter, r *http.Request) {
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			log.Println("Error with the setting request of the position ", err)
+			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			return
 		}
 		rsc.setDesired_temp(sig)
 	case "GET":
