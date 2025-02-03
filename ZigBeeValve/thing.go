@@ -82,7 +82,7 @@ func initTemplate() components.UnitAsset {
 	uat := &UnitAsset{
 		Name:    "Template",
 		Details: map[string][]string{"Location": {"Kitchen"}},
-		Model:   "",
+		Model:   "SmartThermostat",
 		Period:  10,
 		Setpt:   20,
 		Apikey:  "1234",
@@ -246,9 +246,11 @@ func (ua *UnitAsset) getSetPoint() (f forms.SignalA_v1a) {
 // setSetPoint updates the thermal setpoint
 func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
 	ua.Setpt = f.Value
-	log.Println("*---------------------*")
-	log.Printf("New set point: %.1f\n", f.Value)
-	log.Println("*---------------------*")
+	/*
+		log.Println("*---------------------*")
+		log.Printf("New set point: %.1f\n", f.Value)
+		log.Println("*---------------------*")
+	*/
 }
 
 func (ua *UnitAsset) sendSetPoint() (err error) {
