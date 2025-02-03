@@ -158,7 +158,6 @@ func TestNewResource(t *testing.T) {
 
 	ua, _ := newResource(uac, &sys, nil)
 	// Happy test case:
-	//Get a unitasset with correct values
 	name := ua.GetName()
 	if name != "Template" {
 		t.Errorf("Expected name to be Template, but instead got: %v", name)

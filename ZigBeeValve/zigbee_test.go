@@ -1,16 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
-
-	"github.com/sdoque/mbaigo/forms"
-	"github.com/sdoque/mbaigo/usecases"
 )
 
 func TestSetpt(t *testing.T) {
@@ -54,28 +50,63 @@ func TestSetpt(t *testing.T) {
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected the status to be bad but got: %v", resp.StatusCode)
 	}
-	// ALL THE ABOVE PASSES TESTS
 
-	// Good test case: PUT
-	// Send PUT request to change
+	// Bad PUT (Cant reach ZigBee)
 	w = httptest.NewRecorder()
 	// Make the body
-	var of forms.SignalA_v1a
-	of.NewForm()
-	of.Value = 25.0
-	of.Unit = "Celcius"
-	of.Timestamp = time.Now()
-	op, _ := usecases.Pack(&of, "application/json")
-	log.Println(string(op))
-	sentBody := io.NopCloser(strings.NewReader(string(op)))
+	fakebody := string(`{"value": 24, "version": "SignalA_v1.0"}`)
+	sentBody := io.NopCloser(strings.NewReader(fakebody))
 	// Send the request
 	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBee/Template/setpoint", sentBody)
 	ua.setpt(w, r)
 	resp = w.Result()
 	good_code = 200
 	// Check for errors
+	if resp.StatusCode == good_code {
+		t.Errorf("Bad PUT: Expected bad status code: %v, got %v", good_code, resp.StatusCode)
+	}
+
+	// Bad test case: PUT Failing @ HTTPProcessSetRequest
+	w = httptest.NewRecorder()
+	// Make the body
+	fakebody = string(`{"value": "24", "version": "SignalA_v1.0"}`) // MISSING VERSION IN SENTBODY
+	sentBody = io.NopCloser(strings.NewReader(fakebody))
+	// Send the request
+	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBee/Template/setpoint", sentBody)
+	ua.setpt(w, r)
+	resp = w.Result()
+	// Check for errors
+	if resp.StatusCode == good_code {
+		t.Errorf("Bad PUT: Expected an error")
+	}
+
+	// Good test case: PUT
+	w = httptest.NewRecorder()
+	// Make the body and request
+	fakebody = string(`{"value": 24, "version": "SignalA_v1.0"}`)
+	sentBody = io.NopCloser(strings.NewReader(fakebody))
+	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBee/Template/setpoint", sentBody)
+
+	// Mock the http response/traffic to zigbee
+	zBeeResponse := `[{"success":{"/sensors/7/config/heatsetpoint":2400}}]`
+	resp = &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(zBeeResponse)),
+	}
+	newMockTransport(resp, false, nil)
+	// Set the response body to same as mock response
+	w.Body = bytes.NewBuffer([]byte(zBeeResponse))
+	// Send the request
+	ua.setpt(w, r)
+	resp = w.Result()
+	// Check for errors
 	if resp.StatusCode != good_code {
 		t.Errorf("Good PUT: Expected good status code: %v, got %v", good_code, resp.StatusCode)
 	}
-
+	respBodyBytes, _ := io.ReadAll(resp.Body)
+	respBody := string(respBodyBytes)
+	if respBody != `[{"success":{"/sensors/7/config/heatsetpoint":2400}}]` {
+		t.Errorf("Wrong body")
+	}
 }

@@ -93,7 +93,6 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error processing request")
 			http.Error(w, "Request incorrectly formated", http.StatusBadRequest)
 			return
 		}
@@ -102,7 +101,6 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		if rsc.Model == "SmartThermostat" {
 			err = rsc.sendSetPoint()
 			if err != nil {
-				log.Println("Error sending setpoint:")
 				http.Error(w, "Couldn't send setpoint.", http.StatusInternalServerError)
 				return
 			}
