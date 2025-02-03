@@ -10,8 +10,12 @@ import (
 	"github.com/sdoque/mbaigo/components"
 )
 
-// A UnitAsset models an interface or API for a smaller part of a whole system, for example a single temperature sensor.
+// A UnitAsset models an interface or API for a smaller part of a whole system,
+// for example a single temperature sensor.
 // This type must implement the go interface of "components.UnitAsset"
+//
+// This unit asset represents this system's local cache, where all data from the
+// other system are gathered, before being sent off to the InfluxDB service.
 type unitAsset struct {
 	// Public fields
 	// TODO: Why have these public and then provide getter methods? Might need refactor..
@@ -51,7 +55,7 @@ var _ components.UnitAsset = (*unitAsset)(nil)
 // The returned instance is used for generating the configuration file, whenever it's missing.
 func initTemplate() components.UnitAsset {
 	return &unitAsset{
-		Name: "InfluxDB collector",
+		Name: "Cache",
 	}
 }
 

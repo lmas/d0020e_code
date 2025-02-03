@@ -36,14 +36,14 @@ func newSystem() (sys *system) {
 	// operations that's required of an Arrowhead system.
 	// var sys system
 	sys = &system{
-		System: components.NewSystem("influxdb", ctx),
+		System: components.NewSystem("Collector", ctx),
 		cancel: cancel,
 	}
 	sys.Husk = &components.Husk{
-		Description: "collects data from other Arrorhead systems and sends it to a InfluxDB server.",
+		Description: "pulls data from other Arrorhead systems and sends it to a InfluxDB server.",
 		Details:     map[string][]string{"Developer": {"Alex"}},
 		ProtoPort:   map[string]int{"https": 8691, "http": 8690, "coap": 0},
-		InfoLink:    "https://github.com/lmas/d0020e_code/tree/master/influxdb",
+		InfoLink:    "https://github.com/lmas/d0020e_code/tree/master/collector",
 	}
 	return
 }
