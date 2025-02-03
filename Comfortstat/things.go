@@ -245,18 +245,12 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 
 	ua.CervicesMap["setpoint"].Details = components.MergeDetails(ua.Details, ref.Details)
 
-	// start the unit asset(s)
-	go ua.feedbackLoop(sys.Ctx)
-	go ua.API_feedbackLoop(sys.Ctx)
-
-	// Optionally start background tasks here! Example:
-	go func() {
-		log.Println("Starting up " + ua.Name)
-	}()
-
 	// Returns the loaded unit asset and an function to handle optional cleanup at shutdown
 	return ua, func() {
-		log.Println("Cleaning up " + ua.Name)
+		// start the unit asset(s)
+		go ua.feedbackLoop(sys.Ctx)
+		go ua.API_feedbackLoop(sys.Ctx)
+
 	}
 }
 

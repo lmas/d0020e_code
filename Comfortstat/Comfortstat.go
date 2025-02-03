@@ -46,8 +46,8 @@ func main() {
 		if err := json.Unmarshal(raw, &uac); err != nil {
 			log.Fatalf("Resource configuration error: %+v\n", err)
 		}
-		ua, cleanup := newUnitAsset(uac, &sys, servsTemp)
-		defer cleanup()
+		ua, startup := newUnitAsset(uac, &sys, servsTemp)
+		startup()
 		sys.UAssets[ua.GetName()] = &ua
 	}
 

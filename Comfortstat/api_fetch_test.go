@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"testing"
@@ -13,7 +11,6 @@ import (
 
 	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
-	"github.com/sdoque/mbaigo/usecases"
 )
 
 // mockTransport is used for replacing the default network Transport (used by
@@ -295,33 +292,74 @@ func Test_newUnitAsset(t *testing.T) {
 		ProtoPort:   map[string]int{"https": 0, "http": 8670, "coap": 0},
 		InfoLink:    "https://github.com/lmas/d0020e_code/tree/master/Comfortstat",
 	}
-
-	// instantiate a template unit asset
-	assetTemplate := initTemplate()
-	//initAPI()
-	assetName := assetTemplate.GetName()
-	sys.UAssets[assetName] = &assetTemplate
-
-	// Configure the system
-	rawResources, servsTemp, err := usecases.Configure(&sys)
-	if err != nil {
-		log.Fatalf("Configuration error: %v\n", err)
-	}
-	sys.UAssets = make(map[string]*components.UnitAsset) // clear the unit asset map (from the template)
-	for _, raw := range rawResources {
-		var uac UnitAsset
-		if err := json.Unmarshal(raw, &uac); err != nil {
-			log.Fatalf("Resource configuration error: %+v\n", err)
-		}
-		ua, cleanup := newUnitAsset(uac, &sys, servsTemp)
-		defer cleanup()
-		sys.UAssets[ua.GetName()] = &ua
+	setSEK_price := components.Service{
+		Definition:  "SEK_price",
+		SubPath:     "SEK_price",
+		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the current electric hourly price (using a GET request)",
 	}
 
-	// Skriv if-satser som kollar namn och services
-	// testa calculatedeiserdTemp(nytt test)
-	// processfeedbackloop(nytt test)
-	//
+	setMax_temp := components.Service{
+		Definition:  "max_temperature",
+		SubPath:     "max_temperature",
+		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the maximum temp the user wants (using a GET request)",
+	}
+	setMin_temp := components.Service{
+		Definition:  "min_temperature",
+		SubPath:     "min_temperature",
+		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the minimum temp the user could tolerate (using a GET request)",
+	}
+	setMax_price := components.Service{
+		Definition:  "max_price",
+		SubPath:     "max_price",
+		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the maximum price the user wants to pay (using a GET request)",
+	}
+	setMin_price := components.Service{
+		Definition:  "min_price",
+		SubPath:     "min_price",
+		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the minimum price the user wants to pay (using a GET request)",
+	}
+	setDesired_temp := components.Service{
+		Definition:  "desired_temp",
+		SubPath:     "desired_temp",
+		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the desired temperature the system calculates based on user inputs (using a GET request)",
+	}
+
+	uac := UnitAsset{
+		//These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
+		Name:         "Set Values",
+		Details:      map[string][]string{"Location": {"Kitchen"}},
+		SEK_price:    1.5,  // Example electricity price in SEK per kWh
+		Min_price:    1.0,  // Minimum price allowed
+		Max_price:    2.0,  // Maximum price allowed
+		Min_temp:     20.0, // Minimum temperature
+		Max_temp:     25.0, // Maximum temprature allowed
+		Desired_temp: 0,    // Desired temp calculated by system
+		Period:       15,
+
+		// maps the provided services from above
+		ServicesMap: components.Services{
+			setMax_temp.SubPath:     &setMax_temp,
+			setMin_temp.SubPath:     &setMin_temp,
+			setMax_price.SubPath:    &setMax_price,
+			setMin_price.SubPath:    &setMin_price,
+			setSEK_price.SubPath:    &setSEK_price,
+			setDesired_temp.SubPath: &setDesired_temp,
+		},
+	}
+
+	ua, _ := newUnitAsset(uac, &sys, nil)
+
+	name := ua.GetName()
+	if name != "Set Values" {
+		t.Errorf("expected name to be Set values, but got: %v", name)
+	}
+
 }
 
 func Test_calculateDesiredTemp(t *testing.T) {
@@ -349,24 +387,6 @@ func Test_specialcalculate(t *testing.T) {
 	}
 }
 
-// TODO: test getApi function
-
-/*
-// Custom RoundTripper to intercept HTTP requests
-type MockTransport struct {
-	mockServerURL string
-}
-
-// Implement the RoundTrip function for MockTransport, here is where the logic on how HTTP request are handled
-// modify the request to point at the created mock server
-func (m *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-
-	req.URL.Scheme = "http"
-	req.URL.Host = m.mockServerURL[len("http://"):] // Remove "http://"
-
-	return http.DefaultTransport.RoundTrip(req)
-}
-*/
 // Fuctions that help creating bad body
 type errReader int
 
