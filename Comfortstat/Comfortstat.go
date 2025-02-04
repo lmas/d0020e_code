@@ -105,7 +105,7 @@ func (rsc *UnitAsset) set_minTemp(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error with the setting request of the position ", err)
+			//log.Println("Error with the setting request of the position ", err)
 			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
 			return
 
@@ -123,7 +123,7 @@ func (rsc *UnitAsset) set_maxTemp(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error with the setting request of the position ", err)
+			//log.Println("Error with the setting request of the position ", err)
 			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
 			return
 		}
@@ -141,7 +141,7 @@ func (rsc *UnitAsset) set_minPrice(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error with the setting request of the position ", err)
+			//log.Println("Error with the setting request of the position ", err)
 			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
 			return
 		}
@@ -160,7 +160,7 @@ func (rsc *UnitAsset) set_maxPrice(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error with the setting request of the position ", err)
+			//log.Println("Error with the setting request of the position ", err)
 			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
 			return
 		}
@@ -179,7 +179,7 @@ func (rsc *UnitAsset) set_desiredTemp(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error with the setting request of the position ", err)
+			//log.Println("Error with the setting request of the position ", err)
 			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
 			return
 		}
