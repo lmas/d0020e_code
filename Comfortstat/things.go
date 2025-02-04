@@ -66,10 +66,14 @@ func priceFeedbackLoop() {
 	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
 	// start the control loop
 	for {
-		getAPIPriceData(url)
+		err := getAPIPriceData(url)
+
+		if err != nil {
+			return
+		}
 		select {
+
 		case <-ticker.C:
-			// Block the loop until the next period
 		}
 	}
 }
@@ -96,12 +100,8 @@ func getAPIPriceData(apiURL string) error {
 
 	var data []GlobalPriceData        // Create a list to hold the data json
 	err = json.Unmarshal(body, &data) // "unpack" body from []byte to []GlobalPriceData, save errors
-	/*
-		if err != nil {
-			return err
-		}
-	*/
-	defer res.Body.Close() // defer res.Body.Close()
+
+	defer res.Body.Close()
 
 	if res.StatusCode > 299 {
 		return err_statuscode
