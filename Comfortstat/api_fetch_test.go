@@ -132,26 +132,28 @@ func TestSetmethods(t *testing.T) {
 		Value: 23.7,
 	}
 
-	// Call the setMin_temp function
+	//call and test min_temp
 	asset.setMin_temp(MinTemp_inputSignal)
-	asset.setMax_temp(MaxTemp_inputSignal)
-	asset.setMin_price(MinPrice_inputSignal)
-	asset.setMax_price(MaxPrice_inputSignal)
-	asset.setDesired_temp(DesTemp_inputSignal)
-
-	// check if the temprature has changed correctly
 	if asset.Min_temp != 1.0 {
 		t.Errorf("expected Min_temp to be 1.0, got %f", asset.Min_temp)
 	}
+	// call and test max_temp
+	asset.setMax_temp(MaxTemp_inputSignal)
 	if asset.Max_temp != 29.0 {
 		t.Errorf("expected Max_temp to be 25.0, got %f", asset.Max_temp)
 	}
+	//call and test Min_price
+	asset.setMin_price(MinPrice_inputSignal)
 	if asset.Min_price != 2.0 {
 		t.Errorf("expected Min_Price to be 2.0, got %f", asset.Min_price)
 	}
+	//call and test Max_price
+	asset.setMax_price(MaxPrice_inputSignal)
 	if asset.Max_price != 12.0 {
 		t.Errorf("expected Max_Price to be 12.0, got %f", asset.Max_price)
 	}
+	// call and test Desired_temp
+	asset.setDesired_temp(DesTemp_inputSignal)
 	if asset.Desired_temp != 23.7 {
 		t.Errorf("expected Desierd temprature is to be 23.7, got %f", asset.Desired_temp)
 	}
@@ -161,16 +163,10 @@ func TestSetmethods(t *testing.T) {
 func Test_GetMethods(t *testing.T) {
 
 	uasset := initTemplate().(*UnitAsset)
-	//call the fuctions
-	result := uasset.getMin_temp()
-	result2 := uasset.getMax_temp()
-	result3 := uasset.getMin_price()
-	result4 := uasset.getMax_price()
-	result5 := uasset.getDesired_temp()
-	result6 := uasset.getSEK_price()
 
 	////MinTemp////
 	// check if the value from the struct is the acctual value that the func is getting
+	result := uasset.getMin_temp()
 	if result.Value != uasset.Min_temp {
 		t.Errorf("expected Value of the min_temp is to be %v, got %v", uasset.Min_temp, result.Value)
 	}
@@ -180,6 +176,7 @@ func Test_GetMethods(t *testing.T) {
 
 	}
 	////MaxTemp////
+	result2 := uasset.getMax_temp()
 	if result2.Value != uasset.Max_temp {
 		t.Errorf("expected Value of the Max_temp is to be %v, got %v", uasset.Max_temp, result2.Value)
 	}
@@ -189,6 +186,7 @@ func Test_GetMethods(t *testing.T) {
 	}
 	////MinPrice////
 	// check if the value from the struct is the acctual value that the func is getting
+	result3 := uasset.getMin_price()
 	if result3.Value != uasset.Min_price {
 		t.Errorf("expected Value of the minPrice is to be %v, got %v", uasset.Min_price, result3.Value)
 	}
@@ -199,6 +197,7 @@ func Test_GetMethods(t *testing.T) {
 
 	////MaxPrice////
 	// check if the value from the struct is the acctual value that the func is getting
+	result4 := uasset.getMax_price()
 	if result4.Value != uasset.Max_price {
 		t.Errorf("expected Value of the maxPrice is  to be %v, got %v", uasset.Max_price, result4.Value)
 	}
@@ -208,6 +207,7 @@ func Test_GetMethods(t *testing.T) {
 	}
 	////DesierdTemp////
 	// check if the value from the struct is the acctual value that the func is getting
+	result5 := uasset.getDesired_temp()
 	if result5.Value != uasset.Desired_temp {
 		t.Errorf("expected desired temprature is to be %v, got %v", uasset.Desired_temp, result5.Value)
 	}
@@ -216,6 +216,7 @@ func Test_GetMethods(t *testing.T) {
 		t.Errorf("expected Unit to be 'Celsius', got %v", result5.Unit)
 	}
 	////SEK_Price////
+	result6 := uasset.getSEK_price()
 	if result6.Value != uasset.SEK_price {
 		t.Errorf("expected electric price is to be %v, got %v", uasset.SEK_price, result6.Value)
 	}
@@ -223,16 +224,20 @@ func Test_GetMethods(t *testing.T) {
 
 func Test_initTemplet(t *testing.T) {
 	uasset := initTemplate().(*UnitAsset)
-
-	name := uasset.GetName()
-	Services := uasset.GetServices()
-	Cervices := uasset.GetCervices()
-	Details := uasset.GetDetails()
+	/*
+		name := uasset.GetName()
+		Services := uasset.GetServices()
+		Cervices := uasset.GetCervices()
+		Details := uasset.GetDetails()
+	*/
 
 	//// unnecessary test, but good for practicing
+
+	name := uasset.GetName()
 	if name != "Set Values" {
 		t.Errorf("expected name of the resource is %v, got %v", uasset.Name, name)
 	}
+	Services := uasset.GetServices()
 	if Services == nil {
 		t.Fatalf("If Services is nil, not worth to continue testing")
 	}
@@ -256,10 +261,12 @@ func Test_initTemplet(t *testing.T) {
 		t.Errorf("expected service defenition to be desired_temp")
 	}
 	//GetCervice//
+	Cervices := uasset.GetCervices()
 	if Cervices != nil {
 		t.Fatalf("If cervises not nil, not worth to continue testing")
 	}
 	//Testing Details//
+	Details := uasset.GetDetails()
 	if Details == nil {
 		t.Errorf("expected a map, but Details was nil, ")
 	}
