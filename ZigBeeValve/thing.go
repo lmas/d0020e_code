@@ -234,7 +234,7 @@ func findGateway() (err error) {
 func (ua *UnitAsset) getSetPoint() (f forms.SignalA_v1a) {
 	f.NewForm()
 	f.Value = ua.Setpt
-	f.Unit = "Celcius"
+	f.Unit = "Celsius"
 	f.Timestamp = time.Now()
 	return f
 }
