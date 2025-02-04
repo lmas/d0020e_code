@@ -83,23 +83,33 @@ services:
     volumes:
       - ./data/zigbee:/data
 
-  # influxdb:
-  #   image: influxdb:x.x.x-alpine
-  #   ports:
-  #   volumes:
-  #     - ./data/influxdb:xxx
-  #
-  ## TODO: yeah gonna need a better name here
-  # influx:
-  #   build: ./src/influxdb/
-  #   image: influx:0.2.0
-  #   depends_on:
-  #     - ds18b20
-  #     - influxdb
-  #     - zigbee
-  #     - comfortstat
-  #   ports:
-  #     - 8870:8870
-  #   volumes:
-  #     - ./data/influxdb:/data
+  influxdb:
+    image: influxdb:2.7.11-alpine
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: password
+      DOCKER_INFLUXDB_INIT_ORG: organisation
+      DOCKER_INFLUXDB_INIT_BUCKET: bucket
+    ports:
+      - 8086:8086
+    volumes:
+      - ./data/influxdb/data:/var/lib/influxdb2
+      - ./data/influxdb/config:/etc/influxdb2
+
+  collector:
+    image: collector:0.1.0
+    build:
+      context: ./src
+      args:
+        - SRC=./collector/*.go
+        - PORT=6666
+    depends_on:
+      - ds18b20
+      - comfortstat
+      - zigbee
+      - influxdb
+    network_mode: "host"
+    volumes:
+      - ./data/collector:/data
 

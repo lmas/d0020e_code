@@ -52,7 +52,7 @@ func newSystem() (sys *system) {
 	sys.Husk = &components.Husk{
 		Description: "pulls data from other Arrorhead systems and sends it to a InfluxDB server.",
 		Details:     map[string][]string{"Developer": {"Alex"}},
-		ProtoPort:   map[string]int{"https": 8691, "http": 8690, "coap": 0},
+		ProtoPort:   map[string]int{"https": 6666, "http": 6666, "coap": 0},
 		InfoLink:    "https://github.com/lmas/d0020e_code/tree/master/collector",
 	}
 	return
