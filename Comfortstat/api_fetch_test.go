@@ -42,8 +42,7 @@ func (t mockTransport) domainHits(domain string) int {
 	return -1
 }
 
-// TODO: this might need to be expanded to a full JSON array?
-
+// price example string in a JSON-like format
 var priceExample string = fmt.Sprintf(`[{
 		"SEK_per_kWh": 0.26673,
 		"EUR_per_kWh": 0.02328,
@@ -90,15 +89,12 @@ func TestSingleUnitAssetOneAPICall(t *testing.T) {
 	if hits > 1 {
 		t.Errorf("expected number of api requests = 1, got %d requests", hits)
 	}
-
-	// TODO: try more test cases!
 }
 
 func TestMultipleUnitAssetOneAPICall(t *testing.T) {
 	resp := &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
-		//Body:       io.NopCloser(strings.NewReader(fakeBody)),
 	}
 	trans := newMockTransport(resp)
 	// Creates multiple UnitAssets and monitor their API requests
@@ -113,8 +109,6 @@ func TestMultipleUnitAssetOneAPICall(t *testing.T) {
 	if hits > 1 {
 		t.Errorf("expected number of api requests = 1, got %d requests (from %d units)", hits, units)
 	}
-
-	// TODO: more test cases??
 }
 
 func TestSetmethods(t *testing.T) {
@@ -183,8 +177,9 @@ func Test_GetMethods(t *testing.T) {
 	//check that the Unit is correct
 	if result.Unit != "Celsius" {
 		t.Errorf("expected Unit to be 'Celsius', got %v", result.Unit)
-		////MaxTemp////
+
 	}
+	////MaxTemp////
 	if result2.Value != uasset.Max_temp {
 		t.Errorf("expected Value of the Max_temp is to be %v, got %v", uasset.Max_temp, result2.Value)
 	}
@@ -224,11 +219,6 @@ func Test_GetMethods(t *testing.T) {
 	if result6.Value != uasset.SEK_price {
 		t.Errorf("expected electric price is to be %v, got %v", uasset.SEK_price, result6.Value)
 	}
-	//check that the Unit is correct
-	//if result5.Unit != "SEK" {
-	//	t.Errorf("expected Unit to be 'SEK', got %v", result6.Unit)
-	//}
-
 }
 
 func Test_initTemplet(t *testing.T) {
@@ -246,7 +236,7 @@ func Test_initTemplet(t *testing.T) {
 	if Services == nil {
 		t.Fatalf("If Services is nil, not worth to continue testing")
 	}
-	////Services////
+	//Services//
 	if Services["SEK_price"].Definition != "SEK_price" {
 		t.Errorf("expected service defenition to be SEKprice")
 	}
@@ -265,11 +255,11 @@ func Test_initTemplet(t *testing.T) {
 	if Services["desired_temp"].Definition != "desired_temp" {
 		t.Errorf("expected service defenition to be desired_temp")
 	}
-	//// Testing GetCervice
+	//GetCervice//
 	if Cervices != nil {
 		t.Fatalf("If cervises not nil, not worth to continue testing")
 	}
-	//// Testing Details
+	//Testing Details//
 	if Details == nil {
 		t.Errorf("expected a map, but Details was nil, ")
 	}
