@@ -61,7 +61,7 @@ func newSystem() (sys *system) {
 func (sys *system) loadConfiguration() {
 	// Try loading the config file (in JSON format) for this deployment,
 	// by using a unit asset with default values.
-	uat := initTemplate()
+	uat := components.UnitAsset(initTemplate())
 	sys.UAssets[uat.GetName()] = &uat
 	rawUAs, servsTemp, err := usecases.Configure(&sys.System)
 	// If the file is missing, a new config will be created and an error is returned here.
@@ -78,9 +78,12 @@ func (sys *system) loadConfiguration() {
 		if err := json.Unmarshal(raw, &uac); err != nil {
 			log.Fatalf("Error while unmarshalling configuration: %+v\n", err)
 		}
-		ua, startup := newUnitAsset(uac, &sys.System, servsTemp)
-		sys.UAssets[ua.GetName()] = &ua
-		sys.startups = append(sys.startups, startup)
+		// ua, startup := newUnitAsset(uac, &sys.System, servsTemp)
+		// ua := newUnitAsset(uac, &sys.System, servsTemp)
+		ua := newUnitAsset(uac, sys, servsTemp)
+		sys.startups = append(sys.startups, ua.startup)
+		intf := components.UnitAsset(ua)
+		sys.UAssets[ua.GetName()] = &intf
 	}
 }
 
