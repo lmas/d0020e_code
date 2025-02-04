@@ -17,11 +17,10 @@ func TestSetpt(t *testing.T) {
 	r := httptest.NewRequest("GET", "http://localhost:8670/ZigBee/Template/setpoint", nil)
 	good_code := 200
 	ua.setpt(w, r)
-
+	// Read response to a string, and save it in stringBody
 	resp := w.Result()
 	body, _ := io.ReadAll(resp.Body)
 	stringBody := string(body)
-	// fmt.Println(stringBody)
 
 	value := strings.Contains(string(stringBody), `"value": 20`)
 	unit := strings.Contains(string(stringBody), `"unit": "Celcius"`)
@@ -31,7 +30,7 @@ func TestSetpt(t *testing.T) {
 		t.Errorf("Good GET: Expected good status code: %v, got %v", good_code, resp.StatusCode)
 	}
 	if value != true {
-		t.Errorf("Good GET: The statment to be true!")
+		t.Errorf("Good GET: The value statment should be true!")
 	}
 	if unit != true {
 		t.Errorf("Good GET: Expected the unit statement to be true!")
@@ -39,14 +38,12 @@ func TestSetpt(t *testing.T) {
 	if version != true {
 		t.Errorf("Good GET: Expected the version statment to be true!")
 	}
-	// Bad test case: default part of code
+	// Bad test case: Default part of code (faulty http method)
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest("123", "http://localhost:8670/ZigBee/Template/setpoint", nil)
-
 	ua.setpt(w, r)
-
+	// Read response and check statuscode, expecting 404 (StatusNotFound)
 	resp = w.Result()
-
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected the status to be bad but got: %v", resp.StatusCode)
 	}
@@ -61,9 +58,9 @@ func TestSetpt(t *testing.T) {
 	ua.setpt(w, r)
 	resp = w.Result()
 	good_code = 200
-	// Check for errors
+	// Check for errors, should not be 200
 	if resp.StatusCode == good_code {
-		t.Errorf("Bad PUT: Expected bad status code: %v, got %v", good_code, resp.StatusCode)
+		t.Errorf("Bad PUT: Expected bad status code: got %v", resp.StatusCode)
 	}
 
 	// Bad test case: PUT Failing @ HTTPProcessSetRequest
@@ -77,7 +74,7 @@ func TestSetpt(t *testing.T) {
 	resp = w.Result()
 	// Check for errors
 	if resp.StatusCode == good_code {
-		t.Errorf("Bad PUT: Expected an error")
+		t.Errorf("Bad PUT: Expected an error during HTTPProcessSetRequest")
 	}
 
 	// Good test case: PUT
@@ -86,7 +83,6 @@ func TestSetpt(t *testing.T) {
 	fakebody = string(`{"value": 24, "version": "SignalA_v1.0"}`)
 	sentBody = io.NopCloser(strings.NewReader(fakebody))
 	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBee/Template/setpoint", sentBody)
-
 	// Mock the http response/traffic to zigbee
 	zBeeResponse := `[{"success":{"/sensors/7/config/heatsetpoint":2400}}]`
 	resp = &http.Response{
@@ -104,6 +100,7 @@ func TestSetpt(t *testing.T) {
 	if resp.StatusCode != good_code {
 		t.Errorf("Good PUT: Expected good status code: %v, got %v", good_code, resp.StatusCode)
 	}
+	// Convert body to a string and check that it's correct
 	respBodyBytes, _ := io.ReadAll(resp.Body)
 	respBody := string(respBodyBytes)
 	if respBody != `[{"success":{"/sensors/7/config/heatsetpoint":2400}}]` {

@@ -95,7 +95,9 @@ func initTemplate() components.UnitAsset {
 
 //-------------------------------------Instatiate the unit assets based on configuration
 
-// newResource creates the Resource resource with its pointers and channels based on the configuration using the tConig structs
+// newResource creates the resource with its pointers and channels based on the configuration using the tConfig structs
+// This is a startup function that's used to initiate the unit assets declared in the systemconfig.json, the function
+// that is returned is later used to send a setpoint/start a goroutine depending on model of the unitasset
 func newResource(uac UnitAsset, sys *components.System, servs []components.Service) (components.UnitAsset, func()) {
 	// deterimine the protocols that the system supports
 	sProtocols := components.SProtocols(sys.Husk.ProtoPort)
@@ -106,7 +108,6 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		Protos: sProtocols,
 		Url:    make([]string, 0),
 	}
-
 	// intantiate the unit asset
 	ua := &UnitAsset{
 		Name:        uac.Name,
@@ -121,25 +122,23 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 			t.Name: t,
 		},
 	}
-
 	var ref components.Service
 	for _, s := range servs {
 		if s.Definition == "setpoint" {
 			ref = s
 		}
 	}
-
 	ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
-
 	return ua, func() {
 		if ua.Model == "SmartThermostat" {
 			err := ua.sendSetPoint()
 			if err != nil {
 				log.Println("Error occured:", err)
-				// TODO: Turn off system if this startup() fails
+				// TODO: Turn off system if this startup() fails?
 			}
 		} else if ua.Model == "SmartPlug" {
-			// start the unit asset(s)
+			// start the unit assets feedbackloop, this fetches the temperature from ds18b20 and and toggles
+			// between on/off depending on temperature in the room and a set temperature in the unitasset
 			go ua.feedbackLoop(ua.Owner.Ctx)
 		}
 	}
@@ -149,7 +148,6 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 	// Initialize a ticker for periodic execution
 	ticker := time.NewTicker(ua.Period * time.Second)
 	defer ticker.Stop()
-
 	// start the control loop
 	for {
 		select {
@@ -168,24 +166,22 @@ func (ua *UnitAsset) processFeedbackLoop() {
 		log.Printf("\n unable to obtain a temperature reading error: %s\n", err)
 		return
 	}
-
 	// Perform a type assertion to convert the returned Form to SignalA_v1a
 	tup, ok := tf.(*forms.SignalA_v1a)
 	if !ok {
 		log.Println("problem unpacking the temperature signal form")
 		return
 	}
-
 	// TODO: Check diff instead of a hard over/under value? meaning it'll only turn on/off if diff is over 0.5 degrees
 	if tup.Value < ua.Setpt {
 		err = ua.toggleState(true)
 		if err != nil {
-			log.Println("Error occured: ", err)
+			log.Println("Error occured while toggling state to true: ", err)
 		}
 	} else {
 		err = ua.toggleState(false)
 		if err != nil {
-			log.Println("Error occured: ", err)
+			log.Println("Error occured while toggling state to false: ", err)
 		}
 	}
 }
@@ -246,17 +242,11 @@ func (ua *UnitAsset) getSetPoint() (f forms.SignalA_v1a) {
 // setSetPoint updates the thermal setpoint
 func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
 	ua.Setpt = f.Value
-	/*
-		log.Println("*---------------------*")
-		log.Printf("New set point: %.1f\n", f.Value)
-		log.Println("*---------------------*")
-	*/
 }
 
 func (ua *UnitAsset) sendSetPoint() (err error) {
 	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Name + "/config"
-
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"heatsetpoint":%f}`, ua.Setpt*100) // Create payload
 	req, err := createRequest(s, apiURL)
@@ -269,7 +259,6 @@ func (ua *UnitAsset) sendSetPoint() (err error) {
 func (ua *UnitAsset) toggleState(state bool) (err error) {
 	// API call turn smart plug on/off, PUT call should be sent to  URL/api/apikey/lights/sensor_id/config
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.Name + "/state"
-
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"on":%t}`, state) // Create payload
 	req, err := createRequest(s, apiURL)
@@ -285,19 +274,17 @@ func createRequest(data string, apiURL string) (req *http.Request, err error) {
 	if err != nil {
 		return nil, err
 	}
-
 	req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
 	return req, err
 }
 
 func sendRequest(req *http.Request) (err error) {
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req) // Perform the http request
 	if err != nil {
 		return err
 	}
-
 	defer resp.Body.Close()
-	_, err = io.ReadAll(resp.Body) // Read the payload into body variable
+	_, err = io.ReadAll(resp.Body) // Read the response body, and check for errors/bad statuscodes
 	if err != nil {
 		return
 	}

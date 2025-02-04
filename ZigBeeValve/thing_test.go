@@ -72,20 +72,15 @@ func TestUnitAsset(t *testing.T) {
 	f := forms.SignalA_v1a{
 		Value: 27.0,
 	}
-
 	// Creates a single UnitAsset and assert it changes
 	ua := initTemplate().(*UnitAsset)
-
 	// Change Setpt
 	ua.setSetPoint(f)
-
 	if ua.Setpt != 27.0 {
 		t.Errorf("Expected Setpt to be 27.0, instead got %f", ua.Setpt)
 	}
-
 	// Fetch Setpt w/ a form
 	f2 := ua.getSetPoint()
-
 	if f2.Value != f.Value {
 		t.Errorf("Expected %f, instead got %f", f.Value, f2.Value)
 	}
@@ -93,12 +88,12 @@ func TestUnitAsset(t *testing.T) {
 
 func TestGetters(t *testing.T) {
 	ua := initTemplate().(*UnitAsset)
-
+	// Test GetName()
 	name := ua.GetName()
 	if name != "Template" {
 		t.Errorf("Expected name to be 2, instead got %s", name)
 	}
-
+	// Test GetServices()
 	services := ua.GetServices()
 	if services == nil {
 		t.Fatalf("Expected services not to be nil")
@@ -106,7 +101,7 @@ func TestGetters(t *testing.T) {
 	if services["setpoint"].Definition != "setpoint" {
 		t.Errorf("Expected definition to be setpoint")
 	}
-
+	// Test GetDetails()
 	details := ua.GetDetails()
 	if details == nil {
 		t.Fatalf("Details was nil, expected map")
@@ -114,11 +109,10 @@ func TestGetters(t *testing.T) {
 	if len(details["Location"]) == 0 {
 		t.Fatalf("Location was nil, expected kitchen")
 	}
-
 	if details["Location"][0] != "Kitchen" {
 		t.Errorf("Expected location to be Kitchen")
 	}
-
+	// Test GetCervices()
 	cervices := ua.GetCervices()
 	if cervices != nil {
 		t.Errorf("Expected no cervices")
@@ -126,6 +120,7 @@ func TestGetters(t *testing.T) {
 }
 
 func TestNewResource(t *testing.T) {
+	// Setup test context, system and unitasset
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	sys := components.NewSystem("testsys", ctx)
@@ -136,14 +131,12 @@ func TestNewResource(t *testing.T) {
 		ProtoPort:   map[string]int{"https": 0, "http": 8870, "coap": 0},
 		InfoLink:    "https://github.com/sdoque/systems/tree/master/ZigBeeValve",
 	}
-
 	setPointService := components.Service{
 		Definition:  "setpoint",
 		SubPath:     "setpoint",
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the current thermal setpoint (GET) or sets it (PUT)",
 	}
-
 	uac := UnitAsset{
 		Name:    "Template",
 		Details: map[string][]string{"Location": {"Kitchen"}},
@@ -155,7 +148,7 @@ func TestNewResource(t *testing.T) {
 			setPointService.SubPath: &setPointService,
 		},
 	}
-
+	// Test newResource function
 	ua, _ := newResource(uac, &sys, nil)
 	// Happy test case:
 	name := ua.GetName()
@@ -176,13 +169,9 @@ func (errReader) Close() error {
 	return nil
 }
 
-func TestProcessFeedbackLoop(t *testing.T) {
-	// TODO: Test as much of the code as possible?
-}
-
 func TestFindGateway(t *testing.T) {
+	// Create mock response for findGateway function
 	fakeBody := fmt.Sprint(discoverExample)
-
 	resp := &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
@@ -192,21 +181,19 @@ func TestFindGateway(t *testing.T) {
 
 	// ---- All ok! ----
 	err := findGateway()
-
 	if err != nil {
-		t.Fatal("Gatewayn not found", err)
+		t.Fatal("Gateway not found", err)
 	}
 	if gateway != "localhost:8080" {
 		t.Fatalf("Expected gateway to be localhost:8080, was %s", gateway)
 	}
 
 	// ---- Error cases ----
-
 	// Unmarshall error
 	newMockTransport(resp, false, fmt.Errorf("Test error"))
 	err = findGateway()
 	if err == nil {
-		t.Error("Error expcted, got nil instead", err)
+		t.Error("Error expcted during unmarshalling, got nil instead", err)
 	}
 
 	// Statuscode > 299, have to make changes to mockTransport to test this
@@ -223,7 +210,7 @@ func TestFindGateway(t *testing.T) {
 	newMockTransport(resp, false, nil)
 	err = findGateway()
 	if err != errBodyRead {
-		t.Error("Expected error")
+		t.Error("Expected errBodyRead, got", err)
 	}
 
 	// Actual http body is unmarshaled correctly
@@ -231,7 +218,7 @@ func TestFindGateway(t *testing.T) {
 	newMockTransport(resp, false, nil)
 	err = findGateway()
 	if err == nil {
-		t.Error("Expected error")
+		t.Error("Expected error while unmarshalling body, error:", err)
 	}
 
 	// Empty list of gateways
@@ -239,19 +226,18 @@ func TestFindGateway(t *testing.T) {
 	newMockTransport(resp, false, nil)
 	err = findGateway()
 	if err != errMissingGateway {
-		t.Error("Expected error", err)
+		t.Error("Expected error when list of gateways is empty:", err)
 	}
 }
 
 func TestToggleState(t *testing.T) {
+	// Create mock response and unitasset for toggleState() function
 	fakeBody := fmt.Sprint(`{"on":true, "Version": "SignalA_v1a"}`)
-
 	resp := &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
 		Body:       io.NopCloser(strings.NewReader(fakeBody)),
 	}
-
 	newMockTransport(resp, false, nil)
 	ua := initTemplate().(*UnitAsset)
 	// All ok!
@@ -264,14 +250,13 @@ func TestToggleState(t *testing.T) {
 }
 
 func TestSendSetPoint(t *testing.T) {
+	// Create mock response and unitasset for sendSetPoint() function
 	fakeBody := fmt.Sprint(`{"Value": 12.4, "Version": "SignalA_v1a}`)
-
 	resp := &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
 		Body:       io.NopCloser(strings.NewReader(fakeBody)),
 	}
-
 	newMockTransport(resp, false, nil)
 	ua := initTemplate().(*UnitAsset)
 	// All ok!
