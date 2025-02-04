@@ -20,15 +20,15 @@ func Test_set_SEKprice(t *testing.T) {
 	ua.set_SEKprice(w, r)
 
 	resp := w.Result()
+	if resp.StatusCode != good_code {
+		t.Errorf("expected good status code: %v, got %v", good_code, resp.StatusCode)
+	}
+
 	body, _ := io.ReadAll(resp.Body)
 
 	value := strings.Contains(string(body), `"value": 1.5`)
 	unit := strings.Contains(string(body), `"unit": "SEK"`)
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
-
-	if resp.StatusCode != good_code {
-		t.Errorf("expected good status code: %v, got %v", good_code, resp.StatusCode)
-	}
 
 	if value != true {
 		t.Errorf("expected the statment to be true!")
@@ -101,15 +101,14 @@ func Test_set_minTemp(t *testing.T) {
 	// save the rsponse and read the body
 
 	resp = w.Result()
+	if resp.StatusCode != good_statuscode {
+		t.Errorf("expected good status code: %v, got %v", good_statuscode, resp.StatusCode)
+	}
 	body, _ := io.ReadAll(resp.Body)
 
 	value := strings.Contains(string(body), `"value": 20`)
 	unit := strings.Contains(string(body), `"unit": "Celsius"`)
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
-
-	if resp.StatusCode != good_statuscode {
-		t.Errorf("expected good status code: %v, got %v", good_statuscode, resp.StatusCode)
-	}
 
 	if value != true {
 		t.Errorf("expected the statment to be true!")
@@ -184,15 +183,15 @@ func Test_set_maxTemp(t *testing.T) {
 	// save the rsponse and read the body
 
 	resp = w.Result()
+	if resp.StatusCode != good_statuscode {
+		t.Errorf("expected good status code: %v, got %v", good_statuscode, resp.StatusCode)
+	}
+
 	body, _ := io.ReadAll(resp.Body)
 
 	value := strings.Contains(string(body), `"value": 25`)
 	unit := strings.Contains(string(body), `"unit": "Celsius"`)
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
-
-	if resp.StatusCode != good_statuscode {
-		t.Errorf("expected good status code: %v, got %v", good_statuscode, resp.StatusCode)
-	}
 
 	if value != true {
 		t.Errorf("expected the statment to be true!")
@@ -267,15 +266,14 @@ func Test_set_minPrice(t *testing.T) {
 	// save the rsponse and read the body
 
 	resp = w.Result()
+	if resp.StatusCode != good_statuscode {
+		t.Errorf("expected good status code: %v, got %v", good_statuscode, resp.StatusCode)
+	}
 	body, _ := io.ReadAll(resp.Body)
 
 	value := strings.Contains(string(body), `"value": 1`) //EVENTUELL BUGG, enligt webb-app minPrice = 0 ( kanske dock är för att jag inte startat sregistrar och orchastrator)
 	unit := strings.Contains(string(body), `"unit": "SEK"`)
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
-
-	if resp.StatusCode != good_statuscode {
-		t.Errorf("expected good status code: %v, got %v", good_statuscode, resp.StatusCode)
-	}
 
 	if value != true {
 		t.Errorf("expected the statment to be true!")
@@ -350,15 +348,14 @@ func Test_set_maxPrice(t *testing.T) {
 	// save the rsponse and read the body
 
 	resp = w.Result()
+	if resp.StatusCode != good_statuscode {
+		t.Errorf("expected good status code: %v, got %v", good_statuscode, resp.StatusCode)
+	}
 	body, _ := io.ReadAll(resp.Body)
 
 	value := strings.Contains(string(body), `"value": 2`)
 	unit := strings.Contains(string(body), `"unit": "SEK"`)
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
-
-	if resp.StatusCode != good_statuscode {
-		t.Errorf("expected good status code: %v, got %v", good_statuscode, resp.StatusCode)
-	}
 
 	if value != true {
 		t.Errorf("expected the statment to be true!")
@@ -433,15 +430,15 @@ func Test_set_desiredTemp(t *testing.T) {
 	// save the rsponse and read the body
 
 	resp = w.Result()
+	if resp.StatusCode != good_statuscode {
+		t.Errorf("expected good status code: %v, got %v", good_statuscode, resp.StatusCode)
+	}
 	body, _ := io.ReadAll(resp.Body)
 
 	value := strings.Contains(string(body), `"value": 0`)
 	unit := strings.Contains(string(body), `"unit": "Celsius"`)
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
 
-	if resp.StatusCode != good_statuscode {
-		t.Errorf("expected good status code: %v, got %v", good_statuscode, resp.StatusCode)
-	}
 	if value != true {
 		t.Errorf("expected the statment to be true!")
 
