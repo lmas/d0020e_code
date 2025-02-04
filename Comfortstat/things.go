@@ -74,6 +74,7 @@ func priceFeedbackLoop() {
 		select {
 
 		case <-ticker.C:
+			// blocks the execution until the ticker fires
 		}
 	}
 }
