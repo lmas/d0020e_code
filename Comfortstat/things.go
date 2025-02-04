@@ -79,9 +79,9 @@ var err_statuscode error = fmt.Errorf("bad status code")
 // This function fetches the current electricity price from "https://www.elprisetjustnu.se/elpris-api", then prosess it and updates globalPrice
 func getAPIPriceData(apiURL string) error {
 	//Validate the URL//
-	parsedURL, err := url.Parse(apiURL) // ensures the string is a valid UTL, .schema and .Host checks prevent emty or altered URL
+	parsedURL, err := url.Parse(apiURL) // ensures the string is a valid URL, .schema and .Host checks prevent emty or altered URL
 	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
-		return errors.New("invalid URL")
+		return errors.New("The URL is invalid")
 	}
 	// end of validating the URL//
 	res, err := http.Get(parsedURL.String())
@@ -94,9 +94,14 @@ func getAPIPriceData(apiURL string) error {
 		return err
 	}
 
-	var data []GlobalPriceData        // Create a list to hold the gateway json
+	var data []GlobalPriceData        // Create a list to hold the data json
 	err = json.Unmarshal(body, &data) // "unpack" body from []byte to []GlobalPriceData, save errors
-	res.Body.Close()                  // defer res.Body.Close()
+	/*
+		if err != nil {
+			return err
+		}
+	*/
+	defer res.Body.Close() // defer res.Body.Close()
 
 	if res.StatusCode > 299 {
 		return err_statuscode
