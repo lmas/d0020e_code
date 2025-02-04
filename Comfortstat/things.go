@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"math"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/sdoque/mbaigo/components"
@@ -76,8 +78,13 @@ var err_statuscode error = fmt.Errorf("bad status code")
 
 // This function fetches the current electricity price from "https://www.elprisetjustnu.se/elpris-api", then prosess it and updates globalPrice
 func getAPIPriceData(apiURL string) error {
-
-	res, err := http.Get(apiURL)
+	//Validate the URL//
+	parsedURL, err := url.Parse(apiURL) // ensures the string is a valid UTL, .schema and .Host checks prevent emty or altered URL
+	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+		return errors.New("invalid URL")
+	}
+	// end of validating the URL//
+	res, err := http.Get(parsedURL.String())
 	if err != nil {
 		return err
 	}
