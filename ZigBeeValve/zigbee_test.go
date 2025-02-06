@@ -12,7 +12,7 @@ import (
 func TestSetpt(t *testing.T) {
 	ua := initTemplate().(*UnitAsset)
 
-	// Good case test: GET
+	// --- Good case test: GET ---
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "http://localhost:8670/ZigBee/Template/setpoint", nil)
 	good_code := 200
@@ -38,7 +38,7 @@ func TestSetpt(t *testing.T) {
 	if version != true {
 		t.Errorf("Good GET: Expected the version statment to be true!")
 	}
-	// Bad test case: Default part of code (faulty http method)
+	// --- Bad test case: Default part of code (faulty http method) ---
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest("123", "http://localhost:8670/ZigBee/Template/setpoint", nil)
 	ua.setpt(w, r)
@@ -48,7 +48,7 @@ func TestSetpt(t *testing.T) {
 		t.Errorf("Expected the status to be bad but got: %v", resp.StatusCode)
 	}
 
-	// Bad PUT (Cant reach ZigBee)
+	// --- Bad PUT (Cant reach ZigBee) ---
 	w = httptest.NewRecorder()
 	// Make the body
 	fakebody := string(`{"value": 24, "version": "SignalA_v1.0"}`)
@@ -63,7 +63,7 @@ func TestSetpt(t *testing.T) {
 		t.Errorf("Bad PUT: Expected bad status code: got %v", resp.StatusCode)
 	}
 
-	// Bad test case: PUT Failing @ HTTPProcessSetRequest
+	// --- Bad test case: PUT Failing @ HTTPProcessSetRequest ---
 	w = httptest.NewRecorder()
 	// Make the body
 	fakebody = string(`{"value": "24", "version": "SignalA_v1.0"}`) // MISSING VERSION IN SENTBODY
@@ -77,7 +77,7 @@ func TestSetpt(t *testing.T) {
 		t.Errorf("Bad PUT: Expected an error during HTTPProcessSetRequest")
 	}
 
-	// Good test case: PUT
+	// --- Good test case: PUT ---
 	w = httptest.NewRecorder()
 	// Make the body and request
 	fakebody = string(`{"value": 24, "version": "SignalA_v1.0"}`)
