@@ -23,7 +23,7 @@ func TestSetpt(t *testing.T) {
 	stringBody := string(body)
 
 	value := strings.Contains(string(stringBody), `"value": 20`)
-	unit := strings.Contains(string(stringBody), `"unit": "Celcius"`)
+	unit := strings.Contains(string(stringBody), `"unit": "Celsius"`)
 	version := strings.Contains(string(stringBody), `"version": "SignalA_v1.0"`)
 
 	if resp.StatusCode != good_code {
