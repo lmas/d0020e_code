@@ -83,6 +83,8 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 		t.set_SEKprice(w, r)
 	case "desired_temp":
 		t.set_desiredTemp(w, r)
+	case "userTemp":
+		t.set_userTemp(w, r)
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
 	}
@@ -192,4 +194,21 @@ func (rsc *UnitAsset) set_desiredTemp(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
 
+}
+
+func (rsc *UnitAsset) set_userTemp(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		sig, err := usecases.HTTPProcessSetRequest(w, r)
+		if err != nil {
+			http.Error(w, "request incorrectly formated", http.StatusBadRequest)
+			return
+		}
+		rsc.setUser_Temp(sig)
+	case "GET":
+		signalErr := rsc.getUser_Temp()
+		usecases.HTTPProcessGetRequest(w, r, &signalErr)
+	default:
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+	}
 }
