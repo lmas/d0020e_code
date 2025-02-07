@@ -52,6 +52,7 @@ type UnitAsset struct {
 	Max_price        float64 `json:"max_price"`
 	Min_temp         float64 `json:"min_temp"`
 	Max_temp         float64 `json:"max_temp"`
+	userTemp         float64 `json:"userTemp"`
 }
 
 func initAPI() {
@@ -188,6 +189,12 @@ func initTemplate() components.UnitAsset {
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the desired temperature the system calculates based on user inputs (using a GET request)",
 	}
+	setUserTemp := components.Service{
+		Definition:  "userTemp",
+		SubPath:     "userTemp",
+		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the temperature the user wants regardless of prices (using a GET request)",
+	}
 
 	return &UnitAsset{
 		//These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
@@ -200,6 +207,7 @@ func initTemplate() components.UnitAsset {
 		Max_temp:     25.0, // Maximum temprature allowed
 		Desired_temp: 0,    // Desired temp calculated by system
 		Period:       15,
+		userTemp:     0,
 
 		// maps the provided services from above
 		ServicesMap: components.Services{
@@ -209,6 +217,7 @@ func initTemplate() components.UnitAsset {
 			setMin_price.SubPath:    &setMin_price,
 			setSEK_price.SubPath:    &setSEK_price,
 			setDesired_temp.SubPath: &setDesired_temp,
+			setUserTemp.SubPath:     &setUserTemp,
 		},
 	}
 }
@@ -244,6 +253,7 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 		Max_temp:     uac.Max_temp,
 		Desired_temp: uac.Desired_temp,
 		Period:       uac.Period,
+		userTemp:     uac.userTemp,
 		CervicesMap: components.Cervices{
 			t.Name: t,
 		},
@@ -290,6 +300,7 @@ func (ua *UnitAsset) getMin_price() (f forms.SignalA_v1a) {
 // setMin_price updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMin_price(f forms.SignalA_v1a) {
 	ua.Min_price = f.Value
+	ua.processFeedbackLoop()
 }
 
 // getMax_price is used for reading the current value of Max_price
@@ -304,6 +315,7 @@ func (ua *UnitAsset) getMax_price() (f forms.SignalA_v1a) {
 // setMax_price updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMax_price(f forms.SignalA_v1a) {
 	ua.Max_price = f.Value
+	ua.processFeedbackLoop()
 }
 
 // getMin_temp is used for reading the current minimum temerature value
@@ -318,6 +330,7 @@ func (ua *UnitAsset) getMin_temp() (f forms.SignalA_v1a) {
 // setMin_temp updates the current minimum temperature set by the user with a new value
 func (ua *UnitAsset) setMin_temp(f forms.SignalA_v1a) {
 	ua.Min_temp = f.Value
+	ua.processFeedbackLoop()
 }
 
 // getMax_temp is used for reading the current value of Min_price
@@ -332,6 +345,7 @@ func (ua *UnitAsset) getMax_temp() (f forms.SignalA_v1a) {
 // setMax_temp updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMax_temp(f forms.SignalA_v1a) {
 	ua.Max_temp = f.Value
+	ua.processFeedbackLoop()
 }
 
 func (ua *UnitAsset) getDesired_temp() (f forms.SignalA_v1a) {
@@ -345,6 +359,21 @@ func (ua *UnitAsset) getDesired_temp() (f forms.SignalA_v1a) {
 func (ua *UnitAsset) setDesired_temp(f forms.SignalA_v1a) {
 	ua.Desired_temp = f.Value
 	log.Printf("new desired temperature: %.1f", f.Value)
+}
+
+func (ua *UnitAsset) setUser_Temp(f forms.SignalA_v1a) {
+	ua.userTemp = f.Value
+	if ua.userTemp != 0 {
+		ua.sendUserTemp()
+	}
+}
+
+func (ua *UnitAsset) getUser_Temp() (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Value = ua.userTemp
+	f.Unit = "Celsius"
+	f.Timestamp = time.Now()
+	return f
 }
 
 // NOTE//
@@ -408,7 +437,7 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	//ua.Desired_temp = ua.calculateDesiredTemp(miT, maT, miP, maP, ua.getSEK_price().Value)
 	ua.Desired_temp = ua.calculateDesiredTemp()
 	// Only send temperature update when we have a new value.
-	if ua.Desired_temp == ua.old_desired_temp {
+	if (ua.Desired_temp == ua.old_desired_temp) || (ua.userTemp != 0) {
 		return
 	}
 	// Keep track of previous value
@@ -451,4 +480,21 @@ func (ua *UnitAsset) calculateDesiredTemp() float64 {
 	desired_temp := k*(ua.SEK_price) + m
 
 	return desired_temp
+}
+
+func (ua *UnitAsset) sendUserTemp() {
+	var of forms.SignalA_v1a
+	of.Value = ua.userTemp
+	of.Unit = ua.CervicesMap["setpoint"].Details["Unit"][0]
+	of.Timestamp = time.Now()
+
+	op, err := usecases.Pack(&of, "application/json")
+	if err != nil {
+		return
+	}
+	err = usecases.SetState(ua.CervicesMap["setpoint"], ua.Owner, op)
+	if err != nil {
+		log.Printf("cannot update zigbee setpoint: %s\n", err)
+		return
+	}
 }
