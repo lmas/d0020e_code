@@ -158,7 +158,6 @@ func initTemplate() components.UnitAsset {
 		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the current electric hourly price (using a GET request)",
 	}
-
 	setMax_temp := components.Service{
 		Definition:  "max_temperature",
 		SubPath:     "max_temperature",
@@ -300,7 +299,7 @@ func (ua *UnitAsset) getMin_price() (f forms.SignalA_v1a) {
 // setMin_price updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMin_price(f forms.SignalA_v1a) {
 	ua.Min_price = f.Value
-	ua.processFeedbackLoop()
+	//ua.processFeedbackLoop()
 }
 
 // getMax_price is used for reading the current value of Max_price
@@ -315,7 +314,7 @@ func (ua *UnitAsset) getMax_price() (f forms.SignalA_v1a) {
 // setMax_price updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMax_price(f forms.SignalA_v1a) {
 	ua.Max_price = f.Value
-	ua.processFeedbackLoop()
+	//ua.processFeedbackLoop()
 }
 
 // getMin_temp is used for reading the current minimum temerature value
@@ -330,7 +329,7 @@ func (ua *UnitAsset) getMin_temp() (f forms.SignalA_v1a) {
 // setMin_temp updates the current minimum temperature set by the user with a new value
 func (ua *UnitAsset) setMin_temp(f forms.SignalA_v1a) {
 	ua.Min_temp = f.Value
-	ua.processFeedbackLoop()
+	//ua.processFeedbackLoop()
 }
 
 // getMax_temp is used for reading the current value of Min_price
@@ -345,7 +344,7 @@ func (ua *UnitAsset) getMax_temp() (f forms.SignalA_v1a) {
 // setMax_temp updates the current minimum price set by the user with a new value
 func (ua *UnitAsset) setMax_temp(f forms.SignalA_v1a) {
 	ua.Max_temp = f.Value
-	ua.processFeedbackLoop()
+	//ua.processFeedbackLoop()
 }
 
 func (ua *UnitAsset) getDesired_temp() (f forms.SignalA_v1a) {

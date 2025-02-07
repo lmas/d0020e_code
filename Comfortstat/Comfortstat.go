@@ -31,6 +31,7 @@ func main() {
 
 	// instantiate a template unit asset
 	assetTemplate := initTemplate()
+	// Calling initAPI() starts the pricefeedbackloop that fetches the current electrisity price for the particular hour
 	initAPI()
 	time.Sleep(1 * time.Second)
 	assetName := assetTemplate.GetName()
