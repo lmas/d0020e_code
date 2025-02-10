@@ -433,6 +433,10 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	ua.Desired_temp = ua.calculateDesiredTemp()
 	// Only send temperature update when we have a new value.
 	if (ua.Desired_temp == ua.old_desired_temp) || (ua.userTemp != 0) {
+		if ua.userTemp != 0 {
+			ua.old_desired_temp = ua.userTemp
+			return
+		}
 		return
 	}
 	// Keep track of previous value
