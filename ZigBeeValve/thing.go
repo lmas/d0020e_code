@@ -38,10 +38,12 @@ type UnitAsset struct {
 	ServicesMap components.Services `json:"-"`
 	CervicesMap components.Cervices `json:"-"`
 	//
-	Model  string        `json:"model"`
-	Period time.Duration `json:"period"`
-	Setpt  float64       `json:"setpoint"`
-	Apikey string        `json:"APIkey"`
+	Model       string `json:"model"`
+	Uniqueid    string `json:"uniqueid"`
+	deviceIndex string
+	Period      time.Duration `json:"period"`
+	Setpt       float64       `json:"setpoint"`
+	Apikey      string        `json:"APIkey"`
 }
 
 // GetName returns the name of the Resource.
@@ -80,12 +82,14 @@ func initTemplate() components.UnitAsset {
 
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
-		Name:    "Template",
-		Details: map[string][]string{"Location": {"Kitchen"}},
-		Model:   "SmartThermostat",
-		Period:  10,
-		Setpt:   20,
-		Apikey:  "1234",
+		Name:        "Smart Thermostat 1",
+		Details:     map[string][]string{"Location": {"Kitchen"}},
+		Model:       "SmartThermostat",
+		Uniqueid:    "14:ef:14:10:00:6f:d0:d7-11-1201",
+		deviceIndex: "",
+		Period:      10,
+		Setpt:       20,
+		Apikey:      "1234",
 		ServicesMap: components.Services{
 			setPointService.SubPath: &setPointService,
 		},
@@ -115,6 +119,8 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		Details:     uac.Details,
 		ServicesMap: components.CloneServices(servs),
 		Model:       uac.Model,
+		Uniqueid:    uac.Uniqueid,
+		deviceIndex: uac.deviceIndex,
 		Period:      uac.Period,
 		Setpt:       uac.Setpt,
 		Apikey:      uac.Apikey,
@@ -129,14 +135,18 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		}
 	}
 	ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
+
 	return ua, func() {
-		if ua.Model == "SmartThermostat" {
+
+		if ua.Model == "ZHAThermostat" {
+			ua.getConnectedUnits("sensors")
 			err := ua.sendSetPoint()
 			if err != nil {
-				log.Println("Error occured:", err)
+				log.Println("Error occured during startup, while calling sendSetPoint():", err)
 				// TODO: Turn off system if this startup() fails?
 			}
-		} else if ua.Model == "SmartPlug" {
+		} else if ua.Model == "Smart plug" {
+			ua.getConnectedUnits("lights")
 			// start the unit assets feedbackloop, this fetches the temperature from ds18b20 and and toggles
 			// between on/off depending on temperature in the room and a set temperature in the unitasset
 			go ua.feedbackLoop(ua.Owner.Ctx)
@@ -192,6 +202,7 @@ const discoveryURL string = "https://phoscon.de/discover"
 
 var errStatusCode error = fmt.Errorf("bad status code")
 var errMissingGateway error = fmt.Errorf("missing gateway")
+var errMissingUniqueID error = fmt.Errorf("uniqueid not found")
 
 func findGateway() (err error) {
 	// https://pkg.go.dev/net/http#Get
@@ -246,7 +257,9 @@ func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
 
 func (ua *UnitAsset) sendSetPoint() (err error) {
 	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Name + "/config"
+
+	// --- Send setpoint to specific unit ---
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.deviceIndex + "/config"
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"heatsetpoint":%f}`, ua.Setpt*100) // Create payload
 	req, err := createRequest(s, apiURL)
@@ -258,7 +271,7 @@ func (ua *UnitAsset) sendSetPoint() (err error) {
 
 func (ua *UnitAsset) toggleState(state bool) (err error) {
 	// API call turn smart plug on/off, PUT call should be sent to  URL/api/apikey/lights/sensor_id/config
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.Name + "/state"
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.deviceIndex + "/state"
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"on":%t}`, state) // Create payload
 	req, err := createRequest(s, apiURL)
@@ -266,6 +279,40 @@ func (ua *UnitAsset) toggleState(state bool) (err error) {
 		return
 	}
 	return sendRequest(req)
+}
+
+func (ua *UnitAsset) getConnectedUnits(unitType string) (err error) {
+	// Get all devices
+	apiURL := fmt.Sprintf("http://%s/api/%s/%s", gateway, ua.Apikey, unitType)
+	// Create a new request (Get)
+	// Put data into buffer
+	req, err := http.NewRequest(http.MethodGet, apiURL, nil) // Put request is made
+	req.Header.Set("Content-Type", "application/json")       // Make sure it's JSON
+	// Send the request
+	resp, err := http.DefaultClient.Do(req) // Perform the http request
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	resBody, err := io.ReadAll(resp.Body) // Read the response body, and check for errors/bad statuscodes
+	if err != nil {
+		return
+	}
+	if resp.StatusCode > 299 {
+		return errStatusCode
+	}
+
+	// How to access maps inside of maps below!
+	// https://stackoverflow.com/questions/28806951/accessing-nested-map-of-type-mapstringinterface-in-golang
+	var deviceMap map[string]interface{}
+	json.Unmarshal([]byte(resBody), &deviceMap)
+	for i := range deviceMap {
+		if deviceMap[i].(map[string]interface{})["uniqueid"] == ua.Uniqueid {
+			ua.deviceIndex = i
+			return
+		}
+	}
+	return errMissingUniqueID
 }
 
 func createRequest(data string, apiURL string) (req *http.Request, err error) {
@@ -293,3 +340,6 @@ func sendRequest(req *http.Request) (err error) {
 	}
 	return
 }
+
+// Create a group, add all lights/power plugs from e.g. kitchen to said group
+// Create rule, on button.event toggle power plugs

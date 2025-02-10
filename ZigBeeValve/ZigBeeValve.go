@@ -21,11 +21,11 @@ func main() {
 	defer cancel()                                          // make sure all paths cancel the context to avoid context leak
 
 	// instantiate the System
-	sys := components.NewSystem("ZigBee", ctx)
+	sys := components.NewSystem("ZigBeeHandler", ctx)
 
 	// Instatiate the Capusle
 	sys.Husk = &components.Husk{
-		Description: " is a controller for smart thermostats connected with a RaspBee II",
+		Description: " is a controller for smart devices connected with a RaspBee II",
 		Certificate: "ABCD",
 		Details:     map[string][]string{"Developer": {"Arrowhead"}},
 		ProtoPort:   map[string]int{"https": 0, "http": 8870, "coap": 0},
@@ -36,6 +36,12 @@ func main() {
 	assetTemplate := initTemplate()
 	assetName := assetTemplate.GetName()
 	sys.UAssets[assetName] = &assetTemplate
+
+	// Find zigbee gateway and store it in a global variable for reuse
+	err := findGateway()
+	if err != nil {
+		log.Fatal("Error getting gateway, shutting down: ", err)
+	}
 
 	// Configure the system
 	rawResources, servsTemp, err := usecases.Configure(&sys)
@@ -58,12 +64,6 @@ func main() {
 
 	// Register the (system) and its services
 	usecases.RegisterServices(&sys)
-
-	// Find zigbee gateway and store it in a global variable for reuse
-	err = findGateway()
-	if err != nil {
-		log.Fatal("Error getting gateway, shutting down: ", err)
-	}
 
 	// start the http handler and server
 	go usecases.SetoutServers(&sys)
@@ -98,7 +98,7 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		}
 
 		rsc.setSetPoint(sig)
-		if rsc.Model == "SmartThermostat" {
+		if rsc.Model == "ZHAThermostat" {
 			err = rsc.sendSetPoint()
 			if err != nil {
 				http.Error(w, "Couldn't send setpoint.", http.StatusInternalServerError)
