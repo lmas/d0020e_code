@@ -52,7 +52,7 @@ type UnitAsset struct {
 	Max_price        float64 `json:"max_price"`
 	Min_temp         float64 `json:"min_temp"`
 	Max_temp         float64 `json:"max_temp"`
-	userTemp         float64 `json:"userTemp"`
+	UserTemp         float64 `json:"userTemp"`
 }
 
 func initAPI() {
@@ -206,7 +206,7 @@ func initTemplate() components.UnitAsset {
 		Max_temp:     25.0, // Maximum temprature allowed
 		Desired_temp: 0,    // Desired temp calculated by system
 		Period:       15,
-		userTemp:     0,
+		UserTemp:     0,
 
 		// maps the provided services from above
 		ServicesMap: components.Services{
@@ -252,7 +252,7 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 		Max_temp:     uac.Max_temp,
 		Desired_temp: uac.Desired_temp,
 		Period:       uac.Period,
-		userTemp:     uac.userTemp,
+		UserTemp:     uac.UserTemp,
 		CervicesMap: components.Cervices{
 			t.Name: t,
 		},
@@ -357,15 +357,15 @@ func (ua *UnitAsset) setDesired_temp(f forms.SignalA_v1a) {
 }
 
 func (ua *UnitAsset) setUser_Temp(f forms.SignalA_v1a) {
-	ua.userTemp = f.Value
-	if ua.userTemp != 0 {
+	ua.UserTemp = f.Value
+	if ua.UserTemp != 0 {
 		ua.sendUserTemp()
 	}
 }
 
 func (ua *UnitAsset) getUser_Temp() (f forms.SignalA_v1a) {
 	f.NewForm()
-	f.Value = ua.userTemp
+	f.Value = ua.UserTemp
 	f.Unit = "Celsius"
 	f.Timestamp = time.Now()
 	return f
@@ -432,9 +432,9 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	//ua.Desired_temp = ua.calculateDesiredTemp(miT, maT, miP, maP, ua.getSEK_price().Value)
 	ua.Desired_temp = ua.calculateDesiredTemp()
 	// Only send temperature update when we have a new value.
-	if (ua.Desired_temp == ua.old_desired_temp) || (ua.userTemp != 0) {
-		if ua.userTemp != 0 {
-			ua.old_desired_temp = ua.userTemp
+	if (ua.Desired_temp == ua.old_desired_temp) || (ua.UserTemp != 0) {
+		if ua.UserTemp != 0 {
+			ua.old_desired_temp = ua.UserTemp
 			return
 		}
 		return
@@ -483,7 +483,7 @@ func (ua *UnitAsset) calculateDesiredTemp() float64 {
 
 func (ua *UnitAsset) sendUserTemp() {
 	var of forms.SignalA_v1a
-	of.Value = ua.userTemp
+	of.Value = ua.UserTemp
 	of.Unit = ua.CervicesMap["setpoint"].Details["Unit"][0]
 	of.Timestamp = time.Now()
 
