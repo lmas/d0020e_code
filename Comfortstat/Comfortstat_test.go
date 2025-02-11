@@ -49,11 +49,9 @@ func Test_set_SEKprice(t *testing.T) {
 }
 
 func Test_set_minTemp(t *testing.T) {
-
 	ua := initTemplate().(*UnitAsset)
 
 	//Godd test case: PUT
-
 	// creates a fake request body with JSON data
 	w := httptest.NewRecorder()
 	fakebody := bytes.NewReader([]byte(`{"value": 20, "unit": "Celsius", "version": "SignalA_v1.0"}`))          // converts the Jason data so it can be read
@@ -108,7 +106,6 @@ func Test_set_minTemp(t *testing.T) {
 		t.Errorf("expected the version statment to be true!")
 	}
 	// bad test case: default part of code
-
 	// force the case to hit default statement but alter the method
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest("666", "http://localhost:8670/Comfortstat/Set%20Values/min_temperature", nil)
