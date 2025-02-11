@@ -72,29 +72,29 @@ func main() {
 // Serving handles the resources services. NOTE: it exepcts those names from the request URL path
 func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath string) {
 	switch servicePath {
-	case "min_temperature":
-		t.set_minTemp(w, r)
-	case "max_temperature":
-		t.set_maxTemp(w, r)
-	case "max_price":
-		t.set_maxPrice(w, r)
-	case "min_price":
-		t.set_minPrice(w, r)
-	case "SEK_price":
-		t.set_SEKprice(w, r)
-	case "desired_temp":
-		t.set_desiredTemp(w, r)
+	case "MinTemperature":
+		t.httpSetMinTemp(w, r)
+	case "MaxTemperature":
+		t.httpSetMaxTemp(w, r)
+	case "MaxPrice":
+		t.httpSetMaxPrice(w, r)
+	case "MinPrice":
+		t.httpSetMinPrice(w, r)
+	case "SEKPrice":
+		t.httpSetSEKPrice(w, r)
+	case "DesiredTemp":
+		t.httpSetDesiredTemp(w, r)
 	case "userTemp":
-		t.set_userTemp(w, r)
+		t.httpSetUserTemp(w, r)
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
 	}
 }
 
-func (rsc *UnitAsset) set_SEKprice(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) httpSetSEKPrice(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		signalErr := rsc.getSEK_price()
+		signalErr := rsc.getSEKPrice()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
@@ -104,7 +104,7 @@ func (rsc *UnitAsset) set_SEKprice(w http.ResponseWriter, r *http.Request) {
 // All these functions below handles HTTP "PUT" or "GET" requests to modefy or retrieve the MAX/MIN temprature/price and desierd temprature
 // For the PUT case - the "HTTPProcessSetRequest(w, r)" is called to prosses the data given from the user and if no error,
 // call the set functions in things.go with the value witch updates the value in the struct
-func (rsc *UnitAsset) set_minTemp(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) httpSetMinTemp(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
@@ -114,15 +114,15 @@ func (rsc *UnitAsset) set_minTemp(w http.ResponseWriter, r *http.Request) {
 			return
 
 		}
-		rsc.setMin_temp(sig)
+		rsc.setMinTemp(sig)
 	case "GET":
-		signalErr := rsc.getMin_temp()
+		signalErr := rsc.getMinTemp()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
 }
-func (rsc *UnitAsset) set_maxTemp(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) httpSetMaxTemp(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
@@ -131,16 +131,16 @@ func (rsc *UnitAsset) set_maxTemp(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
 			return
 		}
-		rsc.setMax_temp(sig)
+		rsc.setMaxTemp(sig)
 	case "GET":
-		signalErr := rsc.getMax_temp()
+		signalErr := rsc.getMaxTemp()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
 }
 
-func (rsc *UnitAsset) set_minPrice(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) httpSetMinPrice(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
@@ -149,9 +149,9 @@ func (rsc *UnitAsset) set_minPrice(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
 			return
 		}
-		rsc.setMin_price(sig)
+		rsc.setMinPrice(sig)
 	case "GET":
-		signalErr := rsc.getMin_price()
+		signalErr := rsc.getMinPrice()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
@@ -159,7 +159,7 @@ func (rsc *UnitAsset) set_minPrice(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (rsc *UnitAsset) set_maxPrice(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) httpSetMaxPrice(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
@@ -168,9 +168,9 @@ func (rsc *UnitAsset) set_maxPrice(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
 			return
 		}
-		rsc.setMax_price(sig)
+		rsc.setMaxPrice(sig)
 	case "GET":
-		signalErr := rsc.getMax_price()
+		signalErr := rsc.getMaxPrice()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
@@ -178,7 +178,7 @@ func (rsc *UnitAsset) set_maxPrice(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (rsc *UnitAsset) set_desiredTemp(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) httpSetDesiredTemp(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
@@ -187,9 +187,9 @@ func (rsc *UnitAsset) set_desiredTemp(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
 			return
 		}
-		rsc.setDesired_temp(sig)
+		rsc.setDesiredTemp(sig)
 	case "GET":
-		signalErr := rsc.getDesired_temp()
+		signalErr := rsc.getDesiredTemp()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
@@ -197,7 +197,7 @@ func (rsc *UnitAsset) set_desiredTemp(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (rsc *UnitAsset) set_userTemp(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) httpSetUserTemp(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
@@ -205,9 +205,9 @@ func (rsc *UnitAsset) set_userTemp(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "request incorrectly formated", http.StatusBadRequest)
 			return
 		}
-		rsc.setUser_Temp(sig)
+		rsc.setUserTemp(sig)
 	case "GET":
-		signalErr := rsc.getUser_Temp()
+		signalErr := rsc.getUserTemp()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)

@@ -79,7 +79,7 @@ func TestSingleUnitAssetOneAPICall(t *testing.T) {
 	trans := newMockTransport(resp)
 	// Creates a single UnitAsset and assert it only sends a single API request
 	ua := initTemplate().(*UnitAsset)
-	retrieveAPI_price(ua)
+	retrieveAPIPrice(ua)
 
 	// TEST CASE: cause a single API request
 	hits := trans.domainHits(apiDomain)
@@ -98,7 +98,7 @@ func TestMultipleUnitAssetOneAPICall(t *testing.T) {
 	units := 10
 	for i := 0; i < units; i++ {
 		ua := initTemplate().(*UnitAsset)
-		retrieveAPI_price(ua)
+		retrieveAPIPrice(ua)
 	}
 	// TEST CASE: causing only one API hit while using multiple UnitAssets
 	hits := trans.domainHits(apiDomain)
@@ -111,75 +111,75 @@ func TestSetmethods(t *testing.T) {
 	asset := initTemplate().(*UnitAsset)
 
 	// Simulate the input signals
-	MinTemp_inputSignal := forms.SignalA_v1a{
+	MinTempInputSignal := forms.SignalA_v1a{
 		Value: 1.0,
 	}
-	MaxTemp_inputSignal := forms.SignalA_v1a{
+	MaxTempInputSignal := forms.SignalA_v1a{
 		Value: 29.0,
 	}
-	MinPrice_inputSignal := forms.SignalA_v1a{
+	MinPriceInputSignal := forms.SignalA_v1a{
 		Value: 2.0,
 	}
-	MaxPrice_inputSignal := forms.SignalA_v1a{
+	MaxPriceInputSignal := forms.SignalA_v1a{
 		Value: 12.0,
 	}
-	DesTemp_inputSignal := forms.SignalA_v1a{
+	DesTempInputSignal := forms.SignalA_v1a{
 		Value: 23.7,
 	}
-	//call and test min_temp
-	asset.setMin_temp(MinTemp_inputSignal)
-	if asset.Min_temp != 1.0 {
-		t.Errorf("expected Min_temp to be 1.0, got %f", asset.Min_temp)
+	//call and test MinTemp
+	asset.setMinTemp(MinTempInputSignal)
+	if asset.MinTemp != 1.0 {
+		t.Errorf("expected MinTemp to be 1.0, got %f", asset.MinTemp)
 	}
-	// call and test max_temp
-	asset.setMax_temp(MaxTemp_inputSignal)
-	if asset.Max_temp != 29.0 {
-		t.Errorf("expected Max_temp to be 25.0, got %f", asset.Max_temp)
+	// call and test MaxTemp
+	asset.setMaxTemp(MaxTempInputSignal)
+	if asset.MaxTemp != 29.0 {
+		t.Errorf("expected MaxTemp to be 25.0, got %f", asset.MaxTemp)
 	}
-	//call and test Min_price
-	asset.setMin_price(MinPrice_inputSignal)
-	if asset.Min_price != 2.0 {
-		t.Errorf("expected Min_Price to be 2.0, got %f", asset.Min_price)
+	//call and test MinPrice
+	asset.setMinPrice(MinPriceInputSignal)
+	if asset.MinPrice != 2.0 {
+		t.Errorf("expected MinPrice to be 2.0, got %f", asset.MinPrice)
 	}
-	//call and test Max_price
-	asset.setMax_price(MaxPrice_inputSignal)
-	if asset.Max_price != 12.0 {
-		t.Errorf("expected Max_Price to be 12.0, got %f", asset.Max_price)
+	//call and test MaxPrice
+	asset.setMaxPrice(MaxPriceInputSignal)
+	if asset.MaxPrice != 12.0 {
+		t.Errorf("expected MaxPrice to be 12.0, got %f", asset.MaxPrice)
 	}
-	// call and test Desired_temp
-	asset.setDesired_temp(DesTemp_inputSignal)
-	if asset.Desired_temp != 23.7 {
-		t.Errorf("expected Desierd temprature is to be 23.7, got %f", asset.Desired_temp)
+	// call and test DesiredTemp
+	asset.setDesiredTemp(DesTempInputSignal)
+	if asset.DesiredTemp != 23.7 {
+		t.Errorf("expected Desierd temprature is to be 23.7, got %f", asset.DesiredTemp)
 	}
 }
 
-func Test_GetMethods(t *testing.T) {
+func TestGetMethods(t *testing.T) {
 	uasset := initTemplate().(*UnitAsset)
 
 	////MinTemp////
 	// check if the value from the struct is the acctual value that the func is getting
-	result := uasset.getMin_temp()
-	if result.Value != uasset.Min_temp {
-		t.Errorf("expected Value of the min_temp is to be %v, got %v", uasset.Min_temp, result.Value)
+	result := uasset.getMinTemp()
+	if result.Value != uasset.MinTemp {
+		t.Errorf("expected Value of the MinTemp is to be %v, got %v", uasset.MinTemp, result.Value)
 	}
 	//check that the Unit is correct
 	if result.Unit != "Celsius" {
 		t.Errorf("expected Unit to be 'Celsius', got %v", result.Unit)
 	}
 	////MaxTemp////
-	result2 := uasset.getMax_temp()
-	if result2.Value != uasset.Max_temp {
-		t.Errorf("expected Value of the Max_temp is to be %v, got %v", uasset.Max_temp, result2.Value)
+	result2 := uasset.getMaxTemp()
+	if result2.Value != uasset.MaxTemp {
+		t.Errorf("expected Value of the MaxTemp is to be %v, got %v", uasset.MaxTemp, result2.Value)
 	}
 	//check that the Unit is correct
 	if result2.Unit != "Celsius" {
-		t.Errorf("expected Unit of the Max_temp is to be 'Celsius', got %v", result2.Unit)
+		t.Errorf("expected Unit of the MaxTemp is to be 'Celsius', got %v", result2.Unit)
 	}
 	////MinPrice////
 	// check if the value from the struct is the acctual value that the func is getting
-	result3 := uasset.getMin_price()
-	if result3.Value != uasset.Min_price {
-		t.Errorf("expected Value of the minPrice is to be %v, got %v", uasset.Min_price, result3.Value)
+	result3 := uasset.getMinPrice()
+	if result3.Value != uasset.MinPrice {
+		t.Errorf("expected Value of the minPrice is to be %v, got %v", uasset.MinPrice, result3.Value)
 	}
 	//check that the Unit is correct
 	if result3.Unit != "SEK" {
@@ -187,9 +187,9 @@ func Test_GetMethods(t *testing.T) {
 	}
 	////MaxPrice////
 	// check if the value from the struct is the acctual value that the func is getting
-	result4 := uasset.getMax_price()
-	if result4.Value != uasset.Max_price {
-		t.Errorf("expected Value of the maxPrice is  to be %v, got %v", uasset.Max_price, result4.Value)
+	result4 := uasset.getMaxPrice()
+	if result4.Value != uasset.MaxPrice {
+		t.Errorf("expected Value of the maxPrice is  to be %v, got %v", uasset.MaxPrice, result4.Value)
 	}
 	//check that the Unit is correct
 	if result4.Unit != "SEK" {
@@ -197,22 +197,22 @@ func Test_GetMethods(t *testing.T) {
 	}
 	////DesierdTemp////
 	// check if the value from the struct is the acctual value that the func is getting
-	result5 := uasset.getDesired_temp()
-	if result5.Value != uasset.Desired_temp {
-		t.Errorf("expected desired temprature is to be %v, got %v", uasset.Desired_temp, result5.Value)
+	result5 := uasset.getDesiredTemp()
+	if result5.Value != uasset.DesiredTemp {
+		t.Errorf("expected desired temprature is to be %v, got %v", uasset.DesiredTemp, result5.Value)
 	}
 	//check that the Unit is correct
 	if result5.Unit != "Celsius" {
 		t.Errorf("expected Unit to be 'Celsius', got %v", result5.Unit)
 	}
-	////SEK_Price////
-	result6 := uasset.getSEK_price()
-	if result6.Value != uasset.SEK_price {
-		t.Errorf("expected electric price is to be %v, got %v", uasset.SEK_price, result6.Value)
+	////SEKPrice////
+	result6 := uasset.getSEKPrice()
+	if result6.Value != uasset.SEKPrice {
+		t.Errorf("expected electric price is to be %v, got %v", uasset.SEKPrice, result6.Value)
 	}
 }
 
-func Test_initTemplet(t *testing.T) {
+func TestInitTemplate(t *testing.T) {
 	uasset := initTemplate().(*UnitAsset)
 
 	//// unnecessary test, but good for practicing
@@ -225,23 +225,23 @@ func Test_initTemplet(t *testing.T) {
 		t.Fatalf("If Services is nil, not worth to continue testing")
 	}
 	//Services//
-	if Services["SEK_price"].Definition != "SEK_price" {
+	if Services["SEKPrice"].Definition != "SEKPrice" {
 		t.Errorf("expected service defenition to be SEKprice")
 	}
-	if Services["max_temperature"].Definition != "max_temperature" {
-		t.Errorf("expected service defenition to be max_temperature")
+	if Services["MaxTemperature"].Definition != "MaxTemperature" {
+		t.Errorf("expected service defenition to be MaxTemperature")
 	}
-	if Services["min_temperature"].Definition != "min_temperature" {
-		t.Errorf("expected service defenition to be min_temperature")
+	if Services["MinTemperature"].Definition != "MinTemperature" {
+		t.Errorf("expected service defenition to be MinTemperature")
 	}
-	if Services["max_price"].Definition != "max_price" {
-		t.Errorf("expected service defenition to be max_price")
+	if Services["MaxPrice"].Definition != "MaxPrice" {
+		t.Errorf("expected service defenition to be MaxPrice")
 	}
-	if Services["min_price"].Definition != "min_price" {
-		t.Errorf("expected service defenition to be min_price")
+	if Services["MinPrice"].Definition != "MinPrice" {
+		t.Errorf("expected service defenition to be MinPrice")
 	}
-	if Services["desired_temp"].Definition != "desired_temp" {
-		t.Errorf("expected service defenition to be desired_temp")
+	if Services["DesiredTemp"].Definition != "DesiredTemp" {
+		t.Errorf("expected service defenition to be DesiredTemp")
 	}
 	//GetCervice//
 	Cervices := uasset.GetCervices()
@@ -255,7 +255,7 @@ func Test_initTemplet(t *testing.T) {
 	}
 }
 
-func Test_newUnitAsset(t *testing.T) {
+func TestNewUnitAsset(t *testing.T) {
 	// prepare for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background()) // create a context that can be cancelled
 	defer cancel()                                          // make sure all paths cancel the context to avoid context leak
@@ -270,63 +270,63 @@ func Test_newUnitAsset(t *testing.T) {
 		ProtoPort:   map[string]int{"https": 0, "http": 8670, "coap": 0},
 		InfoLink:    "https://github.com/lmas/d0020e_code/tree/master/Comfortstat",
 	}
-	setSEK_price := components.Service{
-		Definition:  "SEK_price",
-		SubPath:     "SEK_price",
+	setSEKPrice := components.Service{
+		Definition:  "SEKPrice",
+		SubPath:     "SEKPrice",
 		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the current electric hourly price (using a GET request)",
 	}
-	setMax_temp := components.Service{
-		Definition:  "max_temperature",
-		SubPath:     "max_temperature",
+	setMaxTemp := components.Service{
+		Definition:  "MaxTemperature",
+		SubPath:     "MaxTemperature",
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the maximum temp the user wants (using a GET request)",
 	}
-	setMin_temp := components.Service{
-		Definition:  "min_temperature",
-		SubPath:     "min_temperature",
+	setMinTemp := components.Service{
+		Definition:  "MinTemperature",
+		SubPath:     "MinTemperature",
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the minimum temp the user could tolerate (using a GET request)",
 	}
-	setMax_price := components.Service{
-		Definition:  "max_price",
-		SubPath:     "max_price",
+	setMaxPrice := components.Service{
+		Definition:  "MaxPrice",
+		SubPath:     "MaxPrice",
 		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the maximum price the user wants to pay (using a GET request)",
 	}
-	setMin_price := components.Service{
-		Definition:  "min_price",
-		SubPath:     "min_price",
+	setMinPrice := components.Service{
+		Definition:  "MinPrice",
+		SubPath:     "MinPrice",
 		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the minimum price the user wants to pay (using a GET request)",
 	}
-	setDesired_temp := components.Service{
-		Definition:  "desired_temp",
-		SubPath:     "desired_temp",
+	setDesiredTemp := components.Service{
+		Definition:  "DesiredTemp",
+		SubPath:     "DesiredTemp",
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the desired temperature the system calculates based on user inputs (using a GET request)",
 	}
 	// new Unitasset struct init.
 	uac := UnitAsset{
 		//These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
-		Name:         "Set Values",
-		Details:      map[string][]string{"Location": {"Kitchen"}},
-		SEK_price:    1.5,  // Example electricity price in SEK per kWh
-		Min_price:    1.0,  // Minimum price allowed
-		Max_price:    2.0,  // Maximum price allowed
-		Min_temp:     20.0, // Minimum temperature
-		Max_temp:     25.0, // Maximum temprature allowed
-		Desired_temp: 0,    // Desired temp calculated by system
-		Period:       15,
+		Name:        "Set Values",
+		Details:     map[string][]string{"Location": {"Kitchen"}},
+		SEKPrice:    1.5,  // Example electricity price in SEK per kWh
+		MinPrice:    1.0,  // Minimum price allowed
+		MaxPrice:    2.0,  // Maximum price allowed
+		MinTemp:     20.0, // Minimum temperature
+		MaxTemp:     25.0, // Maximum temprature allowed
+		DesiredTemp: 0,    // Desired temp calculated by system
+		Period:      15,
 
 		// maps the provided services from above
 		ServicesMap: components.Services{
-			setMax_temp.SubPath:     &setMax_temp,
-			setMin_temp.SubPath:     &setMin_temp,
-			setMax_price.SubPath:    &setMax_price,
-			setMin_price.SubPath:    &setMin_price,
-			setSEK_price.SubPath:    &setSEK_price,
-			setDesired_temp.SubPath: &setDesired_temp,
+			setMaxTemp.SubPath:     &setMaxTemp,
+			setMinTemp.SubPath:     &setMinTemp,
+			setMaxPrice.SubPath:    &setMaxPrice,
+			setMinPrice.SubPath:    &setMinPrice,
+			setSEKPrice.SubPath:    &setSEKPrice,
+			setDesiredTemp.SubPath: &setDesiredTemp,
 		},
 	}
 
@@ -339,7 +339,7 @@ func Test_newUnitAsset(t *testing.T) {
 }
 
 // Test if the method calculateDesierdTemp() calculates a correct value
-func Test_calculateDesiredTemp(t *testing.T) {
+func TestCalculateDesiredTemp(t *testing.T) {
 	var True_result float64 = 22.5
 	asset := initTemplate().(*UnitAsset)
 	// calls and saves the value
@@ -351,17 +351,17 @@ func Test_calculateDesiredTemp(t *testing.T) {
 }
 
 // This test catches the special cases, when the temprature is to be set to the minimum temprature right away
-func Test_specialcalculate(t *testing.T) {
+func TestSpecialCalculate(t *testing.T) {
 	asset := UnitAsset{
-		SEK_price: 3.0,
-		Max_price: 2.0,
-		Min_temp:  17.0,
+		SEKPrice: 3.0,
+		MaxPrice: 2.0,
+		MinTemp:  17.0,
 	}
 	//call the method and save the result in a varable for testing
 	result := asset.calculateDesiredTemp()
 	//check the result from the call above
-	if result != asset.Min_temp {
-		t.Errorf("Expected temperature to be %v, got %v", asset.Min_temp, result)
+	if result != asset.MinTemp {
+		t.Errorf("Expected temperature to be %v, got %v", asset.MinTemp, result)
 	}
 }
 
@@ -412,8 +412,8 @@ func TestGetAPIPriceData(t *testing.T) {
 	}
 	// Check if the correct price is stored
 	expectedPrice := 0.26673
-	if globalPrice.SEK_price != expectedPrice {
-		t.Errorf("Expected SEK_price %f, but got %f", expectedPrice, globalPrice.SEK_price)
+	if globalPrice.SEKPrice != expectedPrice {
+		t.Errorf("Expected SEKPrice %f, but got %f", expectedPrice, globalPrice.SEKPrice)
 	}
 	// Testing bad cases
 	// Test case: using wrong url leads to an error
@@ -436,7 +436,7 @@ func TestGetAPIPriceData(t *testing.T) {
 	newMockTransport(resp)
 	err = getAPIPriceData(url)
 	// check the statuscode is bad, witch is expected for the test to be successful
-	if err != err_statuscode {
+	if err != errStatuscode {
 		t.Errorf("expected an bad status code but got %v", err)
 	}
 	// test case: if unmarshal a bad body creates a error
