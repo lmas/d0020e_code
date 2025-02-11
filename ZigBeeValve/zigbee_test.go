@@ -11,24 +11,27 @@ import (
 
 func TestSetpt(t *testing.T) {
 	ua := initTemplate().(*UnitAsset)
+	gateway = "localhost"
+	ua.deviceIndex = "1"
 
 	// --- Good case test: GET ---
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "http://localhost:8670/ZigBee/Template/setpoint", nil)
+	r := httptest.NewRequest("GET", "http://localhost:8670/ZigBee/SmartThermostat1/setpoint", nil)
+	r.Header.Set("Content-Type", "application/json")
 	good_code := 200
 	ua.setpt(w, r)
 	// Read response to a string, and save it in stringBody
 	resp := w.Result()
+	if resp.StatusCode != good_code {
+		t.Errorf("expected good status code: %v, got %v", good_code, resp.StatusCode)
+	}
 	body, _ := io.ReadAll(resp.Body)
 	stringBody := string(body)
-
+	// Check if correct values are present in the body, each line returns true/false
 	value := strings.Contains(string(stringBody), `"value": 20`)
 	unit := strings.Contains(string(stringBody), `"unit": "Celsius"`)
 	version := strings.Contains(string(stringBody), `"version": "SignalA_v1.0"`)
-
-	if resp.StatusCode != good_code {
-		t.Errorf("Good GET: Expected good status code: %v, got %v", good_code, resp.StatusCode)
-	}
+	// Check that above statements are true
 	if value != true {
 		t.Errorf("Good GET: The value statment should be true!")
 	}
@@ -38,9 +41,11 @@ func TestSetpt(t *testing.T) {
 	if version != true {
 		t.Errorf("Good GET: Expected the version statment to be true!")
 	}
+
 	// --- Bad test case: Default part of code (faulty http method) ---
 	w = httptest.NewRecorder()
-	r = httptest.NewRequest("123", "http://localhost:8670/ZigBee/Template/setpoint", nil)
+	r = httptest.NewRequest("123", "http://localhost:8670/ZigBee/SmartThermostat1/setpoint", nil)
+	r.Header.Set("Content-Type", "application/json")
 	ua.setpt(w, r)
 	// Read response and check statuscode, expecting 404 (StatusNotFound)
 	resp = w.Result()
@@ -54,22 +59,24 @@ func TestSetpt(t *testing.T) {
 	fakebody := string(`{"value": 24, "version": "SignalA_v1.0"}`)
 	sentBody := io.NopCloser(strings.NewReader(fakebody))
 	// Send the request
-	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBee/Template/setpoint", sentBody)
+	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBee/SmartThermostat1/setpoint", sentBody)
+	r.Header.Set("Content-Type", "application/json")
 	ua.setpt(w, r)
 	resp = w.Result()
-	good_code = 200
+	resp.StatusCode = 404 // Simulate zigbee gateway not found?
 	// Check for errors, should not be 200
 	if resp.StatusCode == good_code {
-		t.Errorf("Bad PUT: Expected bad status code: got %v", resp.StatusCode)
+		t.Errorf("Bad PUT: Expected bad status code: got %v.", resp.StatusCode)
 	}
 
 	// --- Bad test case: PUT Failing @ HTTPProcessSetRequest ---
 	w = httptest.NewRecorder()
 	// Make the body
-	fakebody = string(`{"value": "24", "version": "SignalA_v1.0"}`) // MISSING VERSION IN SENTBODY
+	fakebody = string(`{"value": "24"`) // MISSING VERSION IN SENTBODY
 	sentBody = io.NopCloser(strings.NewReader(fakebody))
 	// Send the request
-	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBee/Template/setpoint", sentBody)
+	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBee/SmartThermostat1/setpoint", sentBody)
+	r.Header.Set("Content-Type", "application/json")
 	ua.setpt(w, r)
 	resp = w.Result()
 	// Check for errors
@@ -82,7 +89,8 @@ func TestSetpt(t *testing.T) {
 	// Make the body and request
 	fakebody = string(`{"value": 24, "version": "SignalA_v1.0"}`)
 	sentBody = io.NopCloser(strings.NewReader(fakebody))
-	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBee/Template/setpoint", sentBody)
+	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBee/SmartThermostat1/setpoint", sentBody)
+	r.Header.Set("Content-Type", "application/json")
 	// Mock the http response/traffic to zigbee
 	zBeeResponse := `[{"success":{"/sensors/7/config/heatsetpoint":2400}}]`
 	resp = &http.Response{

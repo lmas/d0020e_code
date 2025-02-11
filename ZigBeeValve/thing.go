@@ -82,9 +82,9 @@ func initTemplate() components.UnitAsset {
 
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
-		Name:        "Smart Thermostat 1",
+		Name:        "SmartThermostat1",
 		Details:     map[string][]string{"Location": {"Kitchen"}},
-		Model:       "SmartThermostat",
+		Model:       "ZHAThermostat",
 		Uniqueid:    "14:ef:14:10:00:6f:d0:d7-11-1201",
 		deviceIndex: "",
 		Period:      10,
@@ -139,14 +139,22 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 	return ua, func() {
 
 		if ua.Model == "ZHAThermostat" {
-			ua.getConnectedUnits("sensors")
-			err := ua.sendSetPoint()
+			// Get correct index in list returned by api/sensors to make sure we always change correct device
+			err := ua.getConnectedUnits("sensors")
+			if err != nil {
+				log.Println("Error occured during startup, while calling getConnectedUnits:", err)
+			}
+			err = ua.sendSetPoint()
 			if err != nil {
 				log.Println("Error occured during startup, while calling sendSetPoint():", err)
 				// TODO: Turn off system if this startup() fails?
 			}
 		} else if ua.Model == "Smart plug" {
-			ua.getConnectedUnits("lights")
+			// Get correct index in list returned by api/lights to make sure we always change correct device
+			err := ua.getConnectedUnits("lights")
+			if err != nil {
+				log.Println("Error occured during startup, while calling getConnectedUnits:", err)
+			}
 			// start the unit assets feedbackloop, this fetches the temperature from ds18b20 and and toggles
 			// between on/off depending on temperature in the room and a set temperature in the unitasset
 			go ua.feedbackLoop(ua.Owner.Ctx)
@@ -229,13 +237,11 @@ func findGateway() (err error) {
 	}
 
 	if len(gw) < 1 {
-		//log.Println("No gateway was found")
 		return errMissingGateway
 	}
 	// Save the gateway
 	s := fmt.Sprintf(`%s:%d`, gw[0].Internalipaddress, gw[0].Internalport)
 	gateway = s
-	//log.Println("Gateway found:", s)
 	return
 }
 
@@ -305,7 +311,10 @@ func (ua *UnitAsset) getConnectedUnits(unitType string) (err error) {
 	// How to access maps inside of maps below!
 	// https://stackoverflow.com/questions/28806951/accessing-nested-map-of-type-mapstringinterface-in-golang
 	var deviceMap map[string]interface{}
-	json.Unmarshal([]byte(resBody), &deviceMap)
+	err = json.Unmarshal([]byte(resBody), &deviceMap)
+	if err != nil {
+		return
+	}
 	for i := range deviceMap {
 		if deviceMap[i].(map[string]interface{})["uniqueid"] == ua.Uniqueid {
 			ua.deviceIndex = i
