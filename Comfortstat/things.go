@@ -18,20 +18,20 @@ import (
 )
 
 type GlobalPriceData struct {
-	SEK_price  float64 `json:"SEK_per_kWh"`
-	EUR_price  float64 `json:"EUR_per_kWh"`
-	EXR        float64 `json:"EXR"`
-	Time_start string  `json:"time_start"`
-	Time_end   string  `json:"time_end"`
+	SEKPrice  float64 `json:"SEK_per_kWh"`
+	EURPrice  float64 `json:"EUR_per_kWh"`
+	EXR       float64 `json:"EXR"`
+	TimeStart string  `json:"time_start"`
+	TimeEnd   string  `json:"time_end"`
 }
 
 // initiate "globalPrice" with default values
 var globalPrice = GlobalPriceData{
-	SEK_price:  0,
-	EUR_price:  0,
-	EXR:        0,
-	Time_start: "0",
-	Time_end:   "0",
+	SEKPrice:  0,
+	EURPrice:  0,
+	EXR:       0,
+	TimeStart: "0",
+	TimeEnd:   "0",
 }
 
 // A UnitAsset models an interface or API for a smaller part of a whole system, for example a single temperature sensor.
@@ -45,20 +45,21 @@ type UnitAsset struct {
 	//
 	Period time.Duration `json:"samplingPeriod"`
 	//
-	Desired_temp     float64 `json:"desired_temp"`
-	old_desired_temp float64 // keep this field private!
-	SEK_price        float64 `json:"SEK_per_kWh"`
-	Min_price        float64 `json:"min_price"`
-	Max_price        float64 `json:"max_price"`
-	Min_temp         float64 `json:"min_temp"`
-	Max_temp         float64 `json:"max_temp"`
-	UserTemp         float64 `json:"userTemp"`
+	DesiredTemp    float64 `json:"DesiredTemp"`
+	oldDesiredTemp float64 // keep this field private!
+	SEKPrice       float64 `json:"SEK_per_kWh"`
+	MinPrice       float64 `json:"MinPrice"`
+	MaxPrice       float64 `json:"MaxPrice"`
+	MinTemp        float64 `json:"MinTemp"`
+	MaxTemp        float64 `json:"MaxTemp"`
+	UserTemp       float64 `json:"userTemp"`
 }
 
 func initAPI() {
 	go priceFeedbackLoop()
 }
 
+// defines the URL for the electricity price and starts the getAPIPriceData function once every hour
 func priceFeedbackLoop() {
 	// Initialize a ticker for periodic execution
 	ticker := time.NewTicker(time.Duration(apiFetchPeriod) * time.Second)
@@ -80,7 +81,7 @@ func priceFeedbackLoop() {
 	}
 }
 
-var err_statuscode error = fmt.Errorf("bad status code")
+var errStatuscode error = fmt.Errorf("bad status code")
 
 // This function fetches the current electricity price from "https://www.elprisetjustnu.se/elpris-api", then prosess it and updates globalPrice
 func getAPIPriceData(apiURL string) error {
@@ -106,7 +107,7 @@ func getAPIPriceData(apiURL string) error {
 	defer res.Body.Close()
 
 	if res.StatusCode > 299 {
-		return err_statuscode
+		return errStatuscode
 	}
 	if err != nil {
 		return err
@@ -115,8 +116,8 @@ func getAPIPriceData(apiURL string) error {
 	// extracts the electriciy price depending on the current time and updates globalPrice
 	now := fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
 	for _, i := range data {
-		if i.Time_start == now {
-			globalPrice.SEK_price = i.SEK_price
+		if i.TimeStart == now {
+			globalPrice.SEKPrice = i.SEKPrice
 		}
 	}
 	return nil
@@ -152,39 +153,39 @@ var _ components.UnitAsset = (*UnitAsset)(nil)
 // (see https://github.com/sdoque/mbaigo/blob/main/components/service.go for documentation)
 func initTemplate() components.UnitAsset {
 
-	setSEK_price := components.Service{
-		Definition:  "SEK_price",
-		SubPath:     "SEK_price",
+	setSEKPrice := components.Service{
+		Definition:  "SEKPrice",
+		SubPath:     "SEKPrice",
 		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the current electric hourly price (using a GET request)",
 	}
-	setMax_temp := components.Service{
-		Definition:  "max_temperature",
-		SubPath:     "max_temperature",
+	setMaxTemp := components.Service{
+		Definition:  "MaxTemperature",
+		SubPath:     "MaxTemperature",
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the maximum temp the user wants (using a GET request)",
 	}
-	setMin_temp := components.Service{
-		Definition:  "min_temperature",
-		SubPath:     "min_temperature",
+	setMinTemp := components.Service{
+		Definition:  "MinTemperature",
+		SubPath:     "MinTemperature",
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the minimum temp the user could tolerate (using a GET request)",
 	}
-	setMax_price := components.Service{
-		Definition:  "max_price",
-		SubPath:     "max_price",
+	setMaxPrice := components.Service{
+		Definition:  "MaxPrice",
+		SubPath:     "MaxPrice",
 		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the maximum price the user wants to pay (using a GET request)",
 	}
-	setMin_price := components.Service{
-		Definition:  "min_price",
-		SubPath:     "min_price",
+	setMinPrice := components.Service{
+		Definition:  "MinPrice",
+		SubPath:     "MinPrice",
 		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the minimum price the user wants to pay (using a GET request)",
 	}
-	setDesired_temp := components.Service{
-		Definition:  "desired_temp",
-		SubPath:     "desired_temp",
+	setDesiredTemp := components.Service{
+		Definition:  "DesiredTemp",
+		SubPath:     "DesiredTemp",
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the desired temperature the system calculates based on user inputs (using a GET request)",
 	}
@@ -197,26 +198,26 @@ func initTemplate() components.UnitAsset {
 
 	return &UnitAsset{
 		//These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
-		Name:         "Set Values",
-		Details:      map[string][]string{"Location": {"Kitchen"}},
-		SEK_price:    1.5,  // Example electricity price in SEK per kWh
-		Min_price:    1.0,  // Minimum price allowed
-		Max_price:    2.0,  // Maximum price allowed
-		Min_temp:     20.0, // Minimum temperature
-		Max_temp:     25.0, // Maximum temprature allowed
-		Desired_temp: 0,    // Desired temp calculated by system
-		Period:       15,
-		UserTemp:     0,
+		Name:        "Set Values",
+		Details:     map[string][]string{"Location": {"Kitchen"}},
+		SEKPrice:    1.5,  // Example electricity price in SEK per kWh
+		MinPrice:    1.0,  // Minimum price allowed
+		MaxPrice:    2.0,  // Maximum price allowed
+		MinTemp:     20.0, // Minimum temperature
+		MaxTemp:     25.0, // Maximum temprature allowed
+		DesiredTemp: 0,    // Desired temp calculated by system
+		Period:      15,
+		UserTemp:    0,
 
 		// maps the provided services from above
 		ServicesMap: components.Services{
-			setMax_temp.SubPath:     &setMax_temp,
-			setMin_temp.SubPath:     &setMin_temp,
-			setMax_price.SubPath:    &setMax_price,
-			setMin_price.SubPath:    &setMin_price,
-			setSEK_price.SubPath:    &setSEK_price,
-			setDesired_temp.SubPath: &setDesired_temp,
-			setUserTemp.SubPath:     &setUserTemp,
+			setMaxTemp.SubPath:     &setMaxTemp,
+			setMinTemp.SubPath:     &setMinTemp,
+			setMaxPrice.SubPath:    &setMaxPrice,
+			setMinPrice.SubPath:    &setMinPrice,
+			setSEKPrice.SubPath:    &setSEKPrice,
+			setDesiredTemp.SubPath: &setDesiredTemp,
+			setUserTemp.SubPath:    &setUserTemp,
 		},
 	}
 }
@@ -241,18 +242,18 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 
 	ua := &UnitAsset{
 		// Filling in public fields using the given data
-		Name:         uac.Name,
-		Owner:        sys,
-		Details:      uac.Details,
-		ServicesMap:  components.CloneServices(servs),
-		SEK_price:    uac.SEK_price,
-		Min_price:    uac.Min_price,
-		Max_price:    uac.Max_price,
-		Min_temp:     uac.Min_temp,
-		Max_temp:     uac.Max_temp,
-		Desired_temp: uac.Desired_temp,
-		Period:       uac.Period,
-		UserTemp:     uac.UserTemp,
+		Name:        uac.Name,
+		Owner:       sys,
+		Details:     uac.Details,
+		ServicesMap: components.CloneServices(servs),
+		SEKPrice:    uac.SEKPrice,
+		MinPrice:    uac.MinPrice,
+		MaxPrice:    uac.MaxPrice,
+		MinTemp:     uac.MinTemp,
+		MaxTemp:     uac.MaxTemp,
+		DesiredTemp: uac.DesiredTemp,
+		Period:      uac.Period,
+		UserTemp:    uac.UserTemp,
 		CervicesMap: components.Cervices{
 			t.Name: t,
 		},
@@ -260,7 +261,7 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 
 	var ref components.Service
 	for _, s := range servs {
-		if s.Definition == "desired_temp" {
+		if s.Definition == "DesiredTemp" {
 			ref = s
 		}
 	}
@@ -271,15 +272,15 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 	return ua, func() {
 		// start the unit asset(s)
 		go ua.feedbackLoop(sys.Ctx)
-		go ua.API_feedbackLoop(sys.Ctx)
+		go ua.APIFeedbackLoop(sys.Ctx)
 
 	}
 }
 
-// getSEK_price is used for reading the current hourly electric price
-func (ua *UnitAsset) getSEK_price() (f forms.SignalA_v1a) {
+// getSEKPrice is used for reading the current hourly electric price
+func (ua *UnitAsset) getSEKPrice() (f forms.SignalA_v1a) {
 	f.NewForm()
-	f.Value = ua.SEK_price
+	f.Value = ua.SEKPrice
 	f.Unit = "SEK"
 	f.Timestamp = time.Now()
 	return f
@@ -287,83 +288,83 @@ func (ua *UnitAsset) getSEK_price() (f forms.SignalA_v1a) {
 
 //Get and set- metods for MIN/MAX price/temp and desierdTemp
 
-// getMin_price is used for reading the current value of Min_price
-func (ua *UnitAsset) getMin_price() (f forms.SignalA_v1a) {
+// getMinPrice is used for reading the current value of MinPrice
+func (ua *UnitAsset) getMinPrice() (f forms.SignalA_v1a) {
 	f.NewForm()
-	f.Value = ua.Min_price
+	f.Value = ua.MinPrice
 	f.Unit = "SEK"
 	f.Timestamp = time.Now()
 	return f
 }
 
-// setMin_price updates the current minimum price set by the user with a new value
-func (ua *UnitAsset) setMin_price(f forms.SignalA_v1a) {
-	ua.Min_price = f.Value
+// setMinPrice updates the current minimum price set by the user with a new value
+func (ua *UnitAsset) setMinPrice(f forms.SignalA_v1a) {
+	ua.MinPrice = f.Value
 }
 
-// getMax_price is used for reading the current value of Max_price
-func (ua *UnitAsset) getMax_price() (f forms.SignalA_v1a) {
+// getMaxPrice is used for reading the current value of MaxPrice
+func (ua *UnitAsset) getMaxPrice() (f forms.SignalA_v1a) {
 	f.NewForm()
-	f.Value = ua.Max_price
+	f.Value = ua.MaxPrice
 	f.Unit = "SEK"
 	f.Timestamp = time.Now()
 	return f
 }
 
-// setMax_price updates the current minimum price set by the user with a new value
-func (ua *UnitAsset) setMax_price(f forms.SignalA_v1a) {
-	ua.Max_price = f.Value
+// setMaxPrice updates the current minimum price set by the user with a new value
+func (ua *UnitAsset) setMaxPrice(f forms.SignalA_v1a) {
+	ua.MaxPrice = f.Value
 }
 
-// getMin_temp is used for reading the current minimum temerature value
-func (ua *UnitAsset) getMin_temp() (f forms.SignalA_v1a) {
+// getMinTemp is used for reading the current minimum temerature value
+func (ua *UnitAsset) getMinTemp() (f forms.SignalA_v1a) {
 	f.NewForm()
-	f.Value = ua.Min_temp
+	f.Value = ua.MinTemp
 	f.Unit = "Celsius"
 	f.Timestamp = time.Now()
 	return f
 }
 
-// setMin_temp updates the current minimum temperature set by the user with a new value
-func (ua *UnitAsset) setMin_temp(f forms.SignalA_v1a) {
-	ua.Min_temp = f.Value
+// setMinTemp updates the current minimum temperature set by the user with a new value
+func (ua *UnitAsset) setMinTemp(f forms.SignalA_v1a) {
+	ua.MinTemp = f.Value
 }
 
-// getMax_temp is used for reading the current value of Min_price
-func (ua *UnitAsset) getMax_temp() (f forms.SignalA_v1a) {
+// getMaxTemp is used for reading the current value of MinPrice
+func (ua *UnitAsset) getMaxTemp() (f forms.SignalA_v1a) {
 	f.NewForm()
-	f.Value = ua.Max_temp
+	f.Value = ua.MaxTemp
 	f.Unit = "Celsius"
 	f.Timestamp = time.Now()
 	return f
 }
 
-// setMax_temp updates the current minimum price set by the user with a new value
-func (ua *UnitAsset) setMax_temp(f forms.SignalA_v1a) {
-	ua.Max_temp = f.Value
+// setMaxTemp updates the current minimum price set by the user with a new value
+func (ua *UnitAsset) setMaxTemp(f forms.SignalA_v1a) {
+	ua.MaxTemp = f.Value
 }
 
-func (ua *UnitAsset) getDesired_temp() (f forms.SignalA_v1a) {
+func (ua *UnitAsset) getDesiredTemp() (f forms.SignalA_v1a) {
 	f.NewForm()
-	f.Value = ua.Desired_temp
+	f.Value = ua.DesiredTemp
 	f.Unit = "Celsius"
 	f.Timestamp = time.Now()
 	return f
 }
 
-func (ua *UnitAsset) setDesired_temp(f forms.SignalA_v1a) {
-	ua.Desired_temp = f.Value
+func (ua *UnitAsset) setDesiredTemp(f forms.SignalA_v1a) {
+	ua.DesiredTemp = f.Value
 	log.Printf("new desired temperature: %.1f", f.Value)
 }
 
-func (ua *UnitAsset) setUser_Temp(f forms.SignalA_v1a) {
+func (ua *UnitAsset) setUserTemp(f forms.SignalA_v1a) {
 	ua.UserTemp = f.Value
 	if ua.UserTemp != 0 {
 		ua.sendUserTemp()
 	}
 }
 
-func (ua *UnitAsset) getUser_Temp() (f forms.SignalA_v1a) {
+func (ua *UnitAsset) getUserTemp() (f forms.SignalA_v1a) {
 	f.NewForm()
 	f.Value = ua.UserTemp
 	f.Unit = "Celsius"
@@ -380,14 +381,14 @@ const apiFetchPeriod int = 3600
 // feedbackLoop is THE control loop (IPR of the system)
 // this loop runs a periodic control loop that continuously fetches the api-price data
 
-func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
+func (ua *UnitAsset) APIFeedbackLoop(ctx context.Context) {
 	// Initialize a ticker for periodic execution
 	ticker := time.NewTicker(time.Duration(apiFetchPeriod) * time.Second)
 	defer ticker.Stop()
 
 	// start the control loop
 	for {
-		retrieveAPI_price(ua)
+		retrieveAPIPrice(ua)
 		select {
 		case <-ticker.C:
 			// Block the loop until the next period
@@ -397,15 +398,15 @@ func (ua *UnitAsset) API_feedbackLoop(ctx context.Context) {
 	}
 }
 
-func retrieveAPI_price(ua *UnitAsset) {
-	ua.SEK_price = globalPrice.SEK_price
+func retrieveAPIPrice(ua *UnitAsset) {
+	ua.SEKPrice = globalPrice.SEKPrice
 	// Don't send temperature updates if the difference is too low
 	// (this could potentially save on battery!)
-	new_temp := ua.calculateDesiredTemp()
-	if math.Abs(ua.Desired_temp-new_temp) < 0.5 {
+	newTemp := ua.calculateDesiredTemp()
+	if math.Abs(ua.DesiredTemp-newTemp) < 0.5 {
 		return
 	}
-	ua.Desired_temp = new_temp
+	ua.DesiredTemp = newTemp
 }
 
 // feedbackLoop is THE control loop (IPR of the system)
@@ -429,23 +430,23 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 func (ua *UnitAsset) processFeedbackLoop() {
 	// get the current best temperature
 
-	//ua.Desired_temp = ua.calculateDesiredTemp(miT, maT, miP, maP, ua.getSEK_price().Value)
-	ua.Desired_temp = ua.calculateDesiredTemp()
+	//ua.DesiredTemp = ua.calculateDesiredTemp(miT, maT, miP, maP, ua.getSEKPrice().Value)
+	ua.DesiredTemp = ua.calculateDesiredTemp()
 	// Only send temperature update when we have a new value.
-	if (ua.Desired_temp == ua.old_desired_temp) || (ua.UserTemp != 0) {
+	if (ua.DesiredTemp == ua.oldDesiredTemp) || (ua.UserTemp != 0) {
 		if ua.UserTemp != 0 {
-			ua.old_desired_temp = ua.UserTemp
+			ua.oldDesiredTemp = ua.UserTemp
 			return
 		}
 		return
 	}
 	// Keep track of previous value
-	ua.old_desired_temp = ua.Desired_temp
+	ua.oldDesiredTemp = ua.DesiredTemp
 
 	// prepare the form to send
 	var of forms.SignalA_v1a
 	of.NewForm()
-	of.Value = ua.Desired_temp
+	of.Value = ua.DesiredTemp
 	of.Unit = ua.CervicesMap["setpoint"].Details["Unit"][0]
 	of.Timestamp = time.Now()
 
@@ -467,18 +468,18 @@ func (ua *UnitAsset) processFeedbackLoop() {
 // and the current electricity price
 func (ua *UnitAsset) calculateDesiredTemp() float64 {
 
-	if ua.SEK_price <= ua.Min_price {
-		return ua.Max_temp
+	if ua.SEKPrice <= ua.MinPrice {
+		return ua.MaxTemp
 	}
-	if ua.SEK_price >= ua.Max_price {
-		return ua.Min_temp
+	if ua.SEKPrice >= ua.MaxPrice {
+		return ua.MinTemp
 	}
 
-	k := (ua.Min_temp - ua.Max_temp) / (ua.Max_price - ua.Min_price)
-	m := ua.Max_temp - (k * ua.Min_price)
-	desired_temp := k*(ua.SEK_price) + m
+	k := (ua.MinTemp - ua.MaxTemp) / (ua.MaxPrice - ua.MinPrice)
+	m := ua.MaxTemp - (k * ua.MinPrice)
+	DesiredTemp := k*(ua.SEKPrice) + m
 
-	return desired_temp
+	return DesiredTemp
 }
 
 func (ua *UnitAsset) sendUserTemp() {
