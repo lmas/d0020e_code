@@ -32,7 +32,6 @@ func newMockTransport(resp *http.Response) mockTransport {
 }
 
 // domainHits returns the number of requests to a domain (or -1 if domain wasn't found).
-
 func (t mockTransport) domainHits(domain string) int {
 	for u, hits := range t.hits {
 		if u == domain {
@@ -55,15 +54,13 @@ var priceExample string = fmt.Sprintf(`[{
 // RoundTrip method is required to fulfil the RoundTripper interface (as required by the DefaultClient).
 // It prevents the request from being sent over the network and count how many times
 // a domain was requested.
-
 func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	t.hits[req.URL.Hostname()] += 1
 	t.resp.Request = req
 	return t.resp, nil
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
+// //////////////////////////////////////////////////////////////////////////////
 const apiDomain string = "www.elprisetjustnu.se"
 
 func TestAPIDataFetchPeriod(t *testing.T) {
@@ -103,7 +100,6 @@ func TestMultipleUnitAssetOneAPICall(t *testing.T) {
 		ua := initTemplate().(*UnitAsset)
 		retrieveAPI_price(ua)
 	}
-
 	// TEST CASE: causing only one API hit while using multiple UnitAssets
 	hits := trans.domainHits(apiDomain)
 	if hits > 1 {
@@ -112,7 +108,6 @@ func TestMultipleUnitAssetOneAPICall(t *testing.T) {
 }
 
 func TestSetmethods(t *testing.T) {
-
 	asset := initTemplate().(*UnitAsset)
 
 	// Simulate the input signals
@@ -131,7 +126,6 @@ func TestSetmethods(t *testing.T) {
 	DesTemp_inputSignal := forms.SignalA_v1a{
 		Value: 23.7,
 	}
-
 	//call and test min_temp
 	asset.setMin_temp(MinTemp_inputSignal)
 	if asset.Min_temp != 1.0 {
@@ -157,11 +151,9 @@ func TestSetmethods(t *testing.T) {
 	if asset.Desired_temp != 23.7 {
 		t.Errorf("expected Desierd temprature is to be 23.7, got %f", asset.Desired_temp)
 	}
-
 }
 
 func Test_GetMethods(t *testing.T) {
-
 	uasset := initTemplate().(*UnitAsset)
 
 	////MinTemp////
@@ -173,7 +165,6 @@ func Test_GetMethods(t *testing.T) {
 	//check that the Unit is correct
 	if result.Unit != "Celsius" {
 		t.Errorf("expected Unit to be 'Celsius', got %v", result.Unit)
-
 	}
 	////MaxTemp////
 	result2 := uasset.getMax_temp()
@@ -194,7 +185,6 @@ func Test_GetMethods(t *testing.T) {
 	if result3.Unit != "SEK" {
 		t.Errorf("expected Unit to be 'SEK', got %v", result3.Unit)
 	}
-
 	////MaxPrice////
 	// check if the value from the struct is the acctual value that the func is getting
 	result4 := uasset.getMax_price()
@@ -224,15 +214,8 @@ func Test_GetMethods(t *testing.T) {
 
 func Test_initTemplet(t *testing.T) {
 	uasset := initTemplate().(*UnitAsset)
-	/*
-		name := uasset.GetName()
-		Services := uasset.GetServices()
-		Cervices := uasset.GetCervices()
-		Details := uasset.GetDetails()
-	*/
 
 	//// unnecessary test, but good for practicing
-
 	name := uasset.GetName()
 	if name != "Set Values" {
 		t.Errorf("expected name of the resource is %v, got %v", uasset.Name, name)
@@ -270,14 +253,12 @@ func Test_initTemplet(t *testing.T) {
 	if Details == nil {
 		t.Errorf("expected a map, but Details was nil, ")
 	}
-
 }
 
 func Test_newUnitAsset(t *testing.T) {
 	// prepare for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background()) // create a context that can be cancelled
 	defer cancel()                                          // make sure all paths cancel the context to avoid context leak
-
 	// instantiate the System
 	sys := components.NewSystem("Comfortstat", ctx)
 
@@ -295,7 +276,6 @@ func Test_newUnitAsset(t *testing.T) {
 		Details:     map[string][]string{"Unit": {"SEK"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the current electric hourly price (using a GET request)",
 	}
-
 	setMax_temp := components.Service{
 		Definition:  "max_temperature",
 		SubPath:     "max_temperature",
@@ -326,7 +306,7 @@ func Test_newUnitAsset(t *testing.T) {
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the desired temperature the system calculates based on user inputs (using a GET request)",
 	}
-
+	// new Unitasset struct init.
 	uac := UnitAsset{
 		//These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
 		Name:         "Set Values",
@@ -351,34 +331,35 @@ func Test_newUnitAsset(t *testing.T) {
 	}
 
 	ua, _ := newUnitAsset(uac, &sys, nil)
-
+	// Calls the method that gets the name of the new unitasset.
 	name := ua.GetName()
 	if name != "Set Values" {
 		t.Errorf("expected name to be Set values, but got: %v", name)
 	}
-
 }
 
+// Test if the method calculateDesierdTemp() calculates a correct value
 func Test_calculateDesiredTemp(t *testing.T) {
 	var True_result float64 = 22.5
 	asset := initTemplate().(*UnitAsset)
-
+	// calls and saves the value
 	result := asset.calculateDesiredTemp()
-
+	// checks if actual calculated value matches the expexted value
 	if result != True_result {
 		t.Errorf("Expected calculated temp is %v, got %v", True_result, result)
 	}
 }
 
+// This test catches the special cases, when the temprature is to be set to the minimum temprature right away
 func Test_specialcalculate(t *testing.T) {
 	asset := UnitAsset{
 		SEK_price: 3.0,
 		Max_price: 2.0,
 		Min_temp:  17.0,
 	}
-
+	//call the method and save the result in a varable for testing
 	result := asset.calculateDesiredTemp()
-
+	//check the result from the call above
 	if result != asset.Min_temp {
 		t.Errorf("Expected temperature to be %v, got %v", asset.Min_temp, result)
 	}
@@ -397,9 +378,11 @@ func (errReader) Close() error {
 	return nil
 }
 
+// cretas a URL that is broken
 var brokenURL string = string([]byte{0x7f})
 
 func TestGetAPIPriceData(t *testing.T) {
+	// creating a price example, nessasry fore the test
 	priceExample = fmt.Sprintf(`[{
 		"SEK_per_kWh": 0.26673,
 		"EUR_per_kWh": 0.02328,
@@ -408,36 +391,31 @@ func TestGetAPIPriceData(t *testing.T) {
 		"time_end": "2025-01-06T04:00:00+01:00"
 		}]`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour(),
 	)
-
+	// creates a fake response
 	fakeBody := fmt.Sprintf(priceExample)
 	resp := &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
 		Body:       io.NopCloser(strings.NewReader(fakeBody)),
 	}
-
 	// Testing good cases
-
 	// Test case: goal is no errors
 	url := fmt.Sprintf(
 		`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`,
 		time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(),
 	)
+	// creates a mock HTTP transport to simulate api respone for the test
 	newMockTransport(resp)
 	err := getAPIPriceData(url)
 	if err != nil {
 		t.Errorf("expected no errors but got %s :", err)
 	}
-
 	// Check if the correct price is stored
 	expectedPrice := 0.26673
-
 	if globalPrice.SEK_price != expectedPrice {
 		t.Errorf("Expected SEK_price %f, but got %f", expectedPrice, globalPrice.SEK_price)
 	}
-
 	// Testing bad cases
-
 	// Test case: using wrong url leads to an error
 	newMockTransport(resp)
 	// Call the function (which now hits the mock server)
@@ -445,7 +423,6 @@ func TestGetAPIPriceData(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected an error but got none!")
 	}
-
 	// Test case: if reading the body causes an error
 	resp.Body = errReader(0)
 	newMockTransport(resp)
@@ -453,26 +430,22 @@ func TestGetAPIPriceData(t *testing.T) {
 	if err != errBodyRead {
 		t.Errorf("expected an error %v, got %v", errBodyRead, err)
 	}
-
 	//Test case: if status code > 299
 	resp.Body = io.NopCloser(strings.NewReader(fakeBody))
 	resp.StatusCode = 300
 	newMockTransport(resp)
 	err = getAPIPriceData(url)
-
+	// check the statuscode is bad, witch is expected for the test to be successful
 	if err != err_statuscode {
 		t.Errorf("expected an bad status code but got %v", err)
-
 	}
-
 	// test case: if unmarshal a bad body creates a error
 	resp.StatusCode = 200
 	resp.Body = io.NopCloser(strings.NewReader(fakeBody + "123"))
 	newMockTransport(resp)
 	err = getAPIPriceData(url)
-
+	// make the check if the unmarshal creats a error
 	if err == nil {
 		t.Errorf("expected an error, got %v :", err)
 	}
-
 }
