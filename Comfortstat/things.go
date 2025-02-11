@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
 	"net/http"
 	"net/url"
 	"time"
@@ -59,6 +58,8 @@ func initAPI() {
 	go priceFeedbackLoop()
 }
 
+const apiFetchPeriod int = 3600
+
 // defines the URL for the electricity price and starts the getAPIPriceData function once every hour
 func priceFeedbackLoop() {
 	// Initialize a ticker for periodic execution
@@ -82,6 +83,7 @@ func priceFeedbackLoop() {
 }
 
 var errStatuscode error = fmt.Errorf("bad status code")
+var data []GlobalPriceData // Create a list to hold the data json
 
 // This function fetches the current electricity price from "https://www.elprisetjustnu.se/elpris-api", then prosess it and updates globalPrice
 func getAPIPriceData(apiURL string) error {
@@ -101,7 +103,6 @@ func getAPIPriceData(apiURL string) error {
 		return err
 	}
 
-	var data []GlobalPriceData        // Create a list to hold the data json
 	err = json.Unmarshal(body, &data) // "unpack" body from []byte to []GlobalPriceData, save errors
 
 	defer res.Body.Close()
@@ -111,14 +112,6 @@ func getAPIPriceData(apiURL string) error {
 	}
 	if err != nil {
 		return err
-	}
-
-	// extracts the electriciy price depending on the current time and updates globalPrice
-	now := fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
-	for _, i := range data {
-		if i.TimeStart == now {
-			globalPrice.SEKPrice = i.SEKPrice
-		}
 	}
 	return nil
 }
@@ -272,8 +265,6 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 	return ua, func() {
 		// start the unit asset(s)
 		go ua.feedbackLoop(sys.Ctx)
-		go ua.APIFeedbackLoop(sys.Ctx)
-
 	}
 }
 
@@ -372,43 +363,6 @@ func (ua *UnitAsset) getUserTemp() (f forms.SignalA_v1a) {
 	return f
 }
 
-// NOTE//
-// It's _strongly_ encouraged to not send requests to the API for more than once per hour.
-// Making this period a private constant prevents a user from changing this value
-// in the config file.
-const apiFetchPeriod int = 3600
-
-// feedbackLoop is THE control loop (IPR of the system)
-// this loop runs a periodic control loop that continuously fetches the api-price data
-
-func (ua *UnitAsset) APIFeedbackLoop(ctx context.Context) {
-	// Initialize a ticker for periodic execution
-	ticker := time.NewTicker(time.Duration(apiFetchPeriod) * time.Second)
-	defer ticker.Stop()
-
-	// start the control loop
-	for {
-		retrieveAPIPrice(ua)
-		select {
-		case <-ticker.C:
-			// Block the loop until the next period
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-func retrieveAPIPrice(ua *UnitAsset) {
-	ua.SEKPrice = globalPrice.SEKPrice
-	// Don't send temperature updates if the difference is too low
-	// (this could potentially save on battery!)
-	newTemp := ua.calculateDesiredTemp()
-	if math.Abs(ua.DesiredTemp-newTemp) < 0.5 {
-		return
-	}
-	ua.DesiredTemp = newTemp
-}
-
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 	// Initialize a ticker for periodic execution
@@ -427,8 +381,17 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 }
 
 // this function adjust and sends a new desierd temprature to the zigbee system
+// get the current best temperature
 func (ua *UnitAsset) processFeedbackLoop() {
-	// get the current best temperature
+	// extracts the electricity price depending on the current time and updates globalPrice
+	now := fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
+	for _, i := range data {
+		if i.TimeStart == now {
+			globalPrice.SEKPrice = i.SEKPrice
+		}
+	}
+
+	ua.SEKPrice = globalPrice.SEKPrice
 
 	//ua.DesiredTemp = ua.calculateDesiredTemp(miT, maT, miP, maP, ua.getSEKPrice().Value)
 	ua.DesiredTemp = ua.calculateDesiredTemp()
@@ -484,6 +447,7 @@ func (ua *UnitAsset) calculateDesiredTemp() float64 {
 
 func (ua *UnitAsset) sendUserTemp() {
 	var of forms.SignalA_v1a
+	of.NewForm()
 	of.Value = ua.UserTemp
 	of.Unit = ua.CervicesMap["setpoint"].Details["Unit"][0]
 	of.Timestamp = time.Now()
