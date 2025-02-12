@@ -20,7 +20,7 @@ analyse:
 	@echo -e "\nCOVERAGE\n===================="
 	go tool cover -func=.cover.out
 	@echo -e "\nCYCLOMATIC COMPLEXITY\n===================="
-	gocyclo -avg -top 10 .
+	gocyclo -avg -top 10 -ignore test.go .
 
 # Updates 3rd party packages and tools
 deps:
