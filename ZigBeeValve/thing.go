@@ -79,7 +79,14 @@ func initTemplate() components.UnitAsset {
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the current thermal setpoint (GET) or sets it (PUT)",
 	}
-
+	/*
+		consumptionService := components.Service{
+			Definition:  "consumption",
+			SubPath:     "consumption",
+			Details:     map[string][]string{"Unit": {"Wh"}, "Forms": {"SignalA_v1a"}},
+			Description: "provides the current consumption of the device (GET)",
+		}
+	*/
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
 		Name:        "SmartThermostat1",
@@ -137,7 +144,6 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 	ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
 
 	return ua, func() {
-
 		if ua.Model == "ZHAThermostat" {
 			// Get correct index in list returned by api/sensors to make sure we always change correct device
 			err := ua.getConnectedUnits("sensors")
@@ -155,9 +161,12 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 			if err != nil {
 				log.Println("Error occured during startup, while calling getConnectedUnits:", err)
 			}
-			// start the unit assets feedbackloop, this fetches the temperature from ds18b20 and and toggles
-			// between on/off depending on temperature in the room and a set temperature in the unitasset
-			go ua.feedbackLoop(ua.Owner.Ctx)
+			// Not all smart plugs should be handled by the feedbackloop, some should be handled by a switch
+			if ua.Period != 0 {
+				// start the unit assets feedbackloop, this fetches the temperature from ds18b20 and and toggles
+				// between on/off depending on temperature in the room and a set temperature in the unitasset
+				go ua.feedbackLoop(ua.Owner.Ctx)
+			}
 		}
 	}
 }
@@ -223,7 +232,6 @@ func findGateway() (err error) {
 	}
 	defer res.Body.Close()
 	if res.StatusCode > 299 {
-		//log.Printf("Response failed with status code: %d and\n", res.StatusCode)
 		return errStatusCode
 	}
 	body, err := io.ReadAll(res.Body) // Read the payload into body variable
@@ -235,7 +243,7 @@ func findGateway() (err error) {
 	if err != nil {
 		return
 	}
-
+	// If the returned list is empty, return a missing gateway error
 	if len(gw) < 1 {
 		return errMissingGateway
 	}
@@ -263,7 +271,6 @@ func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
 
 func (ua *UnitAsset) sendSetPoint() (err error) {
 	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
-
 	// --- Send setpoint to specific unit ---
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.deviceIndex + "/config"
 	// Create http friendly payload
@@ -276,7 +283,7 @@ func (ua *UnitAsset) sendSetPoint() (err error) {
 }
 
 func (ua *UnitAsset) toggleState(state bool) (err error) {
-	// API call turn smart plug on/off, PUT call should be sent to  URL/api/apikey/lights/sensor_id/config
+	// API call to toggle smart plug on/off, PUT call should be sent to URL/api/apikey/lights/sensor_id/config
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.deviceIndex + "/state"
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"on":%t}`, state) // Create payload
@@ -288,7 +295,7 @@ func (ua *UnitAsset) toggleState(state bool) (err error) {
 }
 
 func (ua *UnitAsset) getConnectedUnits(unitType string) (err error) {
-	// Get all devices
+	// --- Get all devices ---
 	apiURL := fmt.Sprintf("http://%s/api/%s/%s", gateway, ua.Apikey, unitType)
 	// Create a new request (Get)
 	// Put data into buffer
@@ -307,7 +314,6 @@ func (ua *UnitAsset) getConnectedUnits(unitType string) (err error) {
 	if resp.StatusCode > 299 {
 		return errStatusCode
 	}
-
 	// How to access maps inside of maps below!
 	// https://stackoverflow.com/questions/28806951/accessing-nested-map-of-type-mapstringinterface-in-golang
 	var deviceMap map[string]interface{}
@@ -315,6 +321,7 @@ func (ua *UnitAsset) getConnectedUnits(unitType string) (err error) {
 	if err != nil {
 		return
 	}
+	// --- Find the index of a device with the specific UniqueID ---
 	for i := range deviceMap {
 		if deviceMap[i].(map[string]interface{})["uniqueid"] == ua.Uniqueid {
 			ua.deviceIndex = i

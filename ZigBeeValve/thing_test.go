@@ -326,8 +326,8 @@ func TestGetConnectedUnits(t *testing.T) {
 	}
 
 	// --- Bad statuscode ---
-	newMockTransport(resp, false, nil)
 	resp.StatusCode = 300
+	newMockTransport(resp, false, nil)
 	err = ua.getConnectedUnits(ua.Model)
 	if err == nil {
 		t.Errorf("Expected status code > 299 in getConnectedUnits(), got %v", resp.StatusCode)

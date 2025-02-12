@@ -81,7 +81,7 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 	case "setpoint":
 		t.setpt(w, r)
 	default:
-		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
+		http.Error(w, "Invalid service request [Do not modify the services subpath in the configuration file]", http.StatusBadRequest)
 	}
 }
 
@@ -101,11 +101,11 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		if rsc.Model == "ZHAThermostat" {
 			err = rsc.sendSetPoint()
 			if err != nil {
+				log.Println("Error sending setpoint:", err)
 				http.Error(w, "Couldn't send setpoint.", http.StatusInternalServerError)
 				return
 			}
 		}
-
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
