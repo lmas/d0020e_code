@@ -52,7 +52,13 @@ type UnitAsset struct {
 	MinTemp        float64 `json:"MinTemp"`
 	MaxTemp        float64 `json:"MaxTemp"`
 	UserTemp       float64 `json:"userTemp"`
+	Region         float64 `json:"Region"` // the user can choose from what region the SEKPrice is taken from
 }
+
+// SE1: Norra Sverige/Luleå   		(value = 1)
+// SE2: Norra MellanSverige/Sundsvall 	(value = 2)
+// SE3: Södra MellanSverige/Stockholm   (value = 3)
+// SE4: Södra Sverige/Kalmar 		(value = 4)
 
 func initAPI() {
 	go priceFeedbackLoop()
@@ -60,13 +66,15 @@ func initAPI() {
 
 const apiFetchPeriod int = 3600
 
+var GlobalRegion float64 = 1
+
 // defines the URL for the electricity price and starts the getAPIPriceData function once every hour
 func priceFeedbackLoop() {
 	// Initialize a ticker for periodic execution
 	ticker := time.NewTicker(time.Duration(apiFetchPeriod) * time.Second)
 	defer ticker.Stop()
 
-	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+	url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE%d.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), int(GlobalRegion))
 	// start the control loop
 	for {
 		err := getAPIPriceData(url)
@@ -79,6 +87,47 @@ func priceFeedbackLoop() {
 		case <-ticker.C:
 			// blocks the execution until the ticker fires
 		}
+	}
+}
+
+func switchRegion() {
+	//url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+	urlSE1 := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+	urlSE2 := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE2.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+	urlSE3 := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE3.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+	urlSE4 := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE4.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+
+	// SE1: Norra Sverige/Luleå   		(value = 1)
+	if GlobalRegion == 1 {
+		err := getAPIPriceData(urlSE1)
+		if err != nil {
+			return
+		}
+
+	}
+	// SE2: Norra MellanSverige/Sundsvall 	(value = 2)
+	if GlobalRegion == 2 {
+		err := getAPIPriceData(urlSE2)
+		if err != nil {
+			return
+		}
+
+	}
+	// SE3: Södra MellanSverige/Stockholm   (value = 3)
+	if GlobalRegion == 3 {
+		err := getAPIPriceData(urlSE3)
+		if err != nil {
+			return
+		}
+
+	}
+	// SE4: Södra Sverige/Kalmar 		(value = 4)
+	if GlobalRegion == 4 {
+		err := getAPIPriceData(urlSE4)
+		if err != nil {
+			return
+		}
+
 	}
 }
 
@@ -188,6 +237,12 @@ func initTemplate() components.UnitAsset {
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the temperature the user wants regardless of prices (using a GET request)",
 	}
+	setRegion := components.Service{
+		Definition:  "Region",
+		SubPath:     "Region",
+		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the temperature the user wants regardless of prices (using a GET request)",
+	}
 
 	return &UnitAsset{
 		//These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
@@ -201,6 +256,7 @@ func initTemplate() components.UnitAsset {
 		DesiredTemp: 0,    // Desired temp calculated by system
 		Period:      15,
 		UserTemp:    0,
+		Region:      1,
 
 		// maps the provided services from above
 		ServicesMap: components.Services{
@@ -211,6 +267,7 @@ func initTemplate() components.UnitAsset {
 			setSEKPrice.SubPath:    &setSEKPrice,
 			setDesiredTemp.SubPath: &setDesiredTemp,
 			setUserTemp.SubPath:    &setUserTemp,
+			setRegion.SubPath:      &setRegion,
 		},
 	}
 }
@@ -247,6 +304,7 @@ func newUnitAsset(uac UnitAsset, sys *components.System, servs []components.Serv
 		DesiredTemp: uac.DesiredTemp,
 		Period:      uac.Period,
 		UserTemp:    uac.UserTemp,
+		Region:      uac.Region,
 		CervicesMap: components.Cervices{
 			t.Name: t,
 		},
@@ -362,6 +420,20 @@ func (ua *UnitAsset) getUserTemp() (f forms.SignalA_v1a) {
 	f.Timestamp = time.Now()
 	return f
 }
+func (ua *UnitAsset) setRegion(f forms.SignalA_v1a) {
+	ua.Region = f.Value
+	GlobalRegion = ua.Region
+	switchRegion()
+
+}
+
+func (ua *UnitAsset) getRegion() (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Value = ua.Region
+	f.Unit = "---"
+	f.Timestamp = time.Now()
+	return f
+}
 
 // feedbackLoop is THE control loop (IPR of the system)
 func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
@@ -383,6 +455,7 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 // this function adjust and sends a new desierd temprature to the zigbee system
 // get the current best temperature
 func (ua *UnitAsset) processFeedbackLoop() {
+	ua.Region = GlobalRegion
 	// extracts the electricity price depending on the current time and updates globalPrice
 	now := fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
 	for _, i := range data {

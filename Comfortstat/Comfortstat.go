@@ -86,6 +86,8 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 		t.httpSetDesiredTemp(w, r)
 	case "userTemp":
 		t.httpSetUserTemp(w, r)
+	case "Region":
+		t.httpSetRegion(w, r)
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
 	}
@@ -208,6 +210,23 @@ func (rsc *UnitAsset) httpSetUserTemp(w http.ResponseWriter, r *http.Request) {
 		rsc.setUserTemp(sig)
 	case "GET":
 		signalErr := rsc.getUserTemp()
+		usecases.HTTPProcessGetRequest(w, r, &signalErr)
+	default:
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+	}
+}
+
+func (rsc *UnitAsset) httpSetRegion(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		sig, err := usecases.HTTPProcessSetRequest(w, r)
+		if err != nil {
+			http.Error(w, "request incorrectly formated", http.StatusBadRequest)
+			return
+		}
+		rsc.setRegion(sig)
+	case "GET":
+		signalErr := rsc.getRegion()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
