@@ -31,6 +31,9 @@ func main() {
 
 	// instantiate a template unit asset
 	assetTemplate := initTemplate()
+	// Calling initAPI() starts the pricefeedbackloop that fetches the current electrisity price for the particular hour
+	initAPI()
+	time.Sleep(1 * time.Second)
 	assetName := assetTemplate.GetName()
 	sys.UAssets[assetName] = &assetTemplate
 
@@ -45,8 +48,8 @@ func main() {
 		if err := json.Unmarshal(raw, &uac); err != nil {
 			log.Fatalf("Resource configuration error: %+v\n", err)
 		}
-		ua, cleanup := newUnitAsset(uac, &sys, servsTemp)
-		defer cleanup()
+		ua, startup := newUnitAsset(uac, &sys, servsTemp)
+		startup()
 		sys.UAssets[ua.GetName()] = &ua
 	}
 
@@ -66,100 +69,91 @@ func main() {
 	time.Sleep(2 * time.Second) // allow the go routines to be executed, which might take more time than the main routine to end
 }
 
-// TODO: change the namne, will get one function for each of the four cases
 // Serving handles the resources services. NOTE: it exepcts those names from the request URL path
 func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath string) {
 	switch servicePath {
-	case "min_temperature":
-		t.set_minTemp(w, r)
-	case "max_temperature":
-		t.set_maxTemp(w, r)
-	case "max_price":
-		t.set_maxPrice(w, r)
-	case "min_price":
-		t.set_minPrice(w, r)
-	case "SEK_price":
-		t.set_SEKprice(w, r)
-	case "desired_temp":
-		t.set_desiredTemp(w, r)
+	case "MinTemperature":
+		t.httpSetMinTemp(w, r)
+	case "MaxTemperature":
+		t.httpSetMaxTemp(w, r)
+	case "MaxPrice":
+		t.httpSetMaxPrice(w, r)
+	case "MinPrice":
+		t.httpSetMinPrice(w, r)
+	case "SEKPrice":
+		t.httpSetSEKPrice(w, r)
+	case "DesiredTemp":
+		t.httpSetDesiredTemp(w, r)
+	case "userTemp":
+		t.httpSetUserTemp(w, r)
+	case "Region":
+		t.httpSetRegion(w, r)
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
 	}
 }
 
-func (rsc *UnitAsset) set_SEKprice(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) httpSetSEKPrice(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		signalErr := rsc.getSEK_price()
+		signalErr := rsc.getSEKPrice()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
 }
 
-// TODO: split up this function to two sepreate function that sets on max and min price.
-func (rsc *UnitAsset) set_minTemp(w http.ResponseWriter, r *http.Request) {
+// All these functions below handles HTTP "PUT" or "GET" requests to modefy or retrieve the MAX/MIN temprature/price and desierd temprature
+// For the PUT case - the "HTTPProcessSetRequest(w, r)" is called to prosses the data given from the user and if no error,
+// call the set functions in things.go with the value witch updates the value in the struct
+func (rsc *UnitAsset) httpSetMinTemp(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error with the setting request of the position ", err)
+			//log.Println("Error with the setting request of the position ", err)
+			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			return
+
 		}
-		rsc.setMin_temp(sig)
+		rsc.setMinTemp(sig)
 	case "GET":
-		signalErr := rsc.getMin_temp()
+		signalErr := rsc.getMinTemp()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
 }
-func (rsc *UnitAsset) set_maxTemp(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) httpSetMaxTemp(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error with the setting request of the position ", err)
+			//log.Println("Error with the setting request of the position ", err)
+			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			return
 		}
-		rsc.setMax_temp(sig)
+		rsc.setMaxTemp(sig)
 	case "GET":
-		signalErr := rsc.getMax_temp()
+		signalErr := rsc.getMaxTemp()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
 }
 
-// LOOK AT: I guess that we probable only need to if there is a PUT from user?
-// LOOK AT: so not the GET!
-// For PUT - the "HTTPProcessSetRequest(w, r)" is called to prosses the data given from the user and if no error, call set_minMaxprice with the value
-// wich updates the value in thge struct
-func (rsc *UnitAsset) set_minPrice(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) httpSetMinPrice(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error with the setting request of the position ", err)
+			//log.Println("Error with the setting request of the position ", err)
+			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			return
 		}
-		rsc.setMin_price(sig)
+		rsc.setMinPrice(sig)
 	case "GET":
-		signalErr := rsc.getMin_price()
-		usecases.HTTPProcessGetRequest(w, r, &signalErr)
-	default:
-		http.Error(w, "Method is not supported.", http.StatusNotFound)
-
-	}
-}
-
-func (rsc *UnitAsset) set_maxPrice(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "PUT":
-		sig, err := usecases.HTTPProcessSetRequest(w, r)
-		if err != nil {
-			log.Println("Error with the setting request of the position ", err)
-		}
-		rsc.setMax_price(sig)
-	case "GET":
-		signalErr := rsc.getMax_price()
+		signalErr := rsc.getMinPrice()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
@@ -167,16 +161,72 @@ func (rsc *UnitAsset) set_maxPrice(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (rsc *UnitAsset) set_desiredTemp(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) httpSetMaxPrice(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error with the setting request of the position ", err)
+			//log.Println("Error with the setting request of the position ", err)
+			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			return
 		}
-		rsc.setDesired_temp(sig)
+		rsc.setMaxPrice(sig)
 	case "GET":
-		signalErr := rsc.getDesired_temp()
+		signalErr := rsc.getMaxPrice()
+		usecases.HTTPProcessGetRequest(w, r, &signalErr)
+	default:
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+
+	}
+}
+
+func (rsc *UnitAsset) httpSetDesiredTemp(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		sig, err := usecases.HTTPProcessSetRequest(w, r)
+		if err != nil {
+			//log.Println("Error with the setting request of the position ", err)
+			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			return
+		}
+		rsc.setDesiredTemp(sig)
+	case "GET":
+		signalErr := rsc.getDesiredTemp()
+		usecases.HTTPProcessGetRequest(w, r, &signalErr)
+	default:
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+	}
+
+}
+
+func (rsc *UnitAsset) httpSetUserTemp(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		sig, err := usecases.HTTPProcessSetRequest(w, r)
+		if err != nil {
+			http.Error(w, "request incorrectly formated", http.StatusBadRequest)
+			return
+		}
+		rsc.setUserTemp(sig)
+	case "GET":
+		signalErr := rsc.getUserTemp()
+		usecases.HTTPProcessGetRequest(w, r, &signalErr)
+	default:
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+	}
+}
+
+func (rsc *UnitAsset) httpSetRegion(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		sig, err := usecases.HTTPProcessSetRequest(w, r)
+		if err != nil {
+			http.Error(w, "request incorrectly formated", http.StatusBadRequest)
+			return
+		}
+		rsc.setRegion(sig)
+	case "GET":
+		signalErr := rsc.getRegion()
 		usecases.HTTPProcessGetRequest(w, r, &signalErr)
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
