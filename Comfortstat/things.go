@@ -90,8 +90,8 @@ func priceFeedbackLoop() {
 	}
 }
 
+// This function checks if the user has changed price-region and then calls the getAPIPriceData function which gets the right pricedata
 func switchRegion() {
-	//url := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
 	urlSE1 := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
 	urlSE2 := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE2.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
 	urlSE3 := fmt.Sprintf(`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE3.json`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
@@ -430,7 +430,7 @@ func (ua *UnitAsset) setRegion(f forms.SignalA_v1a) {
 func (ua *UnitAsset) getRegion() (f forms.SignalA_v1a) {
 	f.NewForm()
 	f.Value = ua.Region
-	f.Unit = "---"
+	f.Unit = "RegionPoint"
 	f.Timestamp = time.Now()
 	return f
 }
