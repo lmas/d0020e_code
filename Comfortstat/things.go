@@ -103,7 +103,6 @@ func switchRegion() {
 		if err != nil {
 			return
 		}
-
 	}
 	// SE2: Norra MellanSverige/Sundsvall 	(value = 2)
 	if GlobalRegion == 2 {
@@ -111,7 +110,6 @@ func switchRegion() {
 		if err != nil {
 			return
 		}
-
 	}
 	// SE3: Södra MellanSverige/Stockholm   (value = 3)
 	if GlobalRegion == 3 {
@@ -119,7 +117,6 @@ func switchRegion() {
 		if err != nil {
 			return
 		}
-
 	}
 	// SE4: Södra Sverige/Kalmar 		(value = 4)
 	if GlobalRegion == 4 {
@@ -127,7 +124,6 @@ func switchRegion() {
 		if err != nil {
 			return
 		}
-
 	}
 }
 
@@ -403,7 +399,6 @@ func (ua *UnitAsset) getDesiredTemp() (f forms.SignalA_v1a) {
 
 func (ua *UnitAsset) setDesiredTemp(f forms.SignalA_v1a) {
 	ua.DesiredTemp = f.Value
-	log.Printf("new desired temperature: %.1f", f.Value)
 }
 
 func (ua *UnitAsset) setUserTemp(f forms.SignalA_v1a) {
@@ -424,7 +419,6 @@ func (ua *UnitAsset) setRegion(f forms.SignalA_v1a) {
 	ua.Region = f.Value
 	GlobalRegion = ua.Region
 	switchRegion()
-
 }
 
 func (ua *UnitAsset) getRegion() (f forms.SignalA_v1a) {
