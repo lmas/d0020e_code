@@ -116,43 +116,80 @@ func TestSetmethods(t *testing.T) {
 	MinTempInputSignal := forms.SignalA_v1a{
 		Value: 1.0,
 	}
-	MaxTempInputSignal := forms.SignalA_v1a{
-		Value: 29.0,
-	}
-	MinPriceInputSignal := forms.SignalA_v1a{
-		Value: 2.0,
-	}
-	MaxPriceInputSignal := forms.SignalA_v1a{
-		Value: 12.0,
-	}
-	DesTempInputSignal := forms.SignalA_v1a{
-		Value: 23.7,
-	}
 	//call and test MinTemp
 	asset.setMinTemp(MinTempInputSignal)
 	if asset.MinTemp != 1.0 {
 		t.Errorf("expected MinTemp to be 1.0, got %f", asset.MinTemp)
+	}
+	// Simulate the input signals
+	MaxTempInputSignal := forms.SignalA_v1a{
+		Value: 29.0,
 	}
 	// call and test MaxTemp
 	asset.setMaxTemp(MaxTempInputSignal)
 	if asset.MaxTemp != 29.0 {
 		t.Errorf("expected MaxTemp to be 25.0, got %f", asset.MaxTemp)
 	}
+	// Simulate the input signals
+	MinPriceInputSignal := forms.SignalA_v1a{
+		Value: 2.0,
+	}
 	//call and test MinPrice
 	asset.setMinPrice(MinPriceInputSignal)
 	if asset.MinPrice != 2.0 {
 		t.Errorf("expected MinPrice to be 2.0, got %f", asset.MinPrice)
+	}
+	// Simulate the input signals
+	MaxPriceInputSignal := forms.SignalA_v1a{
+		Value: 12.0,
 	}
 	//call and test MaxPrice
 	asset.setMaxPrice(MaxPriceInputSignal)
 	if asset.MaxPrice != 12.0 {
 		t.Errorf("expected MaxPrice to be 12.0, got %f", asset.MaxPrice)
 	}
+	// Simulate the input signals
+	DesTempInputSignal := forms.SignalA_v1a{
+		Value: 23.7,
+	}
 	// call and test DesiredTemp
 	asset.setDesiredTemp(DesTempInputSignal)
 	if asset.DesiredTemp != 23.7 {
 		t.Errorf("expected Desierd temprature is to be 23.7, got %f", asset.DesiredTemp)
 	}
+	// Simulate the input signal and call the set method for the check
+	RegionInputSignalSE2 := forms.SignalA_v1a{
+		Value: 2,
+	}
+	asset.setRegion(RegionInputSignalSE2)
+	if asset.Region != 2.0 {
+		t.Errorf("expected Region to be SE2 (2), got %f", asset.Region)
+	}
+	// Simulate the input signal and call the set method for the check
+	RegionInputSignalSE3 := forms.SignalA_v1a{
+		Value: 3,
+	}
+	asset.setRegion(RegionInputSignalSE3)
+	if asset.Region != 3.0 {
+		t.Errorf("expected Region to be SE3 (3), got %f", asset.Region)
+	}
+	// Simulate the input signal and call the set method for the check
+	RegionInputSignalSE1 := forms.SignalA_v1a{
+		Value: 1,
+	}
+	asset.setRegion(RegionInputSignalSE1)
+	if asset.Region != 1.0 {
+		t.Errorf("expected Region to be SE1 (1), got %f", asset.Region)
+	}
+	// Simulate the input signal and call the set method for the check
+	RegionInputSignalSE4 := forms.SignalA_v1a{
+		Value: 4,
+	}
+	asset.setRegion(RegionInputSignalSE4)
+	if asset.Region != 4.0 {
+		t.Errorf("expected Region to be SE4 (4), got %f", asset.Region)
+	}
+
 }
 
 func TestGetMethods(t *testing.T) {
@@ -211,6 +248,16 @@ func TestGetMethods(t *testing.T) {
 	result6 := uasset.getSEKPrice()
 	if result6.Value != uasset.SEKPrice {
 		t.Errorf("expected electric price is to be %v, got %v", uasset.SEKPrice, result6.Value)
+	}
+	////USertemp////
+	result7 := uasset.getUserTemp()
+	if result7.Value != uasset.UserTemp {
+		t.Errorf("expected the Usertemp to be %v, got %v", uasset.UserTemp, result7.Value)
+	}
+	////Region////
+	result8 := uasset.getRegion()
+	if result8.Value != uasset.Region {
+		t.Errorf("expected the Region to be %v, got %v", uasset.Region, result8.Value)
 	}
 }
 

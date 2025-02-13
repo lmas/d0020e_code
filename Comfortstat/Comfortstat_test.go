@@ -207,9 +207,9 @@ func TestHttpSetMinPrice(t *testing.T) {
 
 	// creates a fake request body with JSON data
 	w = httptest.NewRecorder()
-	fakebody = bytes.NewReader([]byte(`{"123, "unit": "SEK", "version": "SignalA_v1.0"}`))       // converts the Jason data so it can be read
-	r = httptest.NewRequest("PUT", "localhost:8670/Comfortstat/Set%20Values/MinPrice", fakebody) // simulating a put request from a user to update the min temp
-	r.Header.Set("Content-Type", "application/json")                                             // basic setup to prevent the request to be rejected.
+	fakebody = bytes.NewReader([]byte(`{"123, "unit": "SEK", "version": "SignalA_v1.0"}`))              // converts the Jason data so it can be read
+	r = httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/MinPrice", fakebody) // simulating a put request from a user to update the min temp
+	r.Header.Set("Content-Type", "application/json")                                                    // basic setup to prevent the request to be rejected.
 	ua.httpSetMinPrice(w, r)
 	// save the rsponse
 	resp = w.Result()
@@ -218,7 +218,7 @@ func TestHttpSetMinPrice(t *testing.T) {
 	}
 	//Good test case: GET
 	w = httptest.NewRecorder()
-	r = httptest.NewRequest("GET", "localhost:8670/Comfortstat/Set%20Values/MinPrice", nil)
+	r = httptest.NewRequest("GET", "http://localhost:8670/Comfortstat/Set%20Values/MinPrice", nil)
 	goodStatusCode = 200
 	ua.httpSetMinPrice(w, r)
 
@@ -245,7 +245,7 @@ func TestHttpSetMinPrice(t *testing.T) {
 
 	// force the case to hit default statement but alter the method
 	w = httptest.NewRecorder()
-	r = httptest.NewRequest("666", "localhost:8670/Comfortstat/Set%20Values/MinPrice", nil)
+	r = httptest.NewRequest("666", "http://localhost:8670/Comfortstat/Set%20Values/MinPrice", nil)
 	ua.httpSetMinPrice(w, r)
 	//save the response
 	resp = w.Result()
@@ -260,9 +260,9 @@ func TestHttpSetMaxPrice(t *testing.T) {
 
 	// creates a fake request body with JSON data
 	w := httptest.NewRecorder()
-	fakebody := bytes.NewReader([]byte(`{"value": 2, "unit": "SEK", "version": "SignalA_v1.0"}`)) // converts the Jason data so it can be read
-	r := httptest.NewRequest("PUT", "localhost:8670/Comfortstat/Set%20Values/MaxPrice", fakebody) // simulating a put request from a user to update the min temp
-	r.Header.Set("Content-Type", "application/json")                                              // basic setup to prevent the request to be rejected.
+	fakebody := bytes.NewReader([]byte(`{"value": 2, "unit": "SEK", "version": "SignalA_v1.0"}`))        // converts the Jason data so it can be read
+	r := httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/MaxPrice", fakebody) // simulating a put request from a user to update the min temp
+	r.Header.Set("Content-Type", "application/json")                                                     // basic setup to prevent the request to be rejected.
 	goodStatusCode := 200
 	ua.httpSetMaxPrice(w, r)
 
@@ -275,9 +275,9 @@ func TestHttpSetMaxPrice(t *testing.T) {
 
 	// creates a fake request body with JSON data
 	w = httptest.NewRecorder()
-	fakebody = bytes.NewReader([]byte(`{"123, "unit": "SEK", "version": "SignalA_v1.0"}`))       // converts the Jason data so it can be read
-	r = httptest.NewRequest("PUT", "localhost:8670/Comfortstat/Set%20Values/MaxPrice", fakebody) // simulating a put request from a user to update the min temp
-	r.Header.Set("Content-Type", "application/json")                                             // basic setup to prevent the request to be rejected.
+	fakebody = bytes.NewReader([]byte(`{"123, "unit": "SEK", "version": "SignalA_v1.0"}`))              // converts the Jason data so it can be read
+	r = httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/MaxPrice", fakebody) // simulating a put request from a user to update the min temp
+	r.Header.Set("Content-Type", "application/json")                                                    // basic setup to prevent the request to be rejected.
 	ua.httpSetMaxPrice(w, r)
 
 	// save the rsponse and read the body
@@ -331,9 +331,9 @@ func TestHttpSetDesiredTemp(t *testing.T) {
 
 	// creates a fake request body with JSON data
 	w := httptest.NewRecorder()
-	fakebody := bytes.NewReader([]byte(`{"value": 0, "unit": "Celsius", "version": "SignalA_v1.0"}`)) // converts the Jason data so it can be read
-	r := httptest.NewRequest("PUT", "localhost:8670/Comfortstat/Set%20Values/DesiredTemp", fakebody)  // simulating a put request from a user to update the min temp
-	r.Header.Set("Content-Type", "application/json")                                                  // basic setup to prevent the request to be rejected.
+	fakebody := bytes.NewReader([]byte(`{"value": 0, "unit": "Celsius", "version": "SignalA_v1.0"}`))       // converts the Jason data so it can be read
+	r := httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/DesiredTemp", fakebody) // simulating a put request from a user to update the min temp
+	r.Header.Set("Content-Type", "application/json")                                                        // basic setup to prevent the request to be rejected.
 	goodStatusCode := 200
 
 	ua.httpSetDesiredTemp(w, r)
@@ -348,9 +348,9 @@ func TestHttpSetDesiredTemp(t *testing.T) {
 
 	// creates a fake request body with JSON data
 	w = httptest.NewRecorder()
-	fakebody = bytes.NewReader([]byte(`{"123, "unit": "Celsius", "version": "SignalA_v1.0"}`))      // converts the Jason data so it can be read
-	r = httptest.NewRequest("PUT", "localhost:8670/Comfortstat/Set%20Values/DesiredTemp", fakebody) // simulating a put request from a user to update the min temp
-	r.Header.Set("Content-Type", "application/json")                                                // basic setup to prevent the request to be rejected.
+	fakebody = bytes.NewReader([]byte(`{"123, "unit": "Celsius", "version": "SignalA_v1.0"}`))             // converts the Jason data so it can be read
+	r = httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/DesiredTemp", fakebody) // simulating a put request from a user to update the min temp
+	r.Header.Set("Content-Type", "application/json")                                                       // basic setup to prevent the request to be rejected.
 
 	ua.httpSetDesiredTemp(w, r)
 	// save the rsponse and read the body
@@ -392,6 +392,152 @@ func TestHttpSetDesiredTemp(t *testing.T) {
 	r = httptest.NewRequest("666", "http://localhost:8670/Comfortstat/Set%20Values/DesiredTemp", nil)
 	// calls the method and extracts the response and save is in resp for the upcoming tests
 	ua.httpSetDesiredTemp(w, r)
+	resp = w.Result()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("expected the status to be bad but got: %v", resp.StatusCode)
+	}
+}
+
+func TestHttpSetUserTemp(t *testing.T) {
+	ua := initTemplate().(*UnitAsset)
+	//Godd test case: PUT
+
+	// creates a fake request body with JSON data
+	w := httptest.NewRecorder()
+	fakebody := bytes.NewReader([]byte(`{"value": 0, "unit": "Celsius", "version": "SignalA_v1.0"}`))    // converts the Jason data so it can be read
+	r := httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/userTemp", fakebody) // simulating a put request from a user to update the min temp
+	r.Header.Set("Content-Type", "application/json")                                                     // basic setup to prevent the request to be rejected.
+	goodStatusCode := 200
+
+	ua.httpSetUserTemp(w, r)
+
+	// save the rsponse and read the body
+	resp := w.Result()
+	if resp.StatusCode != goodStatusCode {
+		t.Errorf("expected good status code: %v, got %v", goodStatusCode, resp.StatusCode)
+	}
+
+	//BAD case: PUT, if the fake body is formatted incorrectly
+
+	// creates a fake request body with JSON data
+	w = httptest.NewRecorder()
+	fakebody = bytes.NewReader([]byte(`{"123, "unit": "Celsius", "version": "SignalA_v1.0"}`))          // converts the Jason data so it can be read
+	r = httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/userTemp", fakebody) // simulating a put request from a user to update the min temp
+	r.Header.Set("Content-Type", "application/json")                                                    // basic setup to prevent the request to be rejected.
+
+	ua.httpSetUserTemp(w, r)
+	// save the rsponse and read the body
+	resp = w.Result()
+	if resp.StatusCode == goodStatusCode {
+		t.Errorf("expected bad status code: %v, got %v", goodStatusCode, resp.StatusCode)
+	}
+	//Good test case: GET
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "http://localhost:8670/Comfortstat/Set%20Values/userTemp", nil)
+	goodStatusCode = 200
+	ua.httpSetUserTemp(w, r)
+
+	// save the rsponse and read the body
+
+	resp = w.Result()
+	if resp.StatusCode != goodStatusCode {
+		t.Errorf("expected good status code: %v, got %v", goodStatusCode, resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	// this is a simple check if the JSON response contains the specific value/unit/version
+	value := strings.Contains(string(body), `"value": 0`)
+	unit := strings.Contains(string(body), `"unit": "Celsius"`)
+	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
+
+	if value != true {
+		t.Errorf("expected the statment to be true!")
+	}
+	if unit != true {
+		t.Errorf("expected the unit statement to be true!")
+	}
+	if version != true {
+		t.Errorf("expected the version statment to be true!")
+	}
+	// bad test case: default part of code
+
+	// force the case to hit default statement but alter the method
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("666", "http://localhost:8670/Comfortstat/Set%20Values/userTemp", nil)
+	// calls the method and extracts the response and save is in resp for the upcoming tests
+	ua.httpSetUserTemp(w, r)
+	resp = w.Result()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("expected the status to be bad but got: %v", resp.StatusCode)
+	}
+}
+
+func TestHttpSetRegion(t *testing.T) {
+	ua := initTemplate().(*UnitAsset)
+	//Godd test case: PUT
+
+	// creates a fake request body with JSON data
+	w := httptest.NewRecorder()
+	fakebody := bytes.NewReader([]byte(`{"value": 1, "unit": "RegionPoint", "version": "SignalA_v1.0"}`)) // converts the Jason data so it can be read
+	r := httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/Region", fakebody)    // simulating a put request from a user to update the min temp
+	r.Header.Set("Content-Type", "application/json")                                                      // basic setup to prevent the request to be rejected.
+	goodStatusCode := 200
+
+	ua.httpSetRegion(w, r)
+
+	// save the rsponse and read the body
+	resp := w.Result()
+	if resp.StatusCode != goodStatusCode {
+		t.Errorf("expected good status code: %v, got %v", goodStatusCode, resp.StatusCode)
+	}
+
+	//BAD case: PUT, if the fake body is formatted incorrectly
+
+	// creates a fake request body with JSON data
+	w = httptest.NewRecorder()
+	fakebody = bytes.NewReader([]byte(`{"123, "unit": "RegionPoint", "version": "SignalA_v1.0"}`))    // converts the Jason data so it can be read
+	r = httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/Region", fakebody) // simulating a put request from a user to update the min temp
+	r.Header.Set("Content-Type", "application/json")                                                  // basic setup to prevent the request to be rejected.
+
+	ua.httpSetRegion(w, r)
+	// save the rsponse and read the body
+	resp = w.Result()
+	if resp.StatusCode == goodStatusCode {
+		t.Errorf("expected bad status code: %v, got %v", goodStatusCode, resp.StatusCode)
+	}
+	//Good test case: GET
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "http://localhost:8670/Comfortstat/Set%20Values/Region", nil)
+	goodStatusCode = 200
+	ua.httpSetRegion(w, r)
+
+	// save the rsponse and read the body
+
+	resp = w.Result()
+	if resp.StatusCode != goodStatusCode {
+		t.Errorf("expected good status code: %v, got %v", goodStatusCode, resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	// this is a simple check if the JSON response contains the specific value/unit/version
+	value := strings.Contains(string(body), `"value": 1`)
+	unit := strings.Contains(string(body), `"unit": "RegionPoint"`)
+	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
+
+	if value != true {
+		t.Errorf("expected the statment to be true!")
+	}
+	if unit != true {
+		t.Errorf("expected the unit statement to be true!")
+	}
+	if version != true {
+		t.Errorf("expected the version statment to be true!")
+	}
+	// bad test case: default part of code
+
+	// force the case to hit default statement but alter the method
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("666", "http://localhost:8670/Comfortstat/Set%20Values/Region", nil)
+	// calls the method and extracts the response and save is in resp for the upcoming tests
+	ua.httpSetRegion(w, r)
 	resp = w.Result()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("expected the status to be bad but got: %v", resp.StatusCode)
