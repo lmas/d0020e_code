@@ -361,6 +361,7 @@ func sendRequest(req *http.Request) (err error) {
 
 // --- HOW TO CONNECT AND LISTEN TO A WEBSOCKET ---
 // Port 443, can be found by curl -v "http://localhost:8080/api/[apikey]/config", and getting the "websocketport". Will make a function to automatically get this port
+// https://dresden-elektronik.github.io/deconz-rest-doc/endpoints/websocket/
 // https://stackoverflow.com/questions/32745716/i-need-to-connect-to-an-existing-websocket-server-using-go-lang
 // https://pkg.go.dev/github.com/coder/websocket#Conn
 // https://pkg.go.dev/github.com/coder/websocket#Conn.Read
@@ -391,5 +392,6 @@ func initWebsocketClient(ctx context.Context) (err error) {
 		return
 	}
 	log.Println("Read from websocket:", bodyString)
+	ws.Close(websocket.StatusNormalClosure, "No longer need to listen to websocket")
 	return
 }
