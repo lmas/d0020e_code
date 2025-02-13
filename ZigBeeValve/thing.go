@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/coder/websocket"
+	// "github.com/coder/websocket/wsjson"
 	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
 	"github.com/sdoque/mbaigo/usecases"
@@ -357,5 +359,37 @@ func sendRequest(req *http.Request) (err error) {
 	return
 }
 
-// Create a group, add all lights/power plugs from e.g. kitchen to said group
-// Create rule, on button.event toggle power plugs
+// --- HOW TO CONNECT AND LISTEN TO A WEBSOCKET ---
+// Port 443, can be found by curl -v "http://localhost:8080/api/[apikey]/config", and getting the "websocketport". Will make a function to automatically get this port
+// https://stackoverflow.com/questions/32745716/i-need-to-connect-to-an-existing-websocket-server-using-go-lang
+// https://pkg.go.dev/github.com/coder/websocket#Conn
+// https://pkg.go.dev/github.com/coder/websocket#Conn.Read
+
+// Not sure if this will work, still a work in progress.
+func initWebsocketClient(ctx context.Context) (err error) {
+	fmt.Println("Starting Client")
+	ws, _, err := websocket.Dial(ctx, "ws://localhost:443", nil) // Start listening to websocket
+	defer ws.CloseNow()                                          // Make sure connection is closed when returning from function
+	if err != nil {
+		fmt.Printf("Dial failed: %s\n", err)
+		return err
+	}
+	_, body, err := ws.Reader(ctx) // Start reading from connection, returned body will be used to get buttonevents
+	if err != nil {
+		log.Println("Error while reading from websocket:", err)
+		return
+	}
+	data, err := io.ReadAll(body)
+	if err != nil {
+		log.Println("Error while converthing from io.Reader to []byte:", err)
+		return
+	}
+	var bodyString map[string]interface{}
+	err = json.Unmarshal(data, &bodyString) // Unmarshal body into json, easier to be able to point to specific data with ".example"
+	if err != nil {
+		log.Println("Error while unmarshaling data:", err)
+		return
+	}
+	log.Println("Read from websocket:", bodyString)
+	return
+}
