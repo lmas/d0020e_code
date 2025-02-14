@@ -147,22 +147,26 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 
 	return ua, func() {
 		if ua.Model == "ZHAThermostat" {
-			// Get correct index in list returned by api/sensors to make sure we always change correct device
-			err := ua.getConnectedUnits("sensors")
-			if err != nil {
-				log.Println("Error occurred during startup, while calling getConnectedUnits:", err)
-			}
-			err = ua.sendSetPoint()
+			/*
+				// Get correct index in list returned by api/sensors to make sure we always change correct device
+				err := ua.getConnectedUnits("sensors")
+				if err != nil {
+					log.Println("Error occurred during startup, while calling getConnectedUnits:", err)
+				}
+			*/
+			err := ua.sendSetPoint()
 			if err != nil {
 				log.Println("Error occurred during startup, while calling sendSetPoint():", err)
 				// TODO: Turn off system if this startup() fails?
 			}
 		} else if ua.Model == "Smart plug" {
-			// Get correct index in list returned by api/lights to make sure we always change correct device
-			err := ua.getConnectedUnits("lights")
-			if err != nil {
-				log.Println("Error occurred during startup, while calling getConnectedUnits:", err)
-			}
+			/*
+				// Get correct index in list returned by api/lights to make sure we always change correct device
+				err := ua.getConnectedUnits("lights")
+				if err != nil {
+					log.Println("Error occurred during startup, while calling getConnectedUnits:", err)
+				}
+			*/
 			// Not all smart plugs should be handled by the feedbackloop, some should be handled by a switch
 			if ua.Period != 0 {
 				// start the unit assets feedbackloop, this fetches the temperature from ds18b20 and and toggles
@@ -274,7 +278,7 @@ func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
 func (ua *UnitAsset) sendSetPoint() (err error) {
 	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
 	// --- Send setpoint to specific unit ---
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.deviceIndex + "/config"
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Uniqueid + "/config"
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"heatsetpoint":%f}`, ua.Setpt*100) // Create payload
 	req, err := createRequest(s, apiURL)
@@ -286,7 +290,7 @@ func (ua *UnitAsset) sendSetPoint() (err error) {
 
 func (ua *UnitAsset) toggleState(state bool) (err error) {
 	// API call to toggle smart plug on/off, PUT call should be sent to URL/api/apikey/lights/sensor_id/config
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.deviceIndex + "/state"
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.Uniqueid + "/state"
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"on":%t}`, state) // Create payload
 	req, err := createRequest(s, apiURL)
