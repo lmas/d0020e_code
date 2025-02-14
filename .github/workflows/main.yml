@@ -1,4 +1,4 @@
-name: Tests and Linters
+name: Linters, Spellcheck and Tests
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 jobs:
   Linters:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@v4
       - name: Setup go
@@ -19,9 +19,16 @@ jobs:
       - name: Run linters
         run: make lint
 
+  Spellcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crate-ci/typos@v1.29.7
+
   Tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@v4
       - name: Setup go
