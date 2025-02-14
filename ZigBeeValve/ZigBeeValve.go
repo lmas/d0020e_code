@@ -21,11 +21,11 @@ func main() {
 	defer cancel()                                          // make sure all paths cancel the context to avoid context leak
 
 	// instantiate the System
-	sys := components.NewSystem("ZigBee", ctx)
+	sys := components.NewSystem("ZigBeeHandler", ctx)
 
 	// Instatiate the Capusle
 	sys.Husk = &components.Husk{
-		Description: " is a controller for smart thermostats connected with a RaspBee II",
+		Description: " is a controller for smart devices connected with a RaspBee II",
 		Certificate: "ABCD",
 		Details:     map[string][]string{"Developer": {"Arrowhead"}},
 		ProtoPort:   map[string]int{"https": 0, "http": 8870, "coap": 0},
@@ -36,6 +36,12 @@ func main() {
 	assetTemplate := initTemplate()
 	assetName := assetTemplate.GetName()
 	sys.UAssets[assetName] = &assetTemplate
+
+	// Find zigbee gateway and store it in a global variable for reuse
+	err := findGateway()
+	if err != nil {
+		log.Fatal("Error getting gateway, shutting down: ", err)
+	}
 
 	// Configure the system
 	rawResources, servsTemp, err := usecases.Configure(&sys)
@@ -48,8 +54,8 @@ func main() {
 		if err := json.Unmarshal(raw, &uac); err != nil {
 			log.Fatalf("Resource configuration error: %+v\n", err)
 		}
-		ua, cleanup := newResource(uac, &sys, servsTemp)
-		defer cleanup()
+		ua, startup := newResource(uac, &sys, servsTemp)
+		startup()
 		sys.UAssets[ua.GetName()] = &ua
 	}
 
@@ -75,7 +81,7 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 	case "setpoint":
 		t.setpt(w, r)
 	default:
-		http.Error(w, "Invalid service request [Do not modify the services subpath in the configurration file]", http.StatusBadRequest)
+		http.Error(w, "Invalid service request [Do not modify the services subpath in the configuration file]", http.StatusBadRequest)
 	}
 }
 
@@ -87,16 +93,18 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			log.Println("Error with the setting desired temp ", err)
-		}
-		log.Println("sig:", sig)
-		log.Println("URL:", r.URL)
-		log.Println("Model:", rsc.Model)
-		rsc.setSetPoint(sig)
-		if rsc.Model == "SmartThermostat" {
-			rsc.sendSetPoint()
+			http.Error(w, "Request incorrectly formated", http.StatusBadRequest)
+			return
 		}
 
+		rsc.setSetPoint(sig)
+		if rsc.Model == "ZHAThermostat" {
+			err = rsc.sendSetPoint()
+			if err != nil {
+				http.Error(w, "Couldn't send setpoint.", http.StatusInternalServerError)
+				return
+			}
+		}
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 	}
