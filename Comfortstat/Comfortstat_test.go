@@ -477,9 +477,9 @@ func TestHttpSetRegion(t *testing.T) {
 
 	// creates a fake request body with JSON data
 	w := httptest.NewRecorder()
-	fakebody := bytes.NewReader([]byte(`{"value": 1, "unit": "RegionPoint", "version": "SignalA_v1.0"}`)) // converts the Jason data so it can be read
-	r := httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/Region", fakebody)    // simulating a put request from a user to update the min temp
-	r.Header.Set("Content-Type", "application/json")                                                      // basic setup to prevent the request to be rejected.
+	fakebody := bytes.NewReader([]byte(`{"value": 1, "version": "SignalA_v1.0"}`))                     // converts the Jason data so it can be read
+	r := httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/Region", fakebody) // simulating a put request from a user to update the min temp
+	r.Header.Set("Content-Type", "application/json")                                                   // basic setup to prevent the request to be rejected.
 	goodStatusCode := 200
 
 	ua.httpSetRegion(w, r)
@@ -494,7 +494,7 @@ func TestHttpSetRegion(t *testing.T) {
 
 	// creates a fake request body with JSON data
 	w = httptest.NewRecorder()
-	fakebody = bytes.NewReader([]byte(`{"123, "unit": "RegionPoint", "version": "SignalA_v1.0"}`))    // converts the Jason data so it can be read
+	fakebody = bytes.NewReader([]byte(`{"123, "version": "SignalA_v1.0"}`))                           // converts the Jason data so it can be read
 	r = httptest.NewRequest("PUT", "http://localhost:8670/Comfortstat/Set%20Values/Region", fakebody) // simulating a put request from a user to update the min temp
 	r.Header.Set("Content-Type", "application/json")                                                  // basic setup to prevent the request to be rejected.
 
@@ -519,14 +519,10 @@ func TestHttpSetRegion(t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 	// this is a simple check if the JSON response contains the specific value/unit/version
 	value := strings.Contains(string(body), `"value": 1`)
-	unit := strings.Contains(string(body), `"unit": "RegionPoint"`)
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
 
 	if value != true {
 		t.Errorf("expected the statement to be true!")
-	}
-	if unit != true {
-		t.Errorf("expected the unit statement to be true!")
 	}
 	if version != true {
 		t.Errorf("expected the version statement to be true!")

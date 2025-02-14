@@ -228,21 +228,21 @@ func initTemplate() components.UnitAsset {
 		Description: "provides the desired temperature the system calculates based on user inputs (using a GET request)",
 	}
 	setUserTemp := components.Service{
-		Definition:  "userTemp",
-		SubPath:     "userTemp",
+		Definition:  "UserTemp",
+		SubPath:     "UserTemp",
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the temperature the user wants regardless of prices (using a GET request)",
 	}
 	setRegion := components.Service{
 		Definition:  "Region",
 		SubPath:     "Region",
-		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
+		Details:     map[string][]string{"Forms": {"SignalA_v1a"}},
 		Description: "provides the temperature the user wants regardless of prices (using a GET request)",
 	}
 
 	return &UnitAsset{
 		//These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
-		Name:        "Set Values",
+		Name:        "Set_Values",
 		Details:     map[string][]string{"Location": {"Kitchen"}},
 		SEKPrice:    1.5,  // Example electricity price in SEK per kWh
 		MinPrice:    1.0,  // Minimum price allowed
@@ -424,7 +424,6 @@ func (ua *UnitAsset) setRegion(f forms.SignalA_v1a) {
 func (ua *UnitAsset) getRegion() (f forms.SignalA_v1a) {
 	f.NewForm()
 	f.Value = ua.Region
-	f.Unit = "RegionPoint"
 	f.Timestamp = time.Now()
 	return f
 }
