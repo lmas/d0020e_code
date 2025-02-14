@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"testing"
@@ -40,7 +39,7 @@ func newMockTransport() mockTransport {
 }
 
 func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	log.Println("HIJACK:", req.URL.String())
+	// log.Println("HIJACK:", req.URL.String())
 	// t.hits[req.URL.Hostname()] += 1
 	// if t.err != nil {
 	// 	return nil, t.err
@@ -53,11 +52,11 @@ func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err er
 	// t.resp.Request = req
 	// return t.resp, nil
 
-	b, err := io.ReadAll(req.Body)
-	if err != nil {
-		return
-	}
-	fmt.Println(string(b))
+	// b, err := io.ReadAll(req.Body)
+	// if err != nil {
+	// 	return
+	// }
+	// fmt.Println(string(b))
 
 	return &http.Response{
 		Request:    req,
@@ -69,10 +68,10 @@ func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err er
 const mockBodyType string = "application/json"
 
 var mockStates = map[string]string{
-	"temperature":  `{ "value": 0, "unit": "Celcius", "timestamp": "%s", "version": "SignalA_v1.0" }`,
-	"SEK_price":    `{ "value": 0.10403, "unit": "SEK", "timestamp": "%s", "version": "SignalA_v1.0" }`,
-	"desired_temp": `{ "value": 25, "unit": "Celsius", "timestamp": "%s", "version": "SignalA_v1.0" }`,
-	"setpoint":     `{ "value": 20, "unit": "Celsius", "timestamp": "%s", "version": "SignalA_v1.0" }`,
+	"temperature": `{ "value": 0, "unit": "Celcius", "timestamp": "%s", "version": "SignalA_v1.0" }`,
+	"SEKPrice":    `{ "value": 0.10403, "unit": "SEK", "timestamp": "%s", "version": "SignalA_v1.0" }`,
+	"DesiredTemp": `{ "value": 25, "unit": "Celsius", "timestamp": "%s", "version": "SignalA_v1.0" }`,
+	"setpoint":    `{ "value": 20, "unit": "Celsius", "timestamp": "%s", "version": "SignalA_v1.0" }`,
 }
 
 func mockGetState(c *components.Cervice, s *components.System) (f forms.Form, err error) {

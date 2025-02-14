@@ -32,9 +32,11 @@ type unitAsset struct {
 	ServicesMap components.Services `json:"-"`       // Services provided to consumers
 	CervicesMap components.Cervices `json:"-"`       // Services being consumed
 
-	InfluxDBHost     string `json:"influxdb_host"`     // IP:port addr to the influxdb server
-	InfluxDBToken    string `json:"influxdb_token"`    // Auth token
-	CollectionPeriod int    `json:"collection_period"` // Period (in seconds) between each data collection
+	InfluxDBHost         string `json:"influxdb_host"`  // IP:port addr to the influxdb server
+	InfluxDBToken        string `json:"influxdb_token"` // Auth token
+	InfluxDBOrganisation string `json:"influxdb_organisation"`
+	InfluxDBBucket       string `json:"influxdb_bucket"`   // Data bucket
+	CollectionPeriod     int    `json:"collection_period"` // Period (in seconds) between each data collection
 
 	// Mockable function for getting states from the consumed services.
 	apiGetState func(*components.Cervice, *components.System) (forms.Form, error)
@@ -81,16 +83,18 @@ func initTemplate() *unitAsset {
 		Name:    uaName,
 		Details: map[string][]string{"Location": {"Kitchen"}},
 
-		InfluxDBHost:     "http://localhost:8086",
-		InfluxDBToken:    "insert secret token here",
-		CollectionPeriod: 30,
+		InfluxDBHost:         "http://localhost:8086",
+		InfluxDBToken:        "insert secret token here",
+		InfluxDBOrganisation: "organisation",
+		InfluxDBBucket:       "arrowhead",
+		CollectionPeriod:     30,
 	}
 }
 
 var consumeServices []string = []string{
 	"temperature",
-	"SEK_price",
-	"desired_temp",
+	"SEKPrice",
+	"DesiredTemp",
 	"setpoint",
 }
 
@@ -102,11 +106,9 @@ var consumeServices []string = []string{
 // func newUnitAsset(uac unitAsset, sys *components.System, servs []components.Service) (components.UnitAsset, func() error) {
 // func newUnitAsset(uac unitAsset, sys *components.System, servs []components.Service) *unitAsset {
 func newUnitAsset(uac unitAsset, sys *system, servs []components.Service) *unitAsset {
-	// client := influxdb2.NewClient(uac.InfluxDBHost, uac.InfluxDBToken)
-	ls := uint(len(consumeServices) + 1)
 	client := influxdb2.NewClientWithOptions(
 		uac.InfluxDBHost, uac.InfluxDBToken,
-		influxdb2.DefaultOptions().SetBatchSize(ls).SetHTTPClient(http.DefaultClient),
+		influxdb2.DefaultOptions().SetHTTPClient(http.DefaultClient),
 	)
 
 	ua := &unitAsset{
@@ -116,14 +118,15 @@ func newUnitAsset(uac unitAsset, sys *system, servs []components.Service) *unitA
 		// ServicesMap: components.CloneServices(servs), // TODO: not required?
 		CervicesMap: components.Cervices{},
 
-		InfluxDBHost:     uac.InfluxDBHost,
-		InfluxDBToken:    uac.InfluxDBToken,
-		CollectionPeriod: uac.CollectionPeriod,
+		InfluxDBHost:         uac.InfluxDBHost,
+		InfluxDBToken:        uac.InfluxDBToken,
+		InfluxDBOrganisation: uac.InfluxDBOrganisation,
+		InfluxDBBucket:       uac.InfluxDBBucket,
+		CollectionPeriod:     uac.CollectionPeriod,
 
-		apiGetState: usecases.GetState,
-		// influx:      influxdb2.NewClient(uac.InfluxDBHost, uac.InfluxDBToken),
+		apiGetState:  usecases.GetState,
 		influx:       client,
-		influxWriter: client.WriteAPI("organisation", "bucket"),
+		influxWriter: client.WriteAPI(uac.InfluxDBOrganisation, uac.InfluxDBBucket),
 	}
 
 	// TODO: handle influx write errors or don't care?
@@ -182,7 +185,7 @@ func (ua *unitAsset) cleanup() {
 }
 
 func (ua *unitAsset) collectAllServices() (err error) {
-	log.Println("tick") // TODO
+	// log.Println("tick") // TODO
 	var wg sync.WaitGroup
 
 	for _, service := range consumeServices {
@@ -211,7 +214,7 @@ func (ua *unitAsset) collectService(service string) (err error) {
 		err = fmt.Errorf("bad form version: %s", f.FormVersion())
 		return
 	}
-	fmt.Println(s) // TODO
+	// fmt.Println(s) // TODO
 
 	p := influxdb2.NewPoint(
 		service,
