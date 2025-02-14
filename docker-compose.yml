@@ -22,10 +22,10 @@ services:
         - SRC=./sregistrar/*.go
         - PORT=8443
     network_mode: "host"
-    environment:
-      TZ: Europe/Stockholm
     volumes:
       - ./data/registrar:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   orchestrator:
     image: orchestrator:0.1.0
@@ -37,10 +37,10 @@ services:
     depends_on:
       - registrar
     network_mode: "host"
-    environment:
-      TZ: Europe/Stockholm
     volumes:
       - ./data/orchestrator:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   # Build and run business systems
 
@@ -55,10 +55,10 @@ services:
       - registrar
       - orchestrator
     network_mode: "host"
-    environment:
-      TZ: Europe/Stockholm
     volumes:
       - ./data/ds18b20:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   comfortstat:
     image: comfortstat:0.2.0
@@ -71,10 +71,10 @@ services:
       - registrar
       - orchestrator
     network_mode: "host"
-    environment:
-      TZ: Europe/Stockholm
     volumes:
       - ./data/comfortstat:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   zigbee:
     image: zigbee:0.2.0
@@ -88,10 +88,10 @@ services:
       - orchestrator
       - ds18b20
     network_mode: "host"
-    environment:
-      TZ: Europe/Stockholm
     volumes:
       - ./data/zigbee:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   influxdb:
     image: influxdb:2.7.11-alpine
@@ -100,14 +100,15 @@ services:
       DOCKER_INFLUXDB_INIT_USERNAME: admin
       DOCKER_INFLUXDB_INIT_PASSWORD: password
       DOCKER_INFLUXDB_INIT_ORG: organisation
-      DOCKER_INFLUXDB_INIT_BUCKET: bucket
+      DOCKER_INFLUXDB_INIT_BUCKET: arrowhead
       INFLUXD_LOG_LEVEL: warn
-      TZ: Europe/Stockholm
     ports:
       - 8086:8086
     volumes:
       - ./data/influxdb/data:/var/lib/influxdb2
       - ./data/influxdb/config:/etc/influxdb2
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   collector:
     image: collector:0.1.0
@@ -122,8 +123,8 @@ services:
       - zigbee
       - influxdb
     network_mode: "host"
-    environment:
-      TZ: Europe/Stockholm
     volumes:
       - ./data/collector:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
