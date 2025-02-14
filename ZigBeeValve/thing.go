@@ -296,6 +296,8 @@ func (ua *UnitAsset) toggleState(state bool) (err error) {
 	return sendRequest(req)
 }
 
+// Useless function? Noticed uniqueid can be used as "id" to send requests instead of the index while testing, wasn't clear from documentation. Will need to test this more though
+// TODO: Rewrite this to instead get the websocketport.
 func (ua *UnitAsset) getConnectedUnits(unitType string) (err error) {
 	// --- Get all devices ---
 	apiURL := fmt.Sprintf("http://%s/api/%s/%s", gateway, ua.Apikey, unitType)
@@ -363,8 +365,8 @@ func sendRequest(req *http.Request) (err error) {
 // Port 443, can be found by curl -v "http://localhost:8080/api/[apikey]/config", and getting the "websocketport". Will make a function to automatically get this port
 // https://dresden-elektronik.github.io/deconz-rest-doc/endpoints/websocket/
 // https://stackoverflow.com/questions/32745716/i-need-to-connect-to-an-existing-websocket-server-using-go-lang
-// https://pkg.go.dev/github.com/coder/websocket#Conn
-// https://pkg.go.dev/github.com/coder/websocket#Conn.Read
+// https://pkg.go.dev/github.com/coder/websocket#Dial
+// https://pkg.go.dev/github.com/coder/websocket#Conn.Reader
 
 // Not sure if this will work, still a work in progress.
 func initWebsocketClient(ctx context.Context) (err error) {
@@ -392,6 +394,11 @@ func initWebsocketClient(ctx context.Context) (err error) {
 		return
 	}
 	log.Println("Read from websocket:", bodyString)
-	ws.Close(websocket.StatusNormalClosure, "No longer need to listen to websocket")
+	err = ws.Close(websocket.StatusNormalClosure, "No longer need to listen to websocket")
+	if err != nil {
+		log.Println("Error while doing normal closure on websocket")
+		return
+	}
 	return
+	// Have to do something fancy to make sure we update "connected" plugs/lights when Reader returns a body actually containing a buttonevent (something w/ channels?)
 }
