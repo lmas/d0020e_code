@@ -42,7 +42,7 @@ type UnitAsset struct {
 	ServicesMap components.Services `json:"-"`
 	CervicesMap components.Cervices `json:"-"`
 	//
-	Period time.Duration `json:"samplingPeriod"`
+	Period time.Duration `json:"SamplingPeriod"`
 	//
 	DesiredTemp    float64 `json:"DesiredTemp"`
 	oldDesiredTemp float64 // keep this field private!
@@ -51,7 +51,7 @@ type UnitAsset struct {
 	MaxPrice       float64 `json:"MaxPrice"`
 	MinTemp        float64 `json:"MinTemp"`
 	MaxTemp        float64 `json:"MaxTemp"`
-	UserTemp       float64 `json:"userTemp"`
+	UserTemp       float64 `json:"UserTemp"`
 	Region         float64 `json:"Region"` // the user can choose from what region the SEKPrice is taken from
 }
 
@@ -78,12 +78,11 @@ func priceFeedbackLoop() {
 	// start the control loop
 	for {
 		err := getAPIPriceData(url)
-
 		if err != nil {
 			return
 		}
-		select {
 
+		select {
 		case <-ticker.C:
 			// blocks the execution until the ticker fires
 		}
@@ -451,6 +450,7 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	ua.Region = GlobalRegion
 	// extracts the electricity price depending on the current time and updates globalPrice
 	now := fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
+	log.Println("TIME:", now)
 	for _, i := range data {
 		if i.TimeStart == now {
 			globalPrice.SEKPrice = i.SEKPrice
