@@ -26,7 +26,7 @@ func newMockTransport(resp *http.Response) mockTransport {
 		resp: resp,
 		hits: make(map[string]int),
 	}
-	// Highjack the default http client so no actuall http requests are sent over the network
+	// Hijack the default http client so no actual http requests are sent over the network
 	http.DefaultClient.Transport = t
 	return t
 }
@@ -155,7 +155,7 @@ func TestSetmethods(t *testing.T) {
 	// call and test DesiredTemp
 	asset.setDesiredTemp(DesTempInputSignal)
 	if asset.DesiredTemp != 23.7 {
-		t.Errorf("expected Desierd temprature is to be 23.7, got %f", asset.DesiredTemp)
+		t.Errorf("expected Desierd temperature is to be 23.7, got %f", asset.DesiredTemp)
 	}
 	// Simulate the input signal and call the set method for the check
 	RegionInputSignalSE2 := forms.SignalA_v1a{
@@ -196,7 +196,7 @@ func TestGetMethods(t *testing.T) {
 	uasset := initTemplate().(*UnitAsset)
 
 	////MinTemp////
-	// check if the value from the struct is the acctual value that the func is getting
+	// check if the value from the struct is the actual value that the func is getting
 	result := uasset.getMinTemp()
 	if result.Value != uasset.MinTemp {
 		t.Errorf("expected Value of the MinTemp is to be %v, got %v", uasset.MinTemp, result.Value)
@@ -215,7 +215,7 @@ func TestGetMethods(t *testing.T) {
 		t.Errorf("expected Unit of the MaxTemp is to be 'Celsius', got %v", result2.Unit)
 	}
 	////MinPrice////
-	// check if the value from the struct is the acctual value that the func is getting
+	// check if the value from the struct is the actual value that the func is getting
 	result3 := uasset.getMinPrice()
 	if result3.Value != uasset.MinPrice {
 		t.Errorf("expected Value of the minPrice is to be %v, got %v", uasset.MinPrice, result3.Value)
@@ -225,7 +225,7 @@ func TestGetMethods(t *testing.T) {
 		t.Errorf("expected Unit to be 'SEK', got %v", result3.Unit)
 	}
 	////MaxPrice////
-	// check if the value from the struct is the acctual value that the func is getting
+	// check if the value from the struct is the actual value that the func is getting
 	result4 := uasset.getMaxPrice()
 	if result4.Value != uasset.MaxPrice {
 		t.Errorf("expected Value of the maxPrice is  to be %v, got %v", uasset.MaxPrice, result4.Value)
@@ -235,10 +235,10 @@ func TestGetMethods(t *testing.T) {
 		t.Errorf("expected Unit to be 'SEK', got %v", result4.Unit)
 	}
 	////DesierdTemp////
-	// check if the value from the struct is the acctual value that the func is getting
+	// check if the value from the struct is the actual value that the func is getting
 	result5 := uasset.getDesiredTemp()
 	if result5.Value != uasset.DesiredTemp {
-		t.Errorf("expected desired temprature is to be %v, got %v", uasset.DesiredTemp, result5.Value)
+		t.Errorf("expected desired temperature is to be %v, got %v", uasset.DesiredTemp, result5.Value)
 	}
 	//check that the Unit is correct
 	if result5.Unit != "Celsius" {
@@ -275,22 +275,22 @@ func TestInitTemplate(t *testing.T) {
 	}
 	//Services//
 	if Services["SEKPrice"].Definition != "SEKPrice" {
-		t.Errorf("expected service defenition to be SEKprice")
+		t.Errorf("expected service definition to be SEKprice")
 	}
 	if Services["MaxTemperature"].Definition != "MaxTemperature" {
-		t.Errorf("expected service defenition to be MaxTemperature")
+		t.Errorf("expected service definition to be MaxTemperature")
 	}
 	if Services["MinTemperature"].Definition != "MinTemperature" {
-		t.Errorf("expected service defenition to be MinTemperature")
+		t.Errorf("expected service definition to be MinTemperature")
 	}
 	if Services["MaxPrice"].Definition != "MaxPrice" {
-		t.Errorf("expected service defenition to be MaxPrice")
+		t.Errorf("expected service definition to be MaxPrice")
 	}
 	if Services["MinPrice"].Definition != "MinPrice" {
-		t.Errorf("expected service defenition to be MinPrice")
+		t.Errorf("expected service definition to be MinPrice")
 	}
 	if Services["DesiredTemp"].Definition != "DesiredTemp" {
-		t.Errorf("expected service defenition to be DesiredTemp")
+		t.Errorf("expected service definition to be DesiredTemp")
 	}
 	//GetCervice//
 	Cervices := uasset.GetCervices()
@@ -311,7 +311,7 @@ func TestNewUnitAsset(t *testing.T) {
 	// instantiate the System
 	sys := components.NewSystem("Comfortstat", ctx)
 
-	// Instatiate the Capusle
+	// Instantiate the Capsule
 	sys.Husk = &components.Husk{
 		Description: " is a controller for a consumed servo motor position based on a consumed temperature",
 		Certificate: "ABCD",
@@ -364,7 +364,7 @@ func TestNewUnitAsset(t *testing.T) {
 		MinPrice:    1.0,  // Minimum price allowed
 		MaxPrice:    2.0,  // Maximum price allowed
 		MinTemp:     20.0, // Minimum temperature
-		MaxTemp:     25.0, // Maximum temprature allowed
+		MaxTemp:     25.0, // Maximum temperature allowed
 		DesiredTemp: 0,    // Desired temp calculated by system
 		Period:      15,
 
@@ -393,20 +393,20 @@ func TestCalculateDesiredTemp(t *testing.T) {
 	asset := initTemplate().(*UnitAsset)
 	// calls and saves the value
 	result := asset.calculateDesiredTemp()
-	// checks if actual calculated value matches the expexted value
+	// checks if actual calculated value matches the expected value
 	if result != True_result {
 		t.Errorf("Expected calculated temp is %v, got %v", True_result, result)
 	}
 }
 
-// This test catches the special cases, when the temprature is to be set to the minimum temprature right away
+// This test catches the special cases, when the temperature is to be set to the minimum temperature right away
 func TestSpecialCalculate(t *testing.T) {
 	asset := UnitAsset{
 		SEKPrice: 3.0,
 		MaxPrice: 2.0,
 		MinTemp:  17.0,
 	}
-	//call the method and save the result in a varable for testing
+	//call the method and save the result in a variable for testing
 	result := asset.calculateDesiredTemp()
 	//check the result from the call above
 	if result != asset.MinTemp {
@@ -414,7 +414,7 @@ func TestSpecialCalculate(t *testing.T) {
 	}
 }
 
-// Fuctions that help creating bad body
+// Functions that help creating bad body
 type errReader int
 
 var errBodyRead error = fmt.Errorf("bad body read")
@@ -453,7 +453,7 @@ func TestGetAPIPriceData(t *testing.T) {
 		`https://www.elprisetjustnu.se/api/v1/prices/%d/%02d-%02d_SE1.json`,
 		time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(),
 	)
-	// creates a mock HTTP transport to simulate api respone for the test
+	// creates a mock HTTP transport to simulate api response for the test
 	newMockTransport(resp)
 	err := getAPIPriceData(url)
 	if err != nil {
@@ -493,7 +493,7 @@ func TestGetAPIPriceData(t *testing.T) {
 	resp.Body = io.NopCloser(strings.NewReader(fakeBody + "123"))
 	newMockTransport(resp)
 	err = getAPIPriceData(url)
-	// make the check if the unmarshal creats a error
+	// make the check if the unmarshal creates a error
 	if err == nil {
 		t.Errorf("expected an error, got %v :", err)
 	}

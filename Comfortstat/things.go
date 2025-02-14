@@ -130,10 +130,10 @@ func switchRegion() {
 var errStatuscode error = fmt.Errorf("bad status code")
 var data []GlobalPriceData // Create a list to hold the data json
 
-// This function fetches the current electricity price from "https://www.elprisetjustnu.se/elpris-api", then prosess it and updates globalPrice
+// This function fetches the current electricity price from "https://www.elprisetjustnu.se/elpris-api", then process it and updates globalPrice
 func getAPIPriceData(apiURL string) error {
 	//Validate the URL//
-	parsedURL, err := url.Parse(apiURL) // ensures the string is a valid URL, .schema and .Host checks prevent emty or altered URL
+	parsedURL, err := url.Parse(apiURL) // ensures the string is a valid URL, .schema and .Host checks prevent empty or altered URL
 	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
 		return errors.New("The URL is invalid")
 	}
@@ -248,7 +248,7 @@ func initTemplate() components.UnitAsset {
 		MinPrice:    1.0,  // Minimum price allowed
 		MaxPrice:    2.0,  // Maximum price allowed
 		MinTemp:     20.0, // Minimum temperature
-		MaxTemp:     25.0, // Maximum temprature allowed
+		MaxTemp:     25.0, // Maximum temperature allowed
 		DesiredTemp: 0,    // Desired temp calculated by system
 		Period:      15,
 		UserTemp:    0,
@@ -331,7 +331,7 @@ func (ua *UnitAsset) getSEKPrice() (f forms.SignalA_v1a) {
 	return f
 }
 
-//Get and set- metods for MIN/MAX price/temp and desierdTemp
+//Get and set- methods for MIN/MAX price/temp and desierdTemp
 
 // getMinPrice is used for reading the current value of MinPrice
 func (ua *UnitAsset) getMinPrice() (f forms.SignalA_v1a) {
@@ -361,7 +361,7 @@ func (ua *UnitAsset) setMaxPrice(f forms.SignalA_v1a) {
 	ua.MaxPrice = f.Value
 }
 
-// getMinTemp is used for reading the current minimum temerature value
+// getMinTemp is used for reading the current minimum temperature value
 func (ua *UnitAsset) getMinTemp() (f forms.SignalA_v1a) {
 	f.NewForm()
 	f.Value = ua.MinTemp
@@ -439,14 +439,14 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			ua.processFeedbackLoop() // either modifiy processFeedback loop or write a new one
+			ua.processFeedbackLoop() // either modify processFeedback loop or write a new one
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-// this function adjust and sends a new desierd temprature to the zigbee system
+// this function adjust and sends a new desierd temperature to the zigbee system
 // get the current best temperature
 func (ua *UnitAsset) processFeedbackLoop() {
 	ua.Region = GlobalRegion
@@ -494,7 +494,7 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	}
 }
 
-// Calculates the new most optimal temprature (desierdTemp) based on the price/temprature intervalls
+// Calculates the new most optimal temperature (desierdTemp) based on the price/temprature intervals
 // and the current electricity price
 func (ua *UnitAsset) calculateDesiredTemp() float64 {
 

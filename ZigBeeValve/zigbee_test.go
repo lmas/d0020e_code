@@ -33,13 +33,13 @@ func TestSetpt(t *testing.T) {
 	version := strings.Contains(string(stringBody), `"version": "SignalA_v1.0"`)
 	// Check that above statements are true
 	if value != true {
-		t.Errorf("Good GET: The value statment should be true!")
+		t.Errorf("Good GET: The value statement should be true!")
 	}
 	if unit != true {
 		t.Errorf("Good GET: Expected the unit statement to be true!")
 	}
 	if version != true {
-		t.Errorf("Good GET: Expected the version statment to be true!")
+		t.Errorf("Good GET: Expected the version statement to be true!")
 	}
 
 	// --- Bad test case: Default part of code (faulty http method) ---

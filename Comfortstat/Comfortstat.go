@@ -20,7 +20,7 @@ func main() {
 	// instantiate the System
 	sys := components.NewSystem("Comfortstat", ctx)
 
-	// Instatiate the Capusle
+	// Instantiate the Capsule
 	sys.Husk = &components.Husk{
 		Description: " is a controller for a consumed servo motor position based on a consumed temperature",
 		Certificate: "ABCD",
@@ -31,7 +31,7 @@ func main() {
 
 	// instantiate a template unit asset
 	assetTemplate := initTemplate()
-	// Calling initAPI() starts the pricefeedbackloop that fetches the current electrisity price for the particular hour
+	// Calling initAPI() starts the pricefeedbackloop that fetches the current electricity price for the particular hour
 	initAPI()
 	time.Sleep(1 * time.Second)
 	assetName := assetTemplate.GetName()
@@ -69,7 +69,7 @@ func main() {
 	time.Sleep(2 * time.Second) // allow the go routines to be executed, which might take more time than the main routine to end
 }
 
-// Serving handles the resources services. NOTE: it exepcts those names from the request URL path
+// Serving handles the resources services. NOTE: it expects those names from the request URL path
 func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath string) {
 	switch servicePath {
 	case "MinTemperature":
@@ -103,7 +103,7 @@ func (rsc *UnitAsset) httpSetSEKPrice(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// All these functions below handles HTTP "PUT" or "GET" requests to modefy or retrieve the MAX/MIN temprature/price and desierd temprature
+// All these functions below handles HTTP "PUT" or "GET" requests to modefy or retrieve the MAX/MIN temprature/price and desierd temperature
 // For the PUT case - the "HTTPProcessSetRequest(w, r)" is called to prosses the data given from the user and if no error,
 // call the set functions in things.go with the value witch updates the value in the struct
 func (rsc *UnitAsset) httpSetMinTemp(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +112,7 @@ func (rsc *UnitAsset) httpSetMinTemp(w http.ResponseWriter, r *http.Request) {
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			//log.Println("Error with the setting request of the position ", err)
-			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			http.Error(w, "request incorrectly formatted", http.StatusBadRequest)
 			return
 
 		}
@@ -130,7 +130,7 @@ func (rsc *UnitAsset) httpSetMaxTemp(w http.ResponseWriter, r *http.Request) {
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			//log.Println("Error with the setting request of the position ", err)
-			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			http.Error(w, "request incorrectly formatted", http.StatusBadRequest)
 			return
 		}
 		rsc.setMaxTemp(sig)
@@ -148,7 +148,7 @@ func (rsc *UnitAsset) httpSetMinPrice(w http.ResponseWriter, r *http.Request) {
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			//log.Println("Error with the setting request of the position ", err)
-			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			http.Error(w, "request incorrectly formatted", http.StatusBadRequest)
 			return
 		}
 		rsc.setMinPrice(sig)
@@ -167,7 +167,7 @@ func (rsc *UnitAsset) httpSetMaxPrice(w http.ResponseWriter, r *http.Request) {
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			//log.Println("Error with the setting request of the position ", err)
-			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			http.Error(w, "request incorrectly formatted", http.StatusBadRequest)
 			return
 		}
 		rsc.setMaxPrice(sig)
@@ -186,7 +186,7 @@ func (rsc *UnitAsset) httpSetDesiredTemp(w http.ResponseWriter, r *http.Request)
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
 			//log.Println("Error with the setting request of the position ", err)
-			http.Error(w, "request incorreclty formated", http.StatusBadRequest)
+			http.Error(w, "request incorrectly formatted", http.StatusBadRequest)
 			return
 		}
 		rsc.setDesiredTemp(sig)
@@ -204,7 +204,7 @@ func (rsc *UnitAsset) httpSetUserTemp(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			http.Error(w, "request incorrectly formated", http.StatusBadRequest)
+			http.Error(w, "request incorrectly formatted", http.StatusBadRequest)
 			return
 		}
 		rsc.setUserTemp(sig)
@@ -221,7 +221,7 @@ func (rsc *UnitAsset) httpSetRegion(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			http.Error(w, "request incorrectly formated", http.StatusBadRequest)
+			http.Error(w, "request incorrectly formatted", http.StatusBadRequest)
 			return
 		}
 		rsc.setRegion(sig)

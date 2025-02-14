@@ -29,13 +29,13 @@ func TestHttpSetSEKPrice(t *testing.T) {
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
 	// check results from above
 	if value != true {
-		t.Errorf("expected the statment to be true!")
+		t.Errorf("expected the statement to be true!")
 	}
 	if unit != true {
 		t.Errorf("expected the unit statement to be true!")
 	}
 	if version != true {
-		t.Errorf("expected the version statment to be true!")
+		t.Errorf("expected the version statement to be true!")
 	}
 	// Bad test case: default part of code
 	w = httptest.NewRecorder()
@@ -97,13 +97,13 @@ func TestHttpSetMinTemp(t *testing.T) {
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
 	// check the result from above
 	if value != true {
-		t.Errorf("expected the statment to be true!")
+		t.Errorf("expected the statement to be true!")
 	}
 	if unit != true {
 		t.Errorf("expected the unit statement to be true!")
 	}
 	if version != true {
-		t.Errorf("expected the version statment to be true!")
+		t.Errorf("expected the version statement to be true!")
 	}
 	// bad test case: default part of code
 	// force the case to hit default statement but alter the method
@@ -165,13 +165,13 @@ func TestHttpSetMaxTemp(t *testing.T) {
 	unit := strings.Contains(string(body), `"unit": "Celsius"`)
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
 	if value != true {
-		t.Errorf("expected the statment to be true!")
+		t.Errorf("expected the statement to be true!")
 	}
 	if unit != true {
 		t.Errorf("expected the unit statement to be true!")
 	}
 	if version != true {
-		t.Errorf("expected the version statment to be true!")
+		t.Errorf("expected the version statement to be true!")
 	}
 	// bad test case: default part of code
 
@@ -233,13 +233,13 @@ func TestHttpSetMinPrice(t *testing.T) {
 	unit := strings.Contains(string(body), `"unit": "SEK"`)
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
 	if value != true {
-		t.Errorf("expected the statment to be true!")
+		t.Errorf("expected the statement to be true!")
 	}
 	if unit != true {
 		t.Errorf("expected the unit statement to be true!")
 	}
 	if version != true {
-		t.Errorf("expected the version statment to be true!")
+		t.Errorf("expected the version statement to be true!")
 	}
 	// bad test case: default part of code
 
@@ -303,13 +303,13 @@ func TestHttpSetMaxPrice(t *testing.T) {
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
 
 	if value != true {
-		t.Errorf("expected the statment to be true!")
+		t.Errorf("expected the statement to be true!")
 	}
 	if unit != true {
 		t.Errorf("expected the unit statement to be true!")
 	}
 	if version != true {
-		t.Errorf("expected the version statment to be true!")
+		t.Errorf("expected the version statement to be true!")
 	}
 	// bad test case: default part of code
 
@@ -377,13 +377,13 @@ func TestHttpSetDesiredTemp(t *testing.T) {
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
 
 	if value != true {
-		t.Errorf("expected the statment to be true!")
+		t.Errorf("expected the statement to be true!")
 	}
 	if unit != true {
 		t.Errorf("expected the unit statement to be true!")
 	}
 	if version != true {
-		t.Errorf("expected the version statment to be true!")
+		t.Errorf("expected the version statement to be true!")
 	}
 	// bad test case: default part of code
 
@@ -450,13 +450,13 @@ func TestHttpSetUserTemp(t *testing.T) {
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
 
 	if value != true {
-		t.Errorf("expected the statment to be true!")
+		t.Errorf("expected the statement to be true!")
 	}
 	if unit != true {
 		t.Errorf("expected the unit statement to be true!")
 	}
 	if version != true {
-		t.Errorf("expected the version statment to be true!")
+		t.Errorf("expected the version statement to be true!")
 	}
 	// bad test case: default part of code
 
@@ -523,13 +523,13 @@ func TestHttpSetRegion(t *testing.T) {
 	version := strings.Contains(string(body), `"version": "SignalA_v1.0"`)
 
 	if value != true {
-		t.Errorf("expected the statment to be true!")
+		t.Errorf("expected the statement to be true!")
 	}
 	if unit != true {
 		t.Errorf("expected the unit statement to be true!")
 	}
 	if version != true {
-		t.Errorf("expected the version statment to be true!")
+		t.Errorf("expected the version statement to be true!")
 	}
 	// bad test case: default part of code
 

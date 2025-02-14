@@ -71,7 +71,7 @@ func (ua *UnitAsset) GetDetails() map[string][]string {
 // ensure UnitAsset implements components.UnitAsset (this check is done at during the compilation)
 var _ components.UnitAsset = (*UnitAsset)(nil)
 
-//-------------------------------------Instatiate a unit asset template
+//-------------------------------------Instantiate a unit asset template
 
 // initTemplate initializes a UnitAsset with default values.
 func initTemplate() components.UnitAsset {
@@ -106,13 +106,13 @@ func initTemplate() components.UnitAsset {
 	return uat
 }
 
-//-------------------------------------Instatiate the unit assets based on configuration
+//-------------------------------------Instantiate the unit assets based on configuration
 
 // newResource creates the resource with its pointers and channels based on the configuration using the tConfig structs
 // This is a startup function that's used to initiate the unit assets declared in the systemconfig.json, the function
 // that is returned is later used to send a setpoint/start a goroutine depending on model of the unitasset
 func newResource(uac UnitAsset, sys *components.System, servs []components.Service) (components.UnitAsset, func()) {
-	// deterimine the protocols that the system supports
+	// determine the protocols that the system supports
 	sProtocols := components.SProtocols(sys.Husk.ProtoPort)
 
 	// instantiate the consumed services
@@ -121,7 +121,7 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		Protos: sProtocols,
 		Url:    make([]string, 0),
 	}
-	// intantiate the unit asset
+	// instantiate the unit asset
 	ua := &UnitAsset{
 		Name:        uac.Name,
 		Owner:       sys,
@@ -150,18 +150,18 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 			// Get correct index in list returned by api/sensors to make sure we always change correct device
 			err := ua.getConnectedUnits("sensors")
 			if err != nil {
-				log.Println("Error occured during startup, while calling getConnectedUnits:", err)
+				log.Println("Error occurred during startup, while calling getConnectedUnits:", err)
 			}
 			err = ua.sendSetPoint()
 			if err != nil {
-				log.Println("Error occured during startup, while calling sendSetPoint():", err)
+				log.Println("Error occurred during startup, while calling sendSetPoint():", err)
 				// TODO: Turn off system if this startup() fails?
 			}
 		} else if ua.Model == "Smart plug" {
 			// Get correct index in list returned by api/lights to make sure we always change correct device
 			err := ua.getConnectedUnits("lights")
 			if err != nil {
-				log.Println("Error occured during startup, while calling getConnectedUnits:", err)
+				log.Println("Error occurred during startup, while calling getConnectedUnits:", err)
 			}
 			// Not all smart plugs should be handled by the feedbackloop, some should be handled by a switch
 			if ua.Period != 0 {
@@ -205,12 +205,12 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	if tup.Value < ua.Setpt {
 		err = ua.toggleState(true)
 		if err != nil {
-			log.Println("Error occured while toggling state to true: ", err)
+			log.Println("Error occurred while toggling state to true: ", err)
 		}
 	} else {
 		err = ua.toggleState(false)
 		if err != nil {
-			log.Println("Error occured while toggling state to false: ", err)
+			log.Println("Error occurred while toggling state to false: ", err)
 		}
 	}
 }
@@ -390,7 +390,7 @@ func initWebsocketClient(ctx context.Context) (err error) {
 	var bodyString map[string]interface{}
 	err = json.Unmarshal(data, &bodyString) // Unmarshal body into json, easier to be able to point to specific data with ".example"
 	if err != nil {
-		log.Println("Error while unmarshaling data:", err)
+		log.Println("Error while unmarshalling data:", err)
 		return
 	}
 	log.Println("Read from websocket:", bodyString)

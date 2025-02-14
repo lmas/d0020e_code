@@ -23,7 +23,7 @@ func main() {
 	// instantiate the System
 	sys := components.NewSystem("ZigBeeHandler", ctx)
 
-	// Instatiate the Capusle
+	// Instantiate the Capsule
 	sys.Husk = &components.Husk{
 		Description: " is a controller for smart devices connected with a RaspBee II",
 		Certificate: "ABCD",
@@ -75,7 +75,7 @@ func main() {
 	time.Sleep(2 * time.Second) // allow the go routines to be executed, which might take more time than the main routine to end
 }
 
-// Serving handles the resources services. NOTE: it exepcts those names from the request URL path
+// Serving handles the resources services. NOTE: it expects those names from the request URL path
 func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath string) {
 	switch servicePath {
 	case "setpoint":
@@ -93,7 +93,7 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			http.Error(w, "Request incorrectly formated", http.StatusBadRequest)
+			http.Error(w, "Request incorrectly formatted", http.StatusBadRequest)
 			return
 		}
 
