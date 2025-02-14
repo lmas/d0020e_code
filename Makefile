@@ -14,6 +14,13 @@ lint:
 	gosec -quiet -fmt=golint -exclude-dir="tmp" ./...
 	pointerinterface ./...
 
+# Runs spellchecker on the code and comments
+# This requires this tool to be installed from https://github.com/crate-ci/typos?tab=readme-ov-file
+# Example installation:
+# cargo install typos-cli
+spellcheck:
+	typos .
+
 # Generate pretty coverage report
 analyse:
 	go tool cover -html=".cover.out" -o="cover.html"
