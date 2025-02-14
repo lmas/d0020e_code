@@ -33,7 +33,7 @@ func newMockTransport() mockTransport {
 		// returnError: retErr,
 		// resp:        resp,
 	}
-	// Highjack the default http client so no actuall http requests are sent over the network
+	// Hijack the default http client so no actual http requests are sent over the network
 	http.DefaultClient.Transport = t
 	return t
 }

@@ -67,7 +67,7 @@ func (sys *system) loadConfiguration() {
 	// If the file is missing, a new config will be created and an error is returned here.
 	if err != nil {
 		// TODO: it would had been nice to catch the exact error for "created config.."
-		// and not display it as an actuall error, per se.
+		// and not display it as an actual error, per se.
 		log.Fatalf("Error while reading configuration: %v\n", err)
 	}
 
