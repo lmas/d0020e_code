@@ -101,7 +101,6 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		if rsc.Model == "ZHAThermostat" {
 			err = rsc.sendSetPoint()
 			if err != nil {
-				log.Println("Error sending setpoint:", err)
 				http.Error(w, "Couldn't send setpoint.", http.StatusInternalServerError)
 				return
 			}
