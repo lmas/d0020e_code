@@ -22,6 +22,8 @@ services:
         - SRC=./sregistrar/*.go
         - PORT=8443
     network_mode: "host"
+    environment:
+      TZ: Europe/Stockholm
     volumes:
       - ./data/registrar:/data
 
@@ -35,6 +37,8 @@ services:
     depends_on:
       - registrar
     network_mode: "host"
+    environment:
+      TZ: Europe/Stockholm
     volumes:
       - ./data/orchestrator:/data
 
@@ -51,6 +55,8 @@ services:
       - registrar
       - orchestrator
     network_mode: "host"
+    environment:
+      TZ: Europe/Stockholm
     volumes:
       - ./data/ds18b20:/data
 
@@ -65,6 +71,8 @@ services:
       - registrar
       - orchestrator
     network_mode: "host"
+    environment:
+      TZ: Europe/Stockholm
     volumes:
       - ./data/comfortstat:/data
 
@@ -80,6 +88,8 @@ services:
       - orchestrator
       - ds18b20
     network_mode: "host"
+    environment:
+      TZ: Europe/Stockholm
     volumes:
       - ./data/zigbee:/data
 
@@ -92,6 +102,7 @@ services:
       DOCKER_INFLUXDB_INIT_ORG: organisation
       DOCKER_INFLUXDB_INIT_BUCKET: bucket
       INFLUXD_LOG_LEVEL: warn
+      TZ: Europe/Stockholm
     ports:
       - 8086:8086
     volumes:
@@ -111,6 +122,8 @@ services:
       - zigbee
       - influxdb
     network_mode: "host"
+    environment:
+      TZ: Europe/Stockholm
     volumes:
       - ./data/collector:/data
 
