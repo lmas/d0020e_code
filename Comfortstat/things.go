@@ -450,7 +450,6 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	ua.Region = GlobalRegion
 	// extracts the electricity price depending on the current time and updates globalPrice
 	now := fmt.Sprintf(`%d-%02d-%02dT%02d:00:00+01:00`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(), time.Now().Local().Hour())
-	log.Println("TIME:", now)
 	for _, i := range data {
 		if i.TimeStart == now {
 			globalPrice.SEKPrice = i.SEKPrice
