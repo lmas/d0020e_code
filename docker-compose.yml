@@ -91,6 +91,7 @@ services:
       DOCKER_INFLUXDB_INIT_PASSWORD: password
       DOCKER_INFLUXDB_INIT_ORG: organisation
       DOCKER_INFLUXDB_INIT_BUCKET: bucket
+      INFLUXD_LOG_LEVEL: warn
     ports:
       - 8086:8086
     volumes:
