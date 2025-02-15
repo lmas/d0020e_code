@@ -1,0 +1,4 @@
+[default.extend-words]
+# This spelling error is caused in the mbaigo systems
+Celcius = "Celcius"
+
