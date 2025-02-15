@@ -1,4 +1,4 @@
-name: Linters, Spellcheck and Tests
+name: Linters, Spellcheck, and Tests
 
 on:
   push:
