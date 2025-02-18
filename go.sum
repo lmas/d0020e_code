@@ -1,4 +1,4 @@
-github.com/coder/websocket v1.8.12 h1:5bUXkEPPIbewrnkU8LTCLVaxi4N4J8ahufH2vlo4NAo=
-github.com/coder/websocket v1.8.12/go.mod h1:LNVeNrXQZfe5qhS9ALED3uA+l5pPqvwXg3CKoDBB2gs=
+github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
+github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/lmas/mbaigo v0.0.0-20250123014631-ad869265483c h1:W+Jr5GQGKN4BiFOeAc6Uaq/Xc3k4/O5l+XzvsGlnlCQ=
 github.com/lmas/mbaigo v0.0.0-20250123014631-ad869265483c/go.mod h1:Bfx9Uj0uiTT7BCzzlImMiRd6vMoPQdsZIHGMQOVjx80=
