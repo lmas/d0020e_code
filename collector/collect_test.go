@@ -94,7 +94,7 @@ func mockGetState(c *components.Cervice, s *components.System) (f forms.Form, er
 
 func TestCollectService(t *testing.T) {
 	newMockTransport()
-	ua := newUnitAsset(*initTemplate(), newSystem(), nil)
+	ua := newUnitAsset(*initTemplate(), newSystem())
 	ua.apiGetState = mockGetState
 
 	// for _, service := range consumeServices {
