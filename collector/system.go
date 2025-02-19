@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 
@@ -23,7 +24,9 @@ func main() {
 	usecases.RegisterServices(&sys.System)
 
 	// Run forever
-	sys.listenAndServe()
+	if err := sys.listenAndServe(); err != nil {
+		log.Fatalf("Error running system: %s\n", err)
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -63,7 +66,8 @@ func (sys *system) loadConfiguration() {
 	// by using a unit asset with default values.
 	uat := components.UnitAsset(initTemplate())
 	sys.UAssets[uat.GetName()] = &uat
-	rawUAs, servsTemp, err := usecases.Configure(&sys.System)
+	rawUAs, _, err := usecases.Configure(&sys.System)
+
 	// If the file is missing, a new config will be created and an error is returned here.
 	if err != nil {
 		// TODO: it would had been nice to catch the exact error for "created config.."
@@ -78,23 +82,21 @@ func (sys *system) loadConfiguration() {
 		if err := json.Unmarshal(raw, &uac); err != nil {
 			log.Fatalf("Error while unmarshalling configuration: %+v\n", err)
 		}
-		// ua, startup := newUnitAsset(uac, &sys.System, servsTemp)
-		// ua := newUnitAsset(uac, &sys.System, servsTemp)
-		ua := newUnitAsset(uac, sys, servsTemp)
+		ua := newUnitAsset(uac, sys)
 		sys.startups = append(sys.startups, ua.startup)
 		intf := components.UnitAsset(ua)
 		sys.UAssets[ua.GetName()] = &intf
 	}
 }
 
-func (sys *system) listenAndServe() {
+func (sys *system) listenAndServe() (retErr error) {
 	var wg sync.WaitGroup // Used for counting all started goroutines
 
 	// start a web server that serves basic documentation of the system
 	wg.Add(1)
 	go func() {
 		if err := usecases.SetoutServers(&sys.System); err != nil {
-			log.Println("Error while running web server:", err)
+			retErr = fmt.Errorf("web server: %s", err)
 			sys.cancel()
 		}
 		wg.Done()
@@ -105,7 +107,7 @@ func (sys *system) listenAndServe() {
 		wg.Add(1)
 		go func(start func() error) {
 			if err := start(); err != nil {
-				log.Printf("Error while running collector: %s\n", err)
+				retErr = fmt.Errorf("startup: %s", err)
 				sys.cancel()
 			}
 			wg.Done()
@@ -115,11 +117,12 @@ func (sys *system) listenAndServe() {
 	// Block and wait for either a...
 	select {
 	case <-sys.Sigs: // user initiated shutdown signal (ctrl+c) or a...
+		log.Println("Initiated shutdown, waiting for workers to terminate")
 	case <-sys.Ctx.Done(): // shutdown request from a worker
 	}
 
 	// Gracefully terminate any leftover goroutines and wait for them to shutdown properly
-	log.Println("Initiated shutdown, waiting for workers to terminate")
 	sys.cancel()
 	wg.Wait()
+	return
 }
