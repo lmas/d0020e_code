@@ -13,7 +13,9 @@ import (
 
 func main() {
 	sys := newSystem()
-	sys.loadConfiguration()
+	if err := sys.loadConfiguration(); err != nil {
+		log.Fatalf("Error loading config: %s\n", err)
+	}
 
 	// Generate PKI keys and CSR to obtain a authentication certificate from the CA
 	usecases.RequestCertificate(&sys.System)
@@ -61,7 +63,7 @@ func newSystem() (sys *system) {
 	return
 }
 
-func (sys *system) loadConfiguration() {
+func (sys *system) loadConfiguration() (err error) {
 	// Try loading the config file (in JSON format) for this deployment,
 	// by using a unit asset with default values.
 	uat := components.UnitAsset(initTemplate())
@@ -70,9 +72,7 @@ func (sys *system) loadConfiguration() {
 
 	// If the file is missing, a new config will be created and an error is returned here.
 	if err != nil {
-		// TODO: it would had been nice to catch the exact error for "created config.."
-		// and not display it as an actual error, per se.
-		log.Fatalf("Error while reading configuration: %v\n", err)
+		return
 	}
 
 	// Load the proper unit asset(s) using the user-defined settings from the config file.
@@ -80,13 +80,14 @@ func (sys *system) loadConfiguration() {
 	for _, raw := range rawUAs {
 		var uac unitAsset
 		if err := json.Unmarshal(raw, &uac); err != nil {
-			log.Fatalf("Error while unmarshalling configuration: %+v\n", err)
+			return fmt.Errorf("unmarshalling json config: %s", err)
 		}
 		ua := newUnitAsset(uac, sys)
 		sys.startups = append(sys.startups, ua.startup)
 		intf := components.UnitAsset(ua)
 		sys.UAssets[ua.GetName()] = &intf
 	}
+	return
 }
 
 func (sys *system) listenAndServe() (retErr error) {
