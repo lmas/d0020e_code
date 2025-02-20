@@ -36,9 +36,9 @@ type unitAsset struct {
 	InfluxDBHost         string   `json:"influxdb_host"`  // IP:port addr to the influxdb server
 	InfluxDBToken        string   `json:"influxdb_token"` // Auth token
 	InfluxDBOrganisation string   `json:"influxdb_organisation"`
-	InfluxDBBucket       string   `json:"influxdb_bucket"`     // Data bucket
-	CollectionPeriod     int      `json:"collection_period"`   // Period (in seconds) between each data collection
-	CollectionServices   []string `json:"collection_services"` // The list of services to collect data from
+	InfluxDBBucket       string   `json:"influxdb_bucket"`   // Data bucket
+	CollectionPeriod     int      `json:"collection_period"` // Period (in seconds) between each data collection
+	Samples              []Sample `json:"samples"`           // Arrowhead services we want to sample data from
 
 	// Mockable function for getting states from the consumed services.
 	apiGetState func(*components.Cervice, *components.System) (forms.Form, error)
@@ -46,6 +46,15 @@ type unitAsset struct {
 	// internal things for talking with Influx
 	influx       influxdb2.Client
 	influxWriter api.WriteAPI
+}
+
+// A Sample is a struct that defines a service to be sampled.
+// The service sampled is identified using the details map.
+// Inspired from:
+// https://github.com/vanDeventer/metalepsis/blob/9752ee11657a44fd701e3c3b4f75c592d001a5e5/Influxer/thing.go#L38
+type Sample struct {
+	Service string              `json:"service"`
+	Details map[string][]string `json:"details"`
 }
 
 // Following methods are required by the interface components.UnitAsset.
@@ -90,11 +99,11 @@ func initTemplate() *unitAsset {
 		InfluxDBOrganisation: "organisation",
 		InfluxDBBucket:       "arrowhead",
 		CollectionPeriod:     30,
-		CollectionServices: []string{
-			"temperature",
-			"SEKPrice",
-			"DesiredTemp",
-			"setpoint",
+		Samples: []Sample{
+			{"temperature", map[string][]string{"Location": {"Kitchen"}}},
+			{"SEKPrice", map[string][]string{"Location": {"Kitchen"}}},
+			{"DesiredTemp", map[string][]string{"Location": {"Kitchen"}}},
+			{"setpoint", map[string][]string{"Location": {"Kitchen"}}},
 		},
 	}
 }
@@ -119,7 +128,7 @@ func newUnitAsset(uac unitAsset, sys *system) *unitAsset {
 		InfluxDBOrganisation: uac.InfluxDBOrganisation,
 		InfluxDBBucket:       uac.InfluxDBBucket,
 		CollectionPeriod:     uac.CollectionPeriod,
-		CollectionServices:   uac.CollectionServices,
+		Samples:              uac.Samples,
 
 		// Default to using the API method, outside of tests.
 		apiGetState: usecases.GetState,
@@ -129,23 +138,17 @@ func newUnitAsset(uac unitAsset, sys *system) *unitAsset {
 		influxWriter: client.WriteAPI(uac.InfluxDBOrganisation, uac.InfluxDBBucket),
 	}
 
-	// Prep all the consumed services
-	protos := components.SProtocols(sys.Husk.ProtoPort)
-	for _, service := range uac.CollectionServices {
-		ua.CervicesMap[service] = &components.Cervice{
-			Name:   service,
-			Protos: protos,
-			Url:    make([]string, 0),
+	// Maps the services we want to sample. The services will then be looked up
+	// using the Orchestrator.
+	// Again based on code from VanDeventer.
+	for _, s := range ua.Samples {
+		ua.CervicesMap[s.Service] = &components.Cervice{
+			Name:    s.Service,
+			Details: s.Details,
+			Url:     make([]string, 0),
 		}
 	}
 
-	// TODO: required for matching values with locations
-	// ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, nil)
-	// for _, cs := range ua.CervicesMap {
-	// }
-
-	// Returns the loaded unit asset and an function to handle optional cleanup at shutdown
-	// return ua, ua.startup
 	return ua
 }
 
@@ -188,14 +191,14 @@ func (ua *unitAsset) cleanup() {
 
 func (ua *unitAsset) collectAllServices() (err error) {
 	var wg sync.WaitGroup
-	for _, service := range ua.CollectionServices {
+	for _, sample := range ua.Samples {
 		wg.Add(1)
 		go func(s string) {
 			if err := ua.collectService(s); err != nil {
 				log.Printf("Error collecting data from %s: %s\n", s, err)
 			}
 			wg.Done()
-		}(service)
+		}(sample.Service)
 	}
 
 	wg.Wait()
