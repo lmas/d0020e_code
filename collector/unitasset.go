@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -193,12 +194,12 @@ func (ua *unitAsset) collectAllServices() (err error) {
 	var wg sync.WaitGroup
 	for _, sample := range ua.Samples {
 		wg.Add(1)
-		go func(s string) {
+		go func(s Sample) {
 			if err := ua.collectService(s); err != nil {
 				log.Printf("Error collecting data from %s: %s\n", s, err)
 			}
 			wg.Done()
-		}(sample.Service)
+		}(sample)
 	}
 
 	wg.Wait()
@@ -206,22 +207,25 @@ func (ua *unitAsset) collectAllServices() (err error) {
 	return nil
 }
 
-func (ua *unitAsset) collectService(service string) (err error) {
-	f, err := ua.apiGetState(ua.CervicesMap[service], ua.Owner)
+func (ua *unitAsset) collectService(sam Sample) (err error) {
+	f, err := ua.apiGetState(ua.CervicesMap[sam.Service], ua.Owner)
 	if err != nil {
 		return fmt.Errorf("failed to get state: %s", err)
 	}
-	s, ok := f.(*forms.SignalA_v1a)
+	sig, ok := f.(*forms.SignalA_v1a)
 	if !ok {
 		err = fmt.Errorf("bad form version: %s", f.FormVersion())
 		return
 	}
 
 	ua.influxWriter.WritePoint(influxdb2.NewPoint(
-		service,
-		map[string]string{"unit": s.Unit},
-		map[string]interface{}{"value": s.Value},
-		s.Timestamp.UTC(),
+		sam.Service,
+		map[string]string{
+			"unit":     sig.Unit,
+			"location": strings.Join(sam.Details["Location"], "-"),
+		},
+		map[string]interface{}{"value": sig.Value},
+		sig.Timestamp.UTC(),
 	))
 	return nil
 }
