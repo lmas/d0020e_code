@@ -33,7 +33,8 @@ func main() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// There's no interface to use, so have to encapsulate the base struct instead
+// There's no interface to use, so have to encapsulate the base struct instead.
+// This allows for access/storage of internal vars shared system-wide.
 type system struct {
 	components.System
 
@@ -41,6 +42,7 @@ type system struct {
 	startups []func() error
 }
 
+// Creates a new system with a context and husk prepared for later use.
 func newSystem() (sys *system) {
 	// Handle graceful shutdowns using this context. It should always be canceled,
 	// no matter the final execution path so all computer resources are freed up.
@@ -63,6 +65,9 @@ func newSystem() (sys *system) {
 	return
 }
 
+// Try load configuration from the standard "systemconfig.json" file.
+// Any unit assets will be prepared for later startup.
+// WARN: An error is raised if the config file is missing!
 func (sys *system) loadConfiguration() (err error) {
 	// Try loading the config file (in JSON format) for this deployment,
 	// by using a unit asset with default values.
@@ -90,6 +95,8 @@ func (sys *system) loadConfiguration() (err error) {
 	return
 }
 
+// Run the system and all the unit assets, blocking until user cancels or an
+// error is raised in any background workers.
 func (sys *system) listenAndServe() (retErr error) {
 	var wg sync.WaitGroup // Used for counting all started goroutines
 
