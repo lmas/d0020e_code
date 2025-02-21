@@ -379,12 +379,12 @@ func TestCreateRequest(t *testing.T) {
 	data := "test"
 	apiURL := "http://localhost:8080/test"
 
-	_, err := createRequest(data, apiURL)
+	_, err := createPutRequest(data, apiURL)
 	if err != nil {
 		t.Error("Error occured, expected none")
 	}
 
-	_, err = createRequest(data, brokenURL)
+	_, err = createPutRequest(data, brokenURL)
 	if err == nil {
 		t.Error("Expected error")
 	}
@@ -407,8 +407,8 @@ func TestSendRequest(t *testing.T) {
 	newMockTransport(resp, false, nil)
 	apiURL := "http://localhost:8080/test"
 	s := fmt.Sprintf(`{"heatsetpoint":%f}`, 25.0) // Create payload
-	req, _ := createRequest(s, apiURL)
-	err := sendRequest(req)
+	req, _ := createPutRequest(s, apiURL)
+	err := sendPutRequest(req)
 	if err != nil {
 		t.Error("Expected no errors, error occured:", err)
 	}
@@ -417,8 +417,8 @@ func TestSendRequest(t *testing.T) {
 	// --- Error performing request ---
 	newMockTransport(resp, false, fmt.Errorf("Test error"))
 	s = fmt.Sprintf(`{"heatsetpoint":%f}`, 25.0) // Create payload
-	req, _ = createRequest(s, apiURL)
-	err = sendRequest(req)
+	req, _ = createPutRequest(s, apiURL)
+	err = sendPutRequest(req)
 	if err == nil {
 		t.Error("Error expected while performing http request, got nil instead")
 	}
@@ -427,7 +427,7 @@ func TestSendRequest(t *testing.T) {
 	resp.Body = errReader(0)
 	newMockTransport(resp, false, nil)
 
-	err = sendRequest(req)
+	err = sendPutRequest(req)
 
 	if err == nil {
 		t.Error("Expected errors, no error occured:")
@@ -437,9 +437,11 @@ func TestSendRequest(t *testing.T) {
 	resp.Body = io.NopCloser(strings.NewReader(fakeBody))
 	resp.StatusCode = 300
 	newMockTransport(resp, false, nil)
-	err = sendRequest(req)
+	err = sendPutRequest(req)
 	if err != errStatusCode {
 		t.Error("Expected errStatusCode, got", err)
 	}
 
 }
+
+// TODO: Add tests for getWebsocketPort() and initWebsocketClient()

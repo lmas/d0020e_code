@@ -80,6 +80,14 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 	switch servicePath {
 	case "setpoint":
 		t.setpt(w, r)
+	case "consumption":
+		t.consumption(w, r)
+	case "current":
+		t.current(w, r)
+	case "power":
+		t.power(w, r)
+	case "voltage":
+		t.voltage(w, r)
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configuration file]", http.StatusBadRequest)
 	}
@@ -88,24 +96,114 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		setPointForm := rsc.getSetPoint()
-		usecases.HTTPProcessGetRequest(w, r, &setPointForm)
-	case "PUT":
-		sig, err := usecases.HTTPProcessSetRequest(w, r)
-		if err != nil {
-			http.Error(w, "Request incorrectly formated", http.StatusBadRequest)
+		if rsc.Model == "ZHAThermostat" {
+			setPointForm := rsc.getSetPoint()
+			usecases.HTTPProcessGetRequest(w, r, &setPointForm)
 			return
 		}
+		if rsc.Model == "Smart plug" {
+			setPointForm := rsc.getSetPoint()
+			usecases.HTTPProcessGetRequest(w, r, &setPointForm)
+			return
+		}
+		http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
+		return
 
-		rsc.setSetPoint(sig)
+	case "PUT":
 		if rsc.Model == "ZHAThermostat" {
-			err = rsc.sendSetPoint()
+			sig, err := usecases.HTTPProcessSetRequest(w, r)
 			if err != nil {
-				http.Error(w, "Couldn't send setpoint.", http.StatusInternalServerError)
+				http.Error(w, "Request incorrectly formated", http.StatusBadRequest)
 				return
 			}
+			rsc.setSetPoint(sig)
+			return
 		}
+		if rsc.Model == "Smart plug" {
+			sig, err := usecases.HTTPProcessSetRequest(w, r)
+			if err != nil {
+				http.Error(w, "Request incorrectly formated", http.StatusBadRequest)
+				return
+			}
+
+			rsc.setSetPoint(sig)
+			return
+		}
+		http.Error(w, "This device doesn't support that method.", http.StatusInternalServerError)
+		return
 	default:
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
+	}
+}
+
+func (rsc *UnitAsset) consumption(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		if rsc.Model != "Smart plug" {
+			http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
+			return
+		}
+		consumptionForm, err := rsc.getConsumption()
+		if err != nil {
+			http.Error(w, "Failed getting data, or data not present", http.StatusInternalServerError)
+			return
+		}
+		usecases.HTTPProcessGetRequest(w, r, &consumptionForm)
+	default:
+		http.Error(w, "Method is not supported", http.StatusNotFound)
+	}
+}
+
+func (rsc *UnitAsset) power(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		if rsc.Model != "Smart plug" {
+			http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
+			return
+		}
+		powerForm, err := rsc.getPower()
+		if err != nil {
+			http.Error(w, "Failed getting data, or data not present", http.StatusInternalServerError)
+			return
+		}
+		usecases.HTTPProcessGetRequest(w, r, &powerForm)
+	default:
+		http.Error(w, "Method is not supported", http.StatusNotFound)
+	}
+}
+
+func (rsc *UnitAsset) current(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		if rsc.Model != "Smart plug" {
+			http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
+			return
+		}
+		currentForm, err := rsc.getCurrent()
+		if err != nil {
+			http.Error(w, "Failed getting data, or data not present", http.StatusInternalServerError)
+			return
+		}
+		usecases.HTTPProcessGetRequest(w, r, &currentForm)
+	default:
+		http.Error(w, "Method is not supported", http.StatusNotFound)
+	}
+}
+
+func (rsc *UnitAsset) voltage(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		if rsc.Model != "Smart plug" {
+			http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
+			return
+		}
+		voltageForm, err := rsc.getVoltage()
+		if err != nil {
+			http.Error(w, "Failed getting data, or data not present", http.StatusInternalServerError)
+			return
+		}
+		usecases.HTTPProcessGetRequest(w, r, &voltageForm)
+	default:
+		http.Error(w, "Method is not supported", http.StatusNotFound)
 	}
 }

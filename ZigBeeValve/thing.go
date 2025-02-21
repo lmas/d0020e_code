@@ -75,20 +75,46 @@ var _ components.UnitAsset = (*UnitAsset)(nil)
 
 // initTemplate initializes a UnitAsset with default values.
 func initTemplate() components.UnitAsset {
+	// This service will only be supported by Smart Thermostats and Smart Power plugs.
 	setPointService := components.Service{
 		Definition:  "setpoint",
 		SubPath:     "setpoint",
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the current thermal setpoint (GET) or sets it (PUT)",
 	}
-	/*
-		consumptionService := components.Service{
-			Definition:  "consumption",
-			SubPath:     "consumption",
-			Details:     map[string][]string{"Unit": {"Wh"}, "Forms": {"SignalA_v1a"}},
-			Description: "provides the current consumption of the device (GET)",
-		}
-	*/
+
+	// This service will only be supported by Smart Power plugs (will be noted as sensors of type ZHAConsumption)
+	consumptionService := components.Service{
+		Definition:  "consumption",
+		SubPath:     "consumption",
+		Details:     map[string][]string{"Unit": {"Wh"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the current consumption of the device in Wh (GET)",
+	}
+
+	// This service will only be supported by Smart Power plugs (will be noted as sensors of type ZHAPower)
+	currentService := components.Service{
+		Definition:  "current",
+		SubPath:     "current",
+		Details:     map[string][]string{"Unit": {"mA"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the current going through the device in mA (GET)",
+	}
+
+	// This service will only be supported by Smart Power plugs (will be noted as sensors of type ZHAPower)
+	powerService := components.Service{
+		Definition:  "power",
+		SubPath:     "power",
+		Details:     map[string][]string{"Unit": {"W"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the current consumption of the device in W (GET)",
+	}
+
+	// This service will only be supported by Smart Power plugs (Will be noted as sensors of type ZHAPower)
+	voltageService := components.Service{
+		Definition:  "voltage",
+		SubPath:     "voltage",
+		Details:     map[string][]string{"Unit": {"V"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the current voltage of the device in V (GET)",
+	}
+
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
 		Name:        "SmartThermostat1",
@@ -98,10 +124,14 @@ func initTemplate() components.UnitAsset {
 		deviceIndex: "",
 		Period:      10,
 		Setpt:       20,
-		Slaves:      []string{},
+		Slaves:      []string{}, // This should only be used by switches to control smart plugs
 		Apikey:      "1234",
 		ServicesMap: components.Services{
-			setPointService.SubPath: &setPointService,
+			setPointService.SubPath:    &setPointService,
+			consumptionService.SubPath: &consumptionService,
+			currentService.SubPath:     &currentService,
+			powerService.SubPath:       &powerService,
+			voltageService.SubPath:     &voltageService,
 		},
 	}
 	return uat
@@ -149,7 +179,11 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 
 	return ua, func() {
 		if websocketport == "startup" {
-			ua.getWebsocketPort()
+			err := ua.getWebsocketPort()
+			if err != nil {
+				log.Println("Error occured during startup, while calling getWebsocketPort():", err)
+				// TODO: Check if we need to kill program if this doesn't pass?
+			}
 		}
 		switch ua.Model {
 		case "ZHAThermostat":
@@ -168,6 +202,8 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 			// Starts listening to the websocket to find buttonevents (button presses) and then
 			// turns its controlled devices on/off
 			go ua.initWebsocketClient(ua.Owner.Ctx)
+		default:
+			return
 		}
 	}
 }
@@ -276,11 +312,11 @@ func (ua *UnitAsset) sendSetPoint() (err error) {
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Uniqueid + "/config"
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"heatsetpoint":%f}`, ua.Setpt*100) // Create payload
-	req, err := createRequest(s, apiURL)
+	req, err := createPutRequest(s, apiURL)
 	if err != nil {
 		return
 	}
-	return sendRequest(req)
+	return sendPutRequest(req)
 }
 
 func (ua *UnitAsset) toggleState(state bool) (err error) {
@@ -288,11 +324,11 @@ func (ua *UnitAsset) toggleState(state bool) (err error) {
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.Uniqueid + "/state"
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"on":%t}`, state) // Create payload
-	req, err := createRequest(s, apiURL)
+	req, err := createPutRequest(s, apiURL)
 	if err != nil {
 		return
 	}
-	return sendRequest(req)
+	return sendPutRequest(req)
 }
 
 // Useless function? Noticed uniqueid can be used as "id" to send requests instead of the index while testing, wasn't clear from documentation. Will need to test this more though
@@ -302,7 +338,10 @@ func (ua *UnitAsset) getConnectedUnits(unitType string) (err error) {
 	// Create a new request (Get)
 	// Put data into buffer
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil) // Put request is made
-	req.Header.Set("Content-Type", "application/json")       // Make sure it's JSON
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
 	// Send the request
 	resp, err := http.DefaultClient.Do(req) // Perform the http request
 	if err != nil {
@@ -311,7 +350,7 @@ func (ua *UnitAsset) getConnectedUnits(unitType string) (err error) {
 	defer resp.Body.Close()
 	resBody, err := io.ReadAll(resp.Body) // Read the response body, and check for errors/bad statuscodes
 	if err != nil {
-		return
+		return err
 	}
 	if resp.StatusCode > 299 {
 		return errStatusCode
@@ -321,7 +360,7 @@ func (ua *UnitAsset) getConnectedUnits(unitType string) (err error) {
 	var deviceMap map[string]interface{}
 	err = json.Unmarshal([]byte(resBody), &deviceMap)
 	if err != nil {
-		return
+		return err
 	}
 	// --- Find the index of a device with the specific UniqueID ---
 	for i := range deviceMap {
@@ -333,17 +372,25 @@ func (ua *UnitAsset) getConnectedUnits(unitType string) (err error) {
 	return errMissingUniqueID
 }
 
-func createRequest(data string, apiURL string) (req *http.Request, err error) {
+func createPutRequest(data string, apiURL string) (req *http.Request, err error) {
 	body := bytes.NewReader([]byte(data))                    // Put data into buffer
 	req, err = http.NewRequest(http.MethodPut, apiURL, body) // Put request is made
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
-	return req, err
+	return req, nil
+}
+func createGetRequest(apiURL string) (req *http.Request, err error) {
+	req, err = http.NewRequest(http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
+	return req, nil
 }
 
-func sendRequest(req *http.Request) (err error) {
+func sendPutRequest(req *http.Request) (err error) {
 	resp, err := http.DefaultClient.Do(req) // Perform the http request
 	if err != nil {
 		return err
@@ -357,6 +404,188 @@ func sendRequest(req *http.Request) (err error) {
 		return errStatusCode
 	}
 	return
+}
+
+func sendGetRequest(req *http.Request) (data []byte, err error) {
+	resp, err := http.DefaultClient.Do(req) // Perform the http request
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	data, err = io.ReadAll(resp.Body) // Read the response body, and check for errors/bad statuscodes
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode > 299 {
+		return nil, errStatusCode
+	}
+	return data, nil
+}
+
+// Creates a form that fills the fields of forms.SignalA_v1a with values from arguments and current time
+func getForm(value float64, unit string) (f forms.SignalA_v1a) {
+	f.NewForm()
+	f.Value = value
+	f.Unit = fmt.Sprint(unit)
+	f.Timestamp = time.Now()
+	return f
+}
+
+// IMPORTANT: lumi.plug.maeu01 HAS BEEN KNOWN TO GIVE BAD READINGS, BASICALLY STOP RESPONDING OR RESPOND WITH 0
+// Struct and method to get current consumption (in Wh)
+type consumptionJSON struct {
+	State struct {
+		Consumption uint64 `json:"consumption"`
+	} `json:"state"`
+	Name     string `json:"name"`
+	UniqueID string `json:"uniqueid"`
+	Type     string `json:"type"`
+}
+
+func (ua *UnitAsset) getConsumption() (f forms.SignalA_v1a, err error) {
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves[0]
+	// Create a get request
+	req, err := createGetRequest(apiURL)
+	if err != nil {
+		return f, err
+	}
+	// Perform get request to sensor, expecting a body containing json data to be returned
+	body, err := sendGetRequest(req)
+	if err != nil {
+		return f, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return f, err
+	}
+	defer resp.Body.Close()
+	// Unmarshal the body into usable json data
+	var data consumptionJSON
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		return f, err
+	}
+	// Set form value to sensors value
+	value := float64(data.State.Consumption)
+	f = getForm(value, "Wh")
+	return f, nil
+}
+
+// Struct and method to get current power (in W)
+type powerJSON struct {
+	State struct {
+		Power int16 `json:"power"`
+	} `json:"state"`
+	Name     string `json:"name"`
+	UniqueID string `json:"uniqueid"`
+	Type     string `json:"type"`
+}
+
+func (ua *UnitAsset) getPower() (f forms.SignalA_v1a, err error) {
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves[1]
+	// Create a get request
+	req, err := createGetRequest(apiURL)
+	if err != nil {
+		return f, err
+	}
+	// Perform get request to sensor, expecting a body containing json data to be returned
+	body, err := sendGetRequest(req)
+	if err != nil {
+		return f, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return f, err
+	}
+	defer resp.Body.Close()
+	// Unmarshal the body into usable json data
+	var data powerJSON
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		return f, err
+	}
+	// Set form value to sensors value
+	value := float64(data.State.Power)
+	f = getForm(value, "W")
+	return f, nil
+}
+
+// Struct and method to get current (in mA)
+type currentJSON struct {
+	State struct {
+		Current uint16 `json:"current"`
+	} `json:"state"`
+	Name     string `json:"name"`
+	UniqueID string `json:"uniqueid"`
+	Type     string `json:"type"`
+}
+
+func (ua *UnitAsset) getCurrent() (f forms.SignalA_v1a, err error) {
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves[1]
+	// Create a get request
+	req, err := createGetRequest(apiURL)
+	if err != nil {
+		return f, err
+	}
+	// Perform get request to sensor, expecting a body containing json data to be returned
+	body, err := sendGetRequest(req)
+	if err != nil {
+		return f, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return f, err
+	}
+	defer resp.Body.Close()
+	// Unmarshal the body into usable json data
+	var data currentJSON
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		return f, err
+	}
+	// Set form value to sensors value
+	value := float64(data.State.Current)
+	f = getForm(value, "mA")
+	return f, nil
+}
+
+// Struct and method to get current voltage (in V)
+type voltageJSON struct {
+	State struct {
+		Voltage uint16 `json:"voltage"`
+	} `json:"state"`
+	Name     string `json:"name"`
+	UniqueID string `json:"uniqueid"`
+	Type     string `json:"type"`
+}
+
+func (ua *UnitAsset) getVoltage() (f forms.SignalA_v1a, err error) {
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves[1]
+	// Create a get request
+	req, err := createGetRequest(apiURL)
+	if err != nil {
+		return f, err
+	}
+	// Perform get request to power plug sensor, expecting a body containing json data to be returned
+	body, err := sendGetRequest(req)
+	if err != nil {
+		return f, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return f, err
+	}
+	defer resp.Body.Close()
+	// Unmarshal the body into usable json data
+	var data voltageJSON
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		return f, err
+	}
+	// Set form value to sensors value
+	value := float64(data.State.Voltage)
+	f = getForm(value, "V")
+	return f, nil
 }
 
 // --- HOW TO CONNECT AND LISTEN TO A WEBSOCKET ---
@@ -380,7 +609,10 @@ func (ua *UnitAsset) getWebsocketPort() (err error) {
 	// Create a new request (Get)
 	// Put data into buffer
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil) // Put request is made
-	req.Header.Set("Content-Type", "application/json")       // Make sure it's JSON
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
 	// Send the request
 	resp, err := http.DefaultClient.Do(req) // Perform the http request
 	if err != nil {
@@ -402,23 +634,21 @@ func (ua *UnitAsset) getWebsocketPort() (err error) {
 		return err
 	}
 	websocketport = fmt.Sprint(configMap["websocketport"])
-	// log.Println(configMap["websocketport"])
 	return
 }
 
 func (ua *UnitAsset) toggleSlaves(currentState bool) (err error) {
 	for i := range ua.Slaves {
-		// Add check if current slave is smart plug or a light, like philips hue
-
+		// TODO: Add check if current slave is smart plug or a light, like philips hue then toggle on/off
 		// API call to toggle smart plug on/off, PUT call should be sent to URL/api/apikey/lights/sensor_id/config
 		apiURL := fmt.Sprintf("http://%s/api/%s/lights/%s/state", gateway, ua.Apikey, ua.Slaves[i])
 		// Create http friendly payload
 		s := fmt.Sprintf(`{"on":%t}`, currentState) // Create payload
-		req, err := createRequest(s, apiURL)
+		req, err := createPutRequest(s, apiURL)
 		if err != nil {
 			return err
 		}
-		sendRequest(req)
+		err = sendPutRequest(req)
 	}
 	return err
 }
@@ -435,7 +665,6 @@ func (ua *UnitAsset) initWebsocketClient(ctx context.Context) error {
 	log.Println("Connected to websocket")
 	defer conn.Close()
 	currentState := false
-	log.Println(currentState)
 	for {
 		select {
 		case <-ctx.Done():
@@ -462,10 +691,17 @@ func (ua *UnitAsset) initWebsocketClient(ctx context.Context) error {
 					} else {
 						currentState = true
 					}
-					ua.toggleSlaves(currentState)
+					err = ua.toggleSlaves(currentState)
+					if err != nil {
+						return err
+					}
 				}
 				if bEvent == 2002 {
 					// Turn on the philips hue light
+					err = ua.toggleSlaves(currentState)
+					if err != nil {
+						return err
+					}
 					// TODO: Find out how "long presses" works and if it can be used through websocket
 				}
 			}
