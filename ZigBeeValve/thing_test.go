@@ -90,7 +90,7 @@ func TestGetters(t *testing.T) {
 	ua := initTemplate().(*UnitAsset)
 	// Test GetName()
 	name := ua.GetName()
-	if name != "SmartThermostat1" {
+	if name != "SmartPlugExample" {
 		t.Errorf("Expected name to be SmartThermostat1, instead got %s", name)
 	}
 	// Test GetServices()
