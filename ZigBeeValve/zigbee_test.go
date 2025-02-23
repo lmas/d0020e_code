@@ -12,7 +12,6 @@ import (
 func TestSetpt(t *testing.T) {
 	ua := initTemplate().(*UnitAsset)
 	gateway = "localhost"
-	ua.deviceIndex = "1"
 
 	// --- Good case test: GET ---
 	w := httptest.NewRecorder()

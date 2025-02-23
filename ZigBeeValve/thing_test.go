@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -272,106 +271,6 @@ func TestSendSetPoint(t *testing.T) {
 	ua.sendSetPoint()
 	findGateway()
 	gateway = "localhost"
-}
-
-type testJSON struct {
-	FirstAttr string `json:"firstAttr"`
-	Uniqueid  string `json:"uniqueid"`
-	ThirdAttr string `json:"thirdAttr"`
-}
-
-func TestGetConnectedUnits(t *testing.T) {
-	gateway = "localhost"
-	// Set up standard response & catch http requests
-	resp := &http.Response{
-		Status:     "200 OK",
-		StatusCode: 200,
-		Body:       nil,
-	}
-	ua := initTemplate().(*UnitAsset)
-	ua.Uniqueid = "123test"
-
-	// --- Broken body ---
-	newMockTransport(resp, false, nil)
-	resp.Body = errReader(0)
-	err := ua.getConnectedUnits(ua.Model)
-
-	if err == nil {
-		t.Error("Expected error while unpacking body in getConnectedUnits()")
-	}
-
-	// --- All ok! ---
-	// Make a map
-	fakeBody := make(map[string]testJSON)
-	test := testJSON{
-		FirstAttr: "123",
-		Uniqueid:  "123test",
-		ThirdAttr: "456",
-	}
-	// Insert the JSON into the map with key="1"
-	fakeBody["1"] = test
-	// Marshal and create response
-	jsonBody, _ := json.Marshal(fakeBody)
-	resp = &http.Response{
-		Status:     "200 OK",
-		StatusCode: 200,
-		Body:       io.NopCloser(strings.NewReader(string(jsonBody))),
-	}
-	// Start up a newMockTransport to capture HTTP requests before they leave
-	newMockTransport(resp, false, nil)
-	// Test function
-	err = ua.getConnectedUnits(ua.Model)
-	if err != nil {
-		t.Error("Expected no errors, error occured:", err)
-	}
-
-	// --- Bad statuscode ---
-	resp.StatusCode = 300
-	newMockTransport(resp, false, nil)
-	err = ua.getConnectedUnits(ua.Model)
-	if err == nil {
-		t.Errorf("Expected status code > 299 in getConnectedUnits(), got %v", resp.StatusCode)
-	}
-
-	// --- Missing uniqueid ---
-	// Make a map
-	fakeBody = make(map[string]testJSON)
-	test = testJSON{
-		FirstAttr: "123",
-		Uniqueid:  "missing",
-		ThirdAttr: "456",
-	}
-	// Insert the JSON into the map with key="1"
-	fakeBody["1"] = test
-	// Marshal and create response
-	jsonBody, _ = json.Marshal(fakeBody)
-	resp = &http.Response{
-		Status:     "200 OK",
-		StatusCode: 200,
-		Body:       io.NopCloser(strings.NewReader(string(jsonBody))),
-	}
-	// Start up a newMockTransport to capture HTTP requests before they leave
-	newMockTransport(resp, false, nil)
-	// Test function
-	err = ua.getConnectedUnits(ua.Model)
-	if err != errMissingUniqueID {
-		t.Error("Expected uniqueid to be missing when running getConnectedUnits()")
-	}
-
-	// --- Unmarshall error ---
-	resp.Body = io.NopCloser(strings.NewReader(string(jsonBody) + "123"))
-	newMockTransport(resp, false, nil)
-	err = ua.getConnectedUnits(ua.Model)
-	if err == nil {
-		t.Error("Error expected during unmarshalling, got nil instead", err)
-	}
-
-	// --- Error performing request ---
-	newMockTransport(resp, false, fmt.Errorf("Test error"))
-	err = ua.getConnectedUnits(ua.Model)
-	if err == nil {
-		t.Error("Error expected while performing http request, got nil instead")
-	}
 }
 
 // func createRequest(data string, apiURL string) (req *http.Request, err error)

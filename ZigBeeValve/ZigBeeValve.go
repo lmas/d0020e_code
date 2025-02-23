@@ -93,9 +93,14 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 	}
 }
 
+// TODO: Add webhandler for power plug controller (sun up/down) and/or schedule later on.
+// STRETCH GOAL: Instead of looking for specific models types, add a list of supported devices that we can check against
+
+// Function used by webhandler to either get or set the setpoint of a specific device
 func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
+		// Make sure only devices with setpoints actually support the http get method
 		if rsc.Model == "ZHAThermostat" {
 			setPointForm := rsc.getSetPoint()
 			usecases.HTTPProcessGetRequest(w, r, &setPointForm)
@@ -108,8 +113,8 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
 		return
-
 	case "PUT":
+		// Make sure only devices with setpoints actually support the http put method
 		if rsc.Model == "ZHAThermostat" {
 			sig, err := usecases.HTTPProcessSetRequest(w, r)
 			if err != nil {
@@ -125,7 +130,6 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Request incorrectly formated", http.StatusBadRequest)
 				return
 			}
-
 			rsc.setSetPoint(sig)
 			return
 		}
@@ -136,9 +140,11 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Function used by the webhandler to get the consumption of a device
 func (rsc *UnitAsset) consumption(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
+		// Make sure only devices with consumption sensors actually support the http get method
 		if rsc.Model != "Smart plug" {
 			http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
 			return
@@ -154,9 +160,11 @@ func (rsc *UnitAsset) consumption(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Function used by the webhandler to get the power of a device
 func (rsc *UnitAsset) power(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
+		// Make sure only devices with power sensors actually support the http get method
 		if rsc.Model != "Smart plug" {
 			http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
 			return
@@ -172,9 +180,11 @@ func (rsc *UnitAsset) power(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Function used by the webhandler to get the current of a device
 func (rsc *UnitAsset) current(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
+		// Make sure only devices with current sensors actually support the http get method
 		if rsc.Model != "Smart plug" {
 			http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
 			return
@@ -190,9 +200,11 @@ func (rsc *UnitAsset) current(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Function used by the webhandler to get the voltage of a device
 func (rsc *UnitAsset) voltage(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
+		// Make sure only devices with voltage sensors actually support the http get method
 		if rsc.Model != "Smart plug" {
 			http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
 			return

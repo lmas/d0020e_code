@@ -39,13 +39,12 @@ type UnitAsset struct {
 	ServicesMap components.Services `json:"-"`
 	CervicesMap components.Cervices `json:"-"`
 	//
-	Model       string `json:"model"`
-	Uniqueid    string `json:"uniqueid"`
-	deviceIndex string
-	Period      time.Duration `json:"period"`
-	Setpt       float64       `json:"setpoint"`
-	Slaves      []string      `json:"slaves"`
-	Apikey      string        `json:"APIkey"`
+	Model    string            `json:"model"`
+	Uniqueid string            `json:"uniqueid"`
+	Period   time.Duration     `json:"period"`
+	Setpt    float64           `json:"setpoint"`
+	Slaves   map[string]string `json:"slaves"`
+	Apikey   string            `json:"APIkey"`
 }
 
 // GetName returns the name of the Resource.
@@ -117,15 +116,15 @@ func initTemplate() components.UnitAsset {
 
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
-		Name:        "SmartThermostat1",
-		Details:     map[string][]string{"Location": {"Kitchen"}},
-		Model:       "ZHAThermostat",
-		Uniqueid:    "14:ef:14:10:00:6f:d0:d7-11-1201",
-		deviceIndex: "",
-		Period:      10,
-		Setpt:       20,
-		Slaves:      []string{}, // This should only be used by switches to control smart plugs
-		Apikey:      "1234",
+		Name:     "SmartPlugExample",
+		Details:  map[string][]string{"Location": {"Kitchen"}},
+		Model:    "Smart plug",
+		Uniqueid: "14:ef:14:10:00:6f:d0:d7-11-1201",
+		Period:   10,
+		Setpt:    20,
+		// Switches adds power plug and light uniqueids, power plugs adds Consumption & Power sensors to this map
+		Slaves: map[string]string{"ConsumptionExample": "14:ef:14:10:00:6f:d0:d7-1f-000c", "PowerExample": "14:ef:14:10:00:6f:d0:d7-15-000c"},
+		Apikey: "1234",
 		ServicesMap: components.Services{
 			setPointService.SubPath:    &setPointService,
 			consumptionService.SubPath: &consumptionService,
@@ -160,7 +159,6 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		ServicesMap: components.CloneServices(servs),
 		Model:       uac.Model,
 		Uniqueid:    uac.Uniqueid,
-		deviceIndex: uac.deviceIndex,
 		Period:      uac.Period,
 		Setpt:       uac.Setpt,
 		Slaves:      uac.Slaves,
@@ -200,7 +198,7 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 			}
 		case "ZHASwitch":
 			// Starts listening to the websocket to find buttonevents (button presses) and then
-			// turns its controlled devices on/off
+			// turns its controlled devices (slaves) on/off
 			go ua.initWebsocketClient(ua.Owner.Ctx)
 		default:
 			return
@@ -258,6 +256,7 @@ var errStatusCode error = fmt.Errorf("bad status code")
 var errMissingGateway error = fmt.Errorf("missing gateway")
 var errMissingUniqueID error = fmt.Errorf("uniqueid not found")
 
+// Function to find the gateway and save its ip and port (assuming there's only one) and return the error if one occurs
 func findGateway() (err error) {
 	// https://pkg.go.dev/net/http#Get
 	// GET https://phoscon.de/discover	// to find gateways, array of JSONs is returned in http body, we'll only have one so take index 0
@@ -306,6 +305,7 @@ func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
 	ua.Setpt = f.Value
 }
 
+// Function to send a new setpoint ot a device that has the "heatsetpoint" in its config (smart plug or smart thermostat)
 func (ua *UnitAsset) sendSetPoint() (err error) {
 	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
 	// --- Send setpoint to specific unit ---
@@ -319,6 +319,7 @@ func (ua *UnitAsset) sendSetPoint() (err error) {
 	return sendPutRequest(req)
 }
 
+// Function to toggle the state of a specific slave (power plug or light) on/off and return an error if it occurs
 func (ua *UnitAsset) toggleState(state bool) (err error) {
 	// API call to toggle smart plug on/off, PUT call should be sent to URL/api/apikey/lights/sensor_id/config
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.Uniqueid + "/state"
@@ -331,47 +332,7 @@ func (ua *UnitAsset) toggleState(state bool) (err error) {
 	return sendPutRequest(req)
 }
 
-// Useless function? Noticed uniqueid can be used as "id" to send requests instead of the index while testing, wasn't clear from documentation. Will need to test this more though
-func (ua *UnitAsset) getConnectedUnits(unitType string) (err error) {
-	// --- Get all devices ---
-	apiURL := fmt.Sprintf("http://%s/api/%s/%s", gateway, ua.Apikey, unitType)
-	// Create a new request (Get)
-	// Put data into buffer
-	req, err := http.NewRequest(http.MethodGet, apiURL, nil) // Put request is made
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
-	// Send the request
-	resp, err := http.DefaultClient.Do(req) // Perform the http request
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	resBody, err := io.ReadAll(resp.Body) // Read the response body, and check for errors/bad statuscodes
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode > 299 {
-		return errStatusCode
-	}
-	// How to access maps inside of maps below!
-	// https://stackoverflow.com/questions/28806951/accessing-nested-map-of-type-mapstringinterface-in-golang
-	var deviceMap map[string]interface{}
-	err = json.Unmarshal([]byte(resBody), &deviceMap)
-	if err != nil {
-		return err
-	}
-	// --- Find the index of a device with the specific UniqueID ---
-	for i := range deviceMap {
-		if deviceMap[i].(map[string]interface{})["uniqueid"] == ua.Uniqueid {
-			ua.deviceIndex = i
-			return
-		}
-	}
-	return errMissingUniqueID
-}
-
+// Functions to create put or get reques and return the *http.request and/or error if one occurs
 func createPutRequest(data string, apiURL string) (req *http.Request, err error) {
 	body := bytes.NewReader([]byte(data))                    // Put data into buffer
 	req, err = http.NewRequest(http.MethodPut, apiURL, body) // Put request is made
@@ -381,6 +342,7 @@ func createPutRequest(data string, apiURL string) (req *http.Request, err error)
 	req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
 	return req, nil
 }
+
 func createGetRequest(apiURL string) (req *http.Request, err error) {
 	req, err = http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
@@ -390,6 +352,7 @@ func createGetRequest(apiURL string) (req *http.Request, err error) {
 	return req, nil
 }
 
+// A function to send a put request that returns the error if one occurs
 func sendPutRequest(req *http.Request) (err error) {
 	resp, err := http.DefaultClient.Do(req) // Perform the http request
 	if err != nil {
@@ -406,6 +369,7 @@ func sendPutRequest(req *http.Request) (err error) {
 	return
 }
 
+// A function to send get requests and return the data received in the response body as a []byte and/or error if it happens
 func sendGetRequest(req *http.Request) (data []byte, err error) {
 	resp, err := http.DefaultClient.Do(req) // Perform the http request
 	if err != nil {
@@ -431,8 +395,12 @@ func getForm(value float64, unit string) (f forms.SignalA_v1a) {
 	return f
 }
 
+// ------------------------------------------------------------------------------------------------------------
 // IMPORTANT: lumi.plug.maeu01 HAS BEEN KNOWN TO GIVE BAD READINGS, BASICALLY STOP RESPONDING OR RESPOND WITH 0
-// Struct and method to get current consumption (in Wh)
+// 	      They also don't appear for a long time after re-pairing devices to deConz
+// ------------------------------------------------------------------------------------------------------------
+
+// Struct and method to get and return a form containing current consumption (in Wh)
 type consumptionJSON struct {
 	State struct {
 		Consumption uint64 `json:"consumption"`
@@ -443,7 +411,7 @@ type consumptionJSON struct {
 }
 
 func (ua *UnitAsset) getConsumption() (f forms.SignalA_v1a, err error) {
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves[0]
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["Consumption"]
 	// Create a get request
 	req, err := createGetRequest(apiURL)
 	if err != nil {
@@ -471,7 +439,7 @@ func (ua *UnitAsset) getConsumption() (f forms.SignalA_v1a, err error) {
 	return f, nil
 }
 
-// Struct and method to get current power (in W)
+// Struct and method to get and return a form containing current power (in W)
 type powerJSON struct {
 	State struct {
 		Power int16 `json:"power"`
@@ -482,7 +450,7 @@ type powerJSON struct {
 }
 
 func (ua *UnitAsset) getPower() (f forms.SignalA_v1a, err error) {
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves[1]
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["Power"]
 	// Create a get request
 	req, err := createGetRequest(apiURL)
 	if err != nil {
@@ -510,7 +478,7 @@ func (ua *UnitAsset) getPower() (f forms.SignalA_v1a, err error) {
 	return f, nil
 }
 
-// Struct and method to get current (in mA)
+// Struct and method to get and return a form containing current (in mA)
 type currentJSON struct {
 	State struct {
 		Current uint16 `json:"current"`
@@ -521,7 +489,7 @@ type currentJSON struct {
 }
 
 func (ua *UnitAsset) getCurrent() (f forms.SignalA_v1a, err error) {
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves[1]
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["Power"]
 	// Create a get request
 	req, err := createGetRequest(apiURL)
 	if err != nil {
@@ -549,7 +517,7 @@ func (ua *UnitAsset) getCurrent() (f forms.SignalA_v1a, err error) {
 	return f, nil
 }
 
-// Struct and method to get current voltage (in V)
+// Struct and method to get and return a form containing current voltage (in V)
 type voltageJSON struct {
 	State struct {
 		Voltage uint16 `json:"voltage"`
@@ -560,7 +528,7 @@ type voltageJSON struct {
 }
 
 func (ua *UnitAsset) getVoltage() (f forms.SignalA_v1a, err error) {
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves[1]
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["Power"]
 	// Create a get request
 	req, err := createGetRequest(apiURL)
 	if err != nil {
@@ -589,11 +557,12 @@ func (ua *UnitAsset) getVoltage() (f forms.SignalA_v1a, err error) {
 }
 
 // --- HOW TO CONNECT AND LISTEN TO A WEBSOCKET ---
-// Port 443, can be found by curl -v "http://localhost:8080/api/[apikey]/config", and getting the "websocketport". Will make a function to automatically get this port
+// Port 443, can be found by curl -v "http://localhost:8080/api/[apikey]/config", and getting the "websocketport".
 // https://dresden-elektronik.github.io/deconz-rest-doc/endpoints/websocket/
 // https://stackoverflow.com/questions/32745716/i-need-to-connect-to-an-existing-websocket-server-using-go-lang
 // https://github.com/gorilla/websocket
 
+// In order for websocketport to run at startup i gave it something to check against and update
 var websocketport = "startup"
 
 type eventJSON struct {
@@ -603,23 +572,26 @@ type eventJSON struct {
 	UniqueID string `json:"uniqueid"`
 }
 
+// This function sends a request for the config of the gateway, and saves the websocket port
+// If an error occurs it will return that error
 func (ua *UnitAsset) getWebsocketPort() (err error) {
 	// --- Get config ---
 	apiURL := fmt.Sprintf("http://%s/api/%s/config", gateway, ua.Apikey)
 	// Create a new request (Get)
-	// Put data into buffer
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil) // Put request is made
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json") // Make sure it's JSON
+	// Make sure it's JSON
+	req.Header.Set("Content-Type", "application/json")
 	// Send the request
-	resp, err := http.DefaultClient.Do(req) // Perform the http request
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	resBody, err := io.ReadAll(resp.Body) // Read the response body, and check for errors/bad statuscodes
+	// Read the response body, and check for errors/bad statuscodes
+	resBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -637,11 +609,16 @@ func (ua *UnitAsset) getWebsocketPort() (err error) {
 	return
 }
 
+// STRETCH GOAL: Below can also be done with groups, could look into makeing groups for each device, and then delete them on shutdown
+//		 doing it with groups would make it so we don't have to keep track of a global variable and i think if unlucky only change
+//		 one light or smart plug depending on reachability
+
+// This function loops through the "slaves" of a unit asset, and sets them to either true (for on) and false (off), returning an error if it occurs
 func (ua *UnitAsset) toggleSlaves(currentState bool) (err error) {
 	for i := range ua.Slaves {
-		// TODO: Add check if current slave is smart plug or a light, like philips hue then toggle on/off
-		// API call to toggle smart plug on/off, PUT call should be sent to URL/api/apikey/lights/sensor_id/config
-		apiURL := fmt.Sprintf("http://%s/api/%s/lights/%s/state", gateway, ua.Apikey, ua.Slaves[i])
+		log.Printf("Toggling: %s to %v", ua.Slaves[i], currentState)
+		// API call to toggle smart plug or lights on/off, PUT call should be sent to URL/api/apikey/[sensors or lights]/sensor_id/config
+		apiURL := fmt.Sprintf("http://%s/api/%s/lights/%v/state", gateway, ua.Apikey, ua.Slaves[i])
 		// Create http friendly payload
 		s := fmt.Sprintf(`{"on":%t}`, currentState) // Create payload
 		req, err := createPutRequest(s, apiURL)
@@ -656,7 +633,9 @@ func (ua *UnitAsset) toggleSlaves(currentState bool) (err error) {
 // Function starts listening to a websocket, every message received through websocket is read, and checked if it's what we're looking for
 // The uniqueid (UniqueID in systemconfig.json file) from the connected switch is used to filter out messages
 func (ua *UnitAsset) initWebsocketClient(ctx context.Context) error {
+	//gateway = "192.168.10.122:8080" // For testing purposes
 	dialer := websocket.Dialer{}
+	//wsURL := fmt.Sprintf("ws://192.168.10.122:%s", websocketport) // For testing purposes
 	wsURL := fmt.Sprintf("ws://localhost:%s", websocketport)
 	conn, _, err := dialer.Dial(wsURL, nil)
 	if err != nil {
@@ -670,27 +649,29 @@ func (ua *UnitAsset) initWebsocketClient(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		default:
+			// Read the message
 			_, p, err := conn.ReadMessage()
 			if err != nil {
 				log.Println("Error occured while reading message:", err)
 				return err
 			}
+			// Put it inot a message variable of type eventJSON with "buttonevent" easily accessible
 			var message eventJSON
-			//var message interface{}
 			err = json.Unmarshal(p, &message)
 			if err != nil {
 				log.Println("Error unmarshalling message:", err)
 				return err
 			}
-
+			// Depending on what buttonevent occured, either turn the slaves on, or off
 			if message.UniqueID == ua.Uniqueid && (message.State.Buttonevent == 1002 || message.State.Buttonevent == 2002) {
 				bEvent := message.State.Buttonevent
+				if currentState == true {
+					currentState = false
+				} else {
+					currentState = true
+				}
 				if bEvent == 1002 {
-					if currentState == true {
-						currentState = false
-					} else {
-						currentState = true
-					}
+					// Turn on the smart plugs (lights)
 					err = ua.toggleSlaves(currentState)
 					if err != nil {
 						return err
