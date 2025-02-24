@@ -88,6 +88,8 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 		t.power(w, r)
 	case "voltage":
 		t.voltage(w, r)
+	case "toggle":
+		t.toggle(w, r)
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configuration file]", http.StatusBadRequest)
 	}
@@ -215,6 +217,39 @@ func (rsc *UnitAsset) voltage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		usecases.HTTPProcessGetRequest(w, r, &voltageForm)
+	default:
+		http.Error(w, "Method is not supported", http.StatusNotFound)
+	}
+}
+
+func (rsc *UnitAsset) toggle(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		if rsc.Model != "Smart plug" {
+			http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
+			return
+		}
+		stateForm, err := rsc.getState()
+		if err != nil {
+			http.Error(w, "Failed getting data, or data not present", http.StatusInternalServerError)
+			return
+		}
+		usecases.HTTPProcessGetRequest(w, r, &stateForm)
+	case "PUT":
+		if rsc.Model != "Smart plug" {
+			http.Error(w, "That device doesn't support that method.", http.StatusInternalServerError)
+			return
+		}
+		sig, err := usecases.HTTPProcessSetRequest(w, r)
+		if err != nil {
+			http.Error(w, "Request incorrectly formated", http.StatusBadRequest)
+			return
+		}
+		err = rsc.setState(sig)
+		if err != nil {
+			http.Error(w, "Something went wrong when setting state", http.StatusBadRequest)
+			return
+		}
 	default:
 		http.Error(w, "Method is not supported", http.StatusNotFound)
 	}

@@ -115,6 +115,14 @@ func initTemplate() components.UnitAsset {
 		Description: "provides the current voltage of the device in V (GET)",
 	}
 
+	// This service will only be supported by Smart Power plugs (Will be noted as sensors of type ZHAPower)
+	toggleService := components.Service{
+		Definition:  "toggle",
+		SubPath:     "toggle",
+		Details:     map[string][]string{"Unit": {"Binary"}, "Forms": {"SignalA_v1a"}},
+		Description: "provides the current state of the device (GET), or sets it (PUT) [0 = off, 1 = on]",
+	}
+
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
 		Name:     "SmartSwitch1",
@@ -132,6 +140,7 @@ func initTemplate() components.UnitAsset {
 			currentService.SubPath:     &currentService,
 			powerService.SubPath:       &powerService,
 			voltageService.SubPath:     &voltageService,
+			toggleService.SubPath:      &toggleService,
 		},
 	}
 	return uat
@@ -297,6 +306,8 @@ func findGateway() (err error) {
 	return
 }
 
+//-------------------------------------Thing's resource methods
+
 // Function to get sensors connected to a smart plug and place them in the "slaves" array
 type sensorJSON struct {
 	UniqueID string `json:"uniqueid"`
@@ -337,8 +348,6 @@ func (ua *UnitAsset) getSensors() (err error) {
 	return
 }
 
-//-------------------------------------Thing's resource methods
-
 // getSetPoint fills out a signal form with the current thermal setpoint
 func (ua *UnitAsset) getSetPoint() (f forms.SignalA_v1a) {
 	f.NewForm()
@@ -367,9 +376,50 @@ func (ua *UnitAsset) sendSetPoint() (err error) {
 	return sendPutRequest(req)
 }
 
-// Function to toggle the state of a specific slave (power plug or light) on/off and return an error if it occurs
+// Functions and structs to get and set current state of a smart plug
+type plugJSON struct {
+	State struct {
+		On bool `json:"on"`
+	} `json:"state"`
+}
+
+func (ua *UnitAsset) getState() (f forms.SignalA_v1a, err error) {
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.Uniqueid
+	req, err := createGetRequest(apiURL)
+	if err != nil {
+		return f, err
+	}
+	data, err := sendGetRequest(req)
+	var plug plugJSON
+	err = json.Unmarshal(data, &plug)
+	if err != nil {
+		return f, err
+	}
+	// Return a form containing current state in binary form (1 = on, 0 = off)
+	if plug.State.On == true {
+		f := getForm(1, "Binary")
+		return f, nil
+	}
+	if plug.State.On == false {
+		f := getForm(0, "Binary")
+		return f, nil
+	}
+	return
+}
+
+func (ua *UnitAsset) setState(f forms.SignalA_v1a) (err error) {
+	if f.Value == 0 {
+		return ua.toggleState(false)
+	}
+	if f.Value == 1 {
+		return ua.toggleState(true)
+	}
+	return
+}
+
+// Function to toggle the state of a specific device (power plug or light) on/off and return an error if it occurs
 func (ua *UnitAsset) toggleState(state bool) (err error) {
-	// API call to toggle smart plug on/off, PUT call should be sent to URL/api/apikey/lights/sensor_id/config
+	// API call to toggle light/smart plug on/off, PUT call should be sent to URL/api/apikey/lights/[light_id or plug_id]/state
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/lights/" + ua.Uniqueid + "/state"
 	// Create http friendly payload
 	s := fmt.Sprintf(`{"on":%t}`, state) // Create payload
@@ -681,10 +731,10 @@ func (ua *UnitAsset) toggleSlaves(currentState bool) (err error) {
 // Function starts listening to a websocket, every message received through websocket is read, and checked if it's what we're looking for
 // The uniqueid (UniqueID in systemconfig.json file) from the connected switch is used to filter out messages
 func (ua *UnitAsset) initWebsocketClient(ctx context.Context) error {
-	//gateway = "192.168.10.122:8080" // For testing purposes
+	gateway = "192.168.10.122:8080" // For testing purposes
 	dialer := websocket.Dialer{}
-	//wsURL := fmt.Sprintf("ws://192.168.10.122:%s", websocketport) // For testing purposes
-	wsURL := fmt.Sprintf("ws://localhost:%s", websocketport)
+	wsURL := fmt.Sprintf("ws://192.168.10.122:%s", websocketport) // For testing purposes
+	//wsURL := fmt.Sprintf("ws://localhost:%s", websocketport)
 	conn, _, err := dialer.Dial(wsURL, nil)
 	if err != nil {
 		log.Fatal("Error occured while dialing:", err)
