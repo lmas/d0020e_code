@@ -4,7 +4,6 @@ package main
 // https://github.com/sdoque/systems/blob/main/ds18b20/thing.go
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
+
 	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
 	"github.com/sdoque/mbaigo/usecases"
@@ -89,12 +89,9 @@ const uaName string = "Cache"
 
 // initTemplate initializes a new UA and prefils it with some default values.
 // The returned instance is used for generating the configuration file, whenever it's missing.
-// func initTemplate() components.UnitAsset {
 func initTemplate() *unitAsset {
 	return &unitAsset{
-		Name:    uaName,
-		Details: map[string][]string{"Location": {"Kitchen"}},
-
+		Name:                 uaName,
 		InfluxDBHost:         "http://localhost:8086",
 		InfluxDBToken:        "insert secret token here",
 		InfluxDBOrganisation: "organisation",
@@ -163,9 +160,9 @@ func (ua *unitAsset) startup() (err error) {
 	}
 
 	// Make sure we can contact the influxdb server, before trying to do any thing else
-	running, err := ua.influx.Ping(context.Background())
+	running, err := ua.influx.Ping(ua.Owner.Ctx)
 	if err != nil {
-		return fmt.Errorf("ping influxdb: %s", err)
+		return fmt.Errorf("ping influxdb: %w", err)
 	} else if !running {
 		return fmt.Errorf("influxdb not running")
 	}
@@ -177,10 +174,10 @@ func (ua *unitAsset) startup() (err error) {
 			ua.cleanup()
 			return
 
-			// Wait until it's time to collect new data
+		// Wait until it's time to collect new data
 		case <-time.Tick(time.Duration(ua.CollectionPeriod) * time.Second):
 			if err = ua.collectAllServices(); err != nil {
-				return
+				log.Println("Error: ", err)
 			}
 		}
 	}
@@ -195,22 +192,23 @@ func (ua *unitAsset) collectAllServices() (err error) {
 	for _, sample := range ua.Samples {
 		wg.Add(1)
 		go func(s Sample) {
-			if err := ua.collectService(s); err != nil {
-				log.Printf("Error collecting data from %s: %s\n", s, err)
+			if e := ua.collectService(s); e != nil {
+				err = fmt.Errorf("collecting data from %s: %w", s, e)
 			}
 			wg.Done()
 		}(sample)
 	}
 
+	// Errors from the writer are caught in another goroutine and logged there
 	wg.Wait()
 	ua.influxWriter.Flush()
-	return nil
+	return
 }
 
 func (ua *unitAsset) collectService(sam Sample) (err error) {
 	f, err := ua.apiGetState(ua.CervicesMap[sam.Service], ua.Owner)
 	if err != nil {
-		return fmt.Errorf("failed to get state: %s", err)
+		return fmt.Errorf("failed to get state: %w", err)
 	}
 	sig, ok := f.(*forms.SignalA_v1a)
 	if !ok {
