@@ -123,7 +123,7 @@ func initTemplate() components.UnitAsset {
 		Uniqueid: "14:ef:14:10:00:6f:d0:d7-11-1201",
 		Period:   10,
 		Setpt:    20,
-		// Only switches needs to manually add power plug and light uniqueids, power plugs get their sensors added automatically
+		// Only switches needs to manually add controlled power plug and light uniqueids, power plugs get their sensors added automatically
 		Slaves: map[string]string{"Plug1": "14:ef:14:10:00:6f:d0:d7-XX-XXXX", "Plug2": "24:ef:24:20:00:6f:d0:d2-XX-XXXX"},
 		Apikey: "1234",
 		ServicesMap: components.Services{
@@ -192,8 +192,13 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 				log.Println("Error occured during startup, while calling sendSetPoint():", err)
 			}
 		case "Smart plug":
+			// Find all sensors belonging to the smart plug and put them in the slaves array with
+			// their type as the key
+			err := ua.getSensors()
+			if err != nil {
+				log.Println("Error occured during startup, while calling getSensors():", err)
+			}
 			// Not all smart plugs should be handled by the feedbackloop, some should be handled by a switch
-			ua.getSensors()
 			if ua.Period > 0 {
 				// start the unit assets feedbackloop, this fetches the temperature from ds18b20 and and toggles
 				// between on/off depending on temperature in the room and a set temperature in the unitasset
@@ -311,8 +316,11 @@ func (ua *UnitAsset) getSensors() (err error) {
 	}
 	// Unmarshal data from get request into an easy to use JSON format
 	var sensors map[string]sensorJSON
-	json.Unmarshal(data, &sensors)
-	// Take only the mac address of the unitasset to check against mac address of each sensor
+	err = json.Unmarshal(data, &sensors)
+	if err != nil {
+		return err
+	}
+	// Take only the part of the mac address that is present in both the smart plug and the sensors
 	macAddr := ua.Uniqueid[0:23]
 	for _, sensor := range sensors {
 		uniqueid := sensor.UniqueID
