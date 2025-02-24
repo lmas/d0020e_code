@@ -88,8 +88,8 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 		t.power(w, r)
 	case "voltage":
 		t.voltage(w, r)
-	case "toggle":
-		t.toggle(w, r)
+	case "state":
+		t.state(w, r)
 	default:
 		http.Error(w, "Invalid service request [Do not modify the services subpath in the configuration file]", http.StatusBadRequest)
 	}
@@ -222,7 +222,7 @@ func (rsc *UnitAsset) voltage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (rsc *UnitAsset) toggle(w http.ResponseWriter, r *http.Request) {
+func (rsc *UnitAsset) state(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		if rsc.Model != "Smart plug" {

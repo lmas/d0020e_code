@@ -116,9 +116,9 @@ func initTemplate() components.UnitAsset {
 	}
 
 	// This service will only be supported by Smart Power plugs (Will be noted as sensors of type ZHAPower)
-	toggleService := components.Service{
-		Definition:  "toggle",
-		SubPath:     "toggle",
+	stateService := components.Service{
+		Definition:  "state",
+		SubPath:     "state",
 		Details:     map[string][]string{"Unit": {"Binary"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the current state of the device (GET), or sets it (PUT) [0 = off, 1 = on]",
 	}
@@ -140,7 +140,7 @@ func initTemplate() components.UnitAsset {
 			currentService.SubPath:     &currentService,
 			powerService.SubPath:       &powerService,
 			voltageService.SubPath:     &voltageService,
-			toggleService.SubPath:      &toggleService,
+			stateService.SubPath:       &stateService,
 		},
 	}
 	return uat
@@ -707,14 +707,13 @@ func (ua *UnitAsset) getWebsocketPort() (err error) {
 	return
 }
 
-// STRETCH GOAL: Below can also be done with groups, could look into makeing groups for each device, and then delete them on shutdown
+// STRETCH GOAL: Below can also be done with groups, could look into makeing groups for each switch, and then delete them on shutdown
 //		 doing it with groups would make it so we don't have to keep track of a global variable and i think if unlucky only change
-//		 one light or smart plug depending on reachability
+//		 one light or smart plug depending on reachability. Also first click currently always turn lights on, and then start working as intended
 
 // This function loops through the "slaves" of a unit asset, and sets them to either true (for on) and false (off), returning an error if it occurs
 func (ua *UnitAsset) toggleSlaves(currentState bool) (err error) {
 	for i := range ua.Slaves {
-		log.Printf("Toggling: %s to %v", ua.Slaves[i], currentState)
 		// API call to toggle smart plug or lights on/off, PUT call should be sent to URL/api/apikey/[sensors or lights]/sensor_id/config
 		apiURL := fmt.Sprintf("http://%s/api/%s/lights/%v/state", gateway, ua.Apikey, ua.Slaves[i])
 		// Create http friendly payload
@@ -731,10 +730,10 @@ func (ua *UnitAsset) toggleSlaves(currentState bool) (err error) {
 // Function starts listening to a websocket, every message received through websocket is read, and checked if it's what we're looking for
 // The uniqueid (UniqueID in systemconfig.json file) from the connected switch is used to filter out messages
 func (ua *UnitAsset) initWebsocketClient(ctx context.Context) error {
-	gateway = "192.168.10.122:8080" // For testing purposes
+	//gateway = "192.168.10.122:8080" // For testing purposes
 	dialer := websocket.Dialer{}
-	wsURL := fmt.Sprintf("ws://192.168.10.122:%s", websocketport) // For testing purposes
-	//wsURL := fmt.Sprintf("ws://localhost:%s", websocketport)
+	//wsURL := fmt.Sprintf("ws://192.168.10.122:%s", websocketport) // For testing purposes
+	wsURL := fmt.Sprintf("ws://localhost:%s", websocketport)
 	conn, _, err := dialer.Dial(wsURL, nil)
 	if err != nil {
 		log.Fatal("Error occured while dialing:", err)
