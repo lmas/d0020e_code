@@ -29,7 +29,7 @@ func main() {
 		Certificate: "ABCD",
 		Details:     map[string][]string{"Developer": {"Arrowhead"}},
 		ProtoPort:   map[string]int{"https": 0, "http": 8870, "coap": 0},
-		InfoLink:    "https://github.com/sdoque/systems/tree/master/ZigBeeValve",
+		InfoLink:    "https://github.com/sdoque/systems/tree/master",
 	}
 
 	// instantiate a template unit asset

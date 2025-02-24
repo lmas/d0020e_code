@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -116,14 +117,14 @@ func initTemplate() components.UnitAsset {
 
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
-		Name:     "SmartPlugExample",
+		Name:     "SmartSwitch1",
 		Details:  map[string][]string{"Location": {"Kitchen"}},
-		Model:    "Smart plug",
+		Model:    "ZHASwitch",
 		Uniqueid: "14:ef:14:10:00:6f:d0:d7-11-1201",
 		Period:   10,
 		Setpt:    20,
-		// Switches adds power plug and light uniqueids, power plugs adds Consumption & Power sensors to this map
-		Slaves: map[string]string{"ConsumptionExample": "14:ef:14:10:00:6f:d0:d7-1f-000c", "PowerExample": "14:ef:14:10:00:6f:d0:d7-15-000c"},
+		// Only switches needs to manually add power plug and light uniqueids, power plugs get their sensors added automatically
+		Slaves: map[string]string{"Plug1": "14:ef:14:10:00:6f:d0:d7-XX-XXXX", "Plug2": "24:ef:24:20:00:6f:d0:d2-XX-XXXX"},
 		Apikey: "1234",
 		ServicesMap: components.Services{
 			setPointService.SubPath:    &setPointService,
@@ -182,6 +183,7 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 				log.Println("Error occured during startup, while calling getWebsocketPort():", err)
 				// TODO: Check if we need to kill program if this doesn't pass?
 			}
+
 		}
 		switch ua.Model {
 		case "ZHAThermostat":
@@ -191,6 +193,7 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 			}
 		case "Smart plug":
 			// Not all smart plugs should be handled by the feedbackloop, some should be handled by a switch
+			ua.getSensors()
 			if ua.Period > 0 {
 				// start the unit assets feedbackloop, this fetches the temperature from ds18b20 and and toggles
 				// between on/off depending on temperature in the room and a set temperature in the unitasset
@@ -286,6 +289,43 @@ func findGateway() (err error) {
 	// Save the gateway
 	s := fmt.Sprintf(`%s:%d`, gw[0].Internalipaddress, gw[0].Internalport)
 	gateway = s
+	return
+}
+
+// Function to get sensors connected to a smart plug and place them in the "slaves" array
+type sensorJSON struct {
+	UniqueID string `json:"uniqueid"`
+	Type     string `json:"type"`
+}
+
+func (ua *UnitAsset) getSensors() (err error) {
+	// Create and send a get request to get all sensors connected to deConz gateway
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors"
+	req, err := createGetRequest(apiURL)
+	if err != nil {
+		return err
+	}
+	data, err := sendGetRequest(req)
+	if err != nil {
+		return err
+	}
+	// Unmarshal data from get request into an easy to use JSON format
+	var sensors map[string]sensorJSON
+	json.Unmarshal(data, &sensors)
+	// Take only the mac address of the unitasset to check against mac address of each sensor
+	macAddr := ua.Uniqueid[0:23]
+	for _, sensor := range sensors {
+		uniqueid := sensor.UniqueID
+		check := strings.Contains(uniqueid, macAddr)
+		if check == true {
+			if sensor.Type == "ZHAConsumption" {
+				ua.Slaves["ZHAConsumption"] = sensor.UniqueID
+			}
+			if sensor.Type == "ZHAPower" {
+				ua.Slaves["ZHAPower"] = sensor.UniqueID
+			}
+		}
+	}
 	return
 }
 
@@ -411,7 +451,7 @@ type consumptionJSON struct {
 }
 
 func (ua *UnitAsset) getConsumption() (f forms.SignalA_v1a, err error) {
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["Consumption"]
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["ZHAConsumption"]
 	// Create a get request
 	req, err := createGetRequest(apiURL)
 	if err != nil {
@@ -450,7 +490,7 @@ type powerJSON struct {
 }
 
 func (ua *UnitAsset) getPower() (f forms.SignalA_v1a, err error) {
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["Power"]
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["ZHAPower"]
 	// Create a get request
 	req, err := createGetRequest(apiURL)
 	if err != nil {
@@ -489,7 +529,7 @@ type currentJSON struct {
 }
 
 func (ua *UnitAsset) getCurrent() (f forms.SignalA_v1a, err error) {
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["Power"]
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["ZHAPower"]
 	// Create a get request
 	req, err := createGetRequest(apiURL)
 	if err != nil {
@@ -528,7 +568,7 @@ type voltageJSON struct {
 }
 
 func (ua *UnitAsset) getVoltage() (f forms.SignalA_v1a, err error) {
-	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["Power"]
+	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Slaves["ZHAPower"]
 	// Create a get request
 	req, err := createGetRequest(apiURL)
 	if err != nil {
