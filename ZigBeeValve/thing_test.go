@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
@@ -33,8 +34,6 @@ func newMockTransport(resp *http.Response, retErr bool, err error) mockTransport
 	http.DefaultClient.Transport = t
 	return t
 }
-
-// TODO: this might need to be expanded to a full JSON array?
 
 const discoverExample string = `[{
 		"Id": "123",
@@ -90,7 +89,7 @@ func TestGetters(t *testing.T) {
 	ua := initTemplate().(*UnitAsset)
 	// Test GetName()
 	name := ua.GetName()
-	if name != "SmartPlugExample" {
+	if name != "SmartThermostat1" {
 		t.Errorf("Expected name to be SmartThermostat1, instead got %s", name)
 	}
 	// Test GetServices()
@@ -164,7 +163,6 @@ var errBodyRead error = fmt.Errorf("bad body read")
 func (errReader) Read(p []byte) (n int, err error) {
 	return 0, errBodyRead
 }
-
 func (errReader) Close() error {
 	return nil
 }
@@ -230,6 +228,8 @@ func TestFindGateway(t *testing.T) {
 	}
 }
 
+var brokenURL string = string([]byte{0x7f})
+
 func TestToggleState(t *testing.T) {
 	// Create mock response and unitasset for toggleState() function
 	fakeBody := fmt.Sprint(`{"on":true, "Version": "SignalA_v1a"}`)
@@ -273,8 +273,8 @@ func TestSendSetPoint(t *testing.T) {
 	gateway = "localhost"
 }
 
-// func createRequest(data string, apiURL string) (req *http.Request, err error)
-func TestCreateRequest(t *testing.T) {
+func TestCreateRequests(t *testing.T) {
+	// --- Good test case: createPutRequest() ---
 	data := "test"
 	apiURL := "http://localhost:8080/test"
 
@@ -283,16 +283,27 @@ func TestCreateRequest(t *testing.T) {
 		t.Error("Error occured, expected none")
 	}
 
+	// --- Bad test case: Error in createPutRequest() because of broken URL---
 	_, err = createPutRequest(data, brokenURL)
 	if err == nil {
-		t.Error("Expected error")
+		t.Error("Expected error because of broken URL")
+	}
+
+	// --- Good test case: createGetRequest() ---
+	_, err = createGetRequest(apiURL)
+	if err != nil {
+		t.Error("Error occured, expected none")
+	}
+
+	// --- Bad test case: Error in createGetRequest() because of broken URL---
+	_, err = createGetRequest(brokenURL)
+	if err == nil {
+		t.Error("Expected error because of broken URL")
 	}
 
 }
 
-var brokenURL string = string([]byte{0x7f})
-
-func TestSendRequest(t *testing.T) {
+func TestSendRequests(t *testing.T) {
 	// Set up standard response & catch http requests
 	fakeBody := fmt.Sprint(`Test`)
 
@@ -302,7 +313,7 @@ func TestSendRequest(t *testing.T) {
 		Body:       io.NopCloser(strings.NewReader(fakeBody)),
 	}
 
-	// All ok!
+	// --- Good test case: sendPutRequest ---
 	newMockTransport(resp, false, nil)
 	apiURL := "http://localhost:8080/test"
 	s := fmt.Sprintf(`{"heatsetpoint":%f}`, 25.0) // Create payload
@@ -340,7 +351,186 @@ func TestSendRequest(t *testing.T) {
 	if err != errStatusCode {
 		t.Error("Expected errStatusCode, got", err)
 	}
-
+	// TODO: test sendGetRequest()
 }
 
-// TODO: Add tests for getWebsocketPort() and initWebsocketClient()
+func TestGetSensors(t *testing.T) {
+	// Setup for test
+	ua := initTemplate().(*UnitAsset)
+	ua.Name = "SmartPlug1"
+	ua.Model = "Smart plug"
+	ua.Uniqueid = "54:ef:44:10:00:d8:82:8d-01"
+
+	zBeeResponse := `{
+		"1": {
+		"state": {"consumption": 1},
+		"name": "test consumption",
+		"uniqueid": "54:ef:44:10:00:d8:82:8d-02-000c",
+		"type": "ZHAConsumption"
+		}, 
+		"2": {
+		"state": {"power": 1},
+		"name": "test consumption",
+		"uniqueid": "54:ef:44:10:00:d8:82:8d-03-000c",
+		"type": "ZHAPower"
+		}}`
+
+	zResp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(zBeeResponse)),
+	}
+
+	// --- Good case test---
+	newMockTransport(zResp, false, nil)
+	ua.getSensors()
+	if ua.Slaves["ZHAConsumption"] != "54:ef:44:10:00:d8:82:8d-02-000c" {
+		t.Errorf("Error with ZHAConsumption, wrong mac addr.")
+	}
+	if ua.Slaves["ZHAPower"] != "54:ef:44:10:00:d8:82:8d-03-000c" {
+		t.Errorf("Error with ZHAPower, wrong mac addr.")
+	}
+
+	// --- Bad case: Error on createGetRequest() using brokenURL (bad character) ---
+	gateway = brokenURL
+	newMockTransport(zResp, false, nil)
+	err := ua.getSensors()
+	if err == nil {
+		t.Errorf("Expected an error during createGetRequest() because gateway is an invalid control char")
+	}
+
+	// --- Bad case: Error while unmarshalling data ---
+	gateway = "localhost:8080"
+	FaultyzBeeResponse := `{
+		"1": {
+		"state": {"consumption": 1},
+		"name": "test consumption",
+		"uniqueid": "54:ef:44:10:00:d8:82:8d-02-000c"+123,
+		"type": "ZHAConsumption"
+		}, 
+		"2": {
+		"state": {"power": 1},
+		"name": "test consumption",
+		"uniqueid": "54:ef:44:10:00:d8:82:8d-03-000c"+123,
+		"type": "ZHAPower"
+		}}`
+
+	zResp = &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(FaultyzBeeResponse)),
+	}
+	newMockTransport(zResp, false, nil)
+	err = ua.getSensors()
+	if err == nil {
+		t.Errorf("Expected error while unmarshalling data because of broken uniqueid field")
+	}
+
+	// --- Bad case: Error while sending request ---
+	newMockTransport(zResp, false, fmt.Errorf("Test error"))
+	err = ua.getSensors()
+	if err == nil {
+		t.Errorf("Expected error during sendGetRequest()")
+	}
+}
+
+func TestGetState(t *testing.T) {
+	// Setup for test
+	ua := initTemplate().(*UnitAsset)
+	gateway = "localhost:8080"
+	ua.Name = "SmartPlug1"
+	ua.Model = "Smart plug"
+	ua.Uniqueid = "54:ef:44:10:00:d8:82:8d-01"
+	zBeeResponseTrue := `{"state": {"on": true}}`
+	zResp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(zBeeResponseTrue)),
+	}
+	// --- Good test case: plug.State.On = true ---
+	newMockTransport(zResp, false, nil)
+	f, err := ua.getState()
+	if f.Value != 1 {
+		t.Errorf("Expected value to be 1, was %f", f.Value)
+	}
+	if err != nil {
+		t.Errorf("Expected no errors got: %v", err)
+	}
+
+	// --- Good test case: plug.State.On = false ---
+	zBeeResponseFalse := `{"state": {"on": false}}`
+	zResp.Body = io.NopCloser(strings.NewReader(zBeeResponseFalse))
+	newMockTransport(zResp, false, nil)
+	f, err = ua.getState()
+
+	if f.Value != 0 {
+		t.Errorf("Expected value to be 0, was %f", f.Value)
+	}
+
+	if err != nil {
+		t.Errorf("Expected no errors got: %v", err)
+	}
+
+	// --- Bad test case: Error on createGetRequest() ---
+	gateway = brokenURL
+	zResp.Body = io.NopCloser(strings.NewReader(zBeeResponseTrue))
+	newMockTransport(zResp, false, nil)
+	f, err = ua.getState()
+
+	if err == nil {
+		t.Errorf("Expected an error during createGetRequest() because gateway is an invalid control char")
+	}
+
+	gateway = "localhost:8080"
+
+	// --- Bad test case: Error on unmarshal ---
+	zResp.Body = errReader(0)
+	newMockTransport(zResp, false, nil)
+	f, err = ua.getState()
+
+	if err == nil {
+		t.Errorf("Expected an error while unmarshalling data")
+	}
+}
+
+func TestSetState(t *testing.T) {
+	// Setup
+	gateway = "localhost:8080"
+	var f forms.SignalA_v1a
+	ua := initTemplate().(*UnitAsset)
+	ua.Name = "SmartPlug1"
+	ua.Model = "Smart plug"
+	ua.Uniqueid = "54:ef:44:10:00:d8:82:8d-01"
+	zResp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader("")),
+	}
+	// --- Good test case: f.Value = 1 ---
+	newMockTransport(zResp, false, nil)
+	f.NewForm()
+	f.Value = 1
+	f.Timestamp = time.Now()
+	err := ua.setState(f)
+	if err != nil {
+		t.Errorf("Expected no errors, got: %v", err)
+	}
+	// --- Good test case: f.Value = 0 ---
+	newMockTransport(zResp, false, nil)
+	f.NewForm()
+	f.Value = 0
+	f.Timestamp = time.Now()
+	err = ua.setState(f)
+	if err != nil {
+		t.Errorf("Expected no errors, got: %v", err)
+	}
+	// --- Bad test case: f.value is not 1 or 0
+	newMockTransport(zResp, false, nil)
+	f.NewForm()
+	f.Value = 3
+	f.Timestamp = time.Now()
+	err = ua.setState(f)
+	if err != errBadFormValue {
+		t.Errorf("Expected error because of f.Value not being 0 or 1")
+	}
+}

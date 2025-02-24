@@ -103,12 +103,7 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		// Make sure only devices with setpoints actually support the http get method
-		if rsc.Model == "ZHAThermostat" {
-			setPointForm := rsc.getSetPoint()
-			usecases.HTTPProcessGetRequest(w, r, &setPointForm)
-			return
-		}
-		if rsc.Model == "Smart plug" {
+		if rsc.Model == "ZHAThermostat" || rsc.Model == "Smart plug" {
 			setPointForm := rsc.getSetPoint()
 			usecases.HTTPProcessGetRequest(w, r, &setPointForm)
 			return
@@ -117,16 +112,7 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		return
 	case "PUT":
 		// Make sure only devices with setpoints actually support the http put method
-		if rsc.Model == "ZHAThermostat" {
-			sig, err := usecases.HTTPProcessSetRequest(w, r)
-			if err != nil {
-				http.Error(w, "Request incorrectly formated", http.StatusBadRequest)
-				return
-			}
-			rsc.setSetPoint(sig)
-			return
-		}
-		if rsc.Model == "Smart plug" {
+		if rsc.Model == "ZHAThermostat" || rsc.Model == "Smart plug" {
 			sig, err := usecases.HTTPProcessSetRequest(w, r)
 			if err != nil {
 				http.Error(w, "Request incorrectly formated", http.StatusBadRequest)

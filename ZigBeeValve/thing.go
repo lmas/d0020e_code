@@ -125,14 +125,14 @@ func initTemplate() components.UnitAsset {
 
 	// var uat components.UnitAsset // this is an interface, which we then initialize
 	uat := &UnitAsset{
-		Name:     "SmartSwitch1",
+		Name:     "SmartThermostat1",
 		Details:  map[string][]string{"Location": {"Kitchen"}},
-		Model:    "ZHASwitch",
+		Model:    "ZHAThermostat",
 		Uniqueid: "14:ef:14:10:00:6f:d0:d7-11-1201",
 		Period:   10,
 		Setpt:    20,
 		// Only switches needs to manually add controlled power plug and light uniqueids, power plugs get their sensors added automatically
-		Slaves: map[string]string{"Plug1": "14:ef:14:10:00:6f:d0:d7-XX-XXXX", "Plug2": "24:ef:24:20:00:6f:d0:d2-XX-XXXX"},
+		Slaves: map[string]string{},
 		Apikey: "1234",
 		ServicesMap: components.Services{
 			setPointService.SubPath:    &setPointService,
@@ -269,6 +269,7 @@ var gateway string
 
 const discoveryURL string = "https://phoscon.de/discover"
 
+var errBadFormValue error = fmt.Errorf("bad form value")
 var errStatusCode error = fmt.Errorf("bad status code")
 var errMissingGateway error = fmt.Errorf("missing gateway")
 var errMissingUniqueID error = fmt.Errorf("uniqueid not found")
@@ -376,7 +377,7 @@ func (ua *UnitAsset) sendSetPoint() (err error) {
 	return sendPutRequest(req)
 }
 
-// Functions and structs to get and set current state of a smart plug
+// Functions and structs to get and set current state of a smart plug/light
 type plugJSON struct {
 	State struct {
 		On bool `json:"on"`
@@ -399,12 +400,10 @@ func (ua *UnitAsset) getState() (f forms.SignalA_v1a, err error) {
 	if plug.State.On == true {
 		f := getForm(1, "Binary")
 		return f, nil
-	}
-	if plug.State.On == false {
+	} else {
 		f := getForm(0, "Binary")
 		return f, nil
 	}
-	return
 }
 
 func (ua *UnitAsset) setState(f forms.SignalA_v1a) (err error) {
@@ -414,7 +413,7 @@ func (ua *UnitAsset) setState(f forms.SignalA_v1a) (err error) {
 	if f.Value == 1 {
 		return ua.toggleState(true)
 	}
-	return
+	return errBadFormValue
 }
 
 // Function to toggle the state of a specific device (power plug or light) on/off and return an error if it occurs
@@ -520,11 +519,6 @@ func (ua *UnitAsset) getConsumption() (f forms.SignalA_v1a, err error) {
 	if err != nil {
 		return f, err
 	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return f, err
-	}
-	defer resp.Body.Close()
 	// Unmarshal the body into usable json data
 	var data consumptionJSON
 	err = json.Unmarshal(body, &data)
@@ -559,11 +553,6 @@ func (ua *UnitAsset) getPower() (f forms.SignalA_v1a, err error) {
 	if err != nil {
 		return f, err
 	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return f, err
-	}
-	defer resp.Body.Close()
 	// Unmarshal the body into usable json data
 	var data powerJSON
 	err = json.Unmarshal(body, &data)
@@ -598,11 +587,6 @@ func (ua *UnitAsset) getCurrent() (f forms.SignalA_v1a, err error) {
 	if err != nil {
 		return f, err
 	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return f, err
-	}
-	defer resp.Body.Close()
 	// Unmarshal the body into usable json data
 	var data currentJSON
 	err = json.Unmarshal(body, &data)
@@ -637,11 +621,6 @@ func (ua *UnitAsset) getVoltage() (f forms.SignalA_v1a, err error) {
 	if err != nil {
 		return f, err
 	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return f, err
-	}
-	defer resp.Body.Close()
 	// Unmarshal the body into usable json data
 	var data voltageJSON
 	err = json.Unmarshal(body, &data)
@@ -768,18 +747,13 @@ func (ua *UnitAsset) initWebsocketClient(ctx context.Context) error {
 					currentState = true
 				}
 				if bEvent == 1002 {
-					// Turn on the smart plugs (lights)
+					// toggle the smart plugs/lights (lights)
 					err = ua.toggleSlaves(currentState)
 					if err != nil {
 						return err
 					}
 				}
 				if bEvent == 2002 {
-					// Turn on the philips hue light
-					err = ua.toggleSlaves(currentState)
-					if err != nil {
-						return err
-					}
 					// TODO: Find out how "long presses" works and if it can be used through websocket
 				}
 			}
