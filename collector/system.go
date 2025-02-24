@@ -42,6 +42,8 @@ type system struct {
 	startups []func() error
 }
 
+const systemName string = "Collector"
+
 // Creates a new system with a context and husk prepared for later use.
 func newSystem() (sys *system) {
 	// Handle graceful shutdowns using this context. It should always be canceled,
@@ -53,17 +55,20 @@ func newSystem() (sys *system) {
 	// operations that's required of an Arrowhead system.
 	// var sys system
 	sys = &system{
-		System: components.NewSystem("Collector", ctx),
+		System: components.NewSystem(systemName, ctx),
 		cancel: cancel,
 	}
 	sys.Husk = &components.Husk{
 		Description: "pulls data from other Arrorhead systems and sends it to a InfluxDB server.",
 		Details:     map[string][]string{"Developer": {"Alex"}},
-		ProtoPort:   map[string]int{"https": 6666, "http": 6666, "coap": 0},
+		ProtoPort:   map[string]int{"https": 8666, "http": 8666, "coap": 0},
 		InfoLink:    "https://github.com/lmas/d0020e_code/tree/master/collector",
 	}
 	return
 }
+
+// Allows for mocking this extremely heavy function call
+var configureSystem = usecases.Configure
 
 // Try load configuration from the standard "systemconfig.json" file.
 // Any unit assets will be prepared for later startup.
@@ -73,7 +78,7 @@ func (sys *system) loadConfiguration() (err error) {
 	// by using a unit asset with default values.
 	uat := components.UnitAsset(initTemplate())
 	sys.UAssets[uat.GetName()] = &uat
-	rawUAs, _, err := usecases.Configure(&sys.System)
+	rawUAs, _, err := configureSystem(&sys.System)
 
 	// If the file is missing, a new config will be created and an error is returned here.
 	if err != nil {
@@ -85,7 +90,7 @@ func (sys *system) loadConfiguration() (err error) {
 	for _, raw := range rawUAs {
 		var uac unitAsset
 		if err := json.Unmarshal(raw, &uac); err != nil {
-			return fmt.Errorf("unmarshalling json config: %s", err)
+			return fmt.Errorf("unmarshalling json config: %w", err)
 		}
 		ua := newUnitAsset(uac, sys)
 		sys.startups = append(sys.startups, ua.startup)
@@ -97,14 +102,14 @@ func (sys *system) loadConfiguration() (err error) {
 
 // Run the system and all the unit assets, blocking until user cancels or an
 // error is raised in any background workers.
-func (sys *system) listenAndServe() (retErr error) {
+func (sys *system) listenAndServe() (err error) {
 	var wg sync.WaitGroup // Used for counting all started goroutines
 
 	// start a web server that serves basic documentation of the system
 	wg.Add(1)
 	go func() {
-		if err := usecases.SetoutServers(&sys.System); err != nil {
-			retErr = fmt.Errorf("web server: %s", err)
+		if e := usecases.SetoutServers(&sys.System); e != nil {
+			err = fmt.Errorf("web server: %w", e)
 			sys.cancel()
 		}
 		wg.Done()
@@ -114,8 +119,8 @@ func (sys *system) listenAndServe() (retErr error) {
 	for _, f := range sys.startups {
 		wg.Add(1)
 		go func(start func() error) {
-			if err := start(); err != nil {
-				retErr = fmt.Errorf("startup: %s", err)
+			if e := start(); e != nil {
+				err = fmt.Errorf("startup: %w", e)
 				sys.cancel()
 			}
 			wg.Done()
