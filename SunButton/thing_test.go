@@ -163,7 +163,7 @@ func TestInitTemplate(t *testing.T) {
 
 	//// unnecessary test, but good for practicing
 	name := uasset.GetName()
-	if name != "Set Values" {
+	if name != "Button" {
 		t.Errorf("expected name of the resource is %v, got %v", uasset.Name, name)
 	}
 	Services := uasset.GetServices()
