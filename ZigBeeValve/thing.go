@@ -177,6 +177,11 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 			t.Name: t,
 		},
 	}
+
+	if uac.Slaves == nil {
+		ua.Slaves = make(map[string]string)
+	}
+
 	var ref components.Service
 	for _, s := range servs {
 		if s.Definition == "setpoint" {
@@ -686,77 +691,95 @@ func (ua *UnitAsset) getWebsocketPort() (err error) {
 	return
 }
 
-// STRETCH GOAL: Below can also be done with groups, could look into makeing groups for each switch, and then delete them on shutdown
-//		 doing it with groups would make it so we don't have to keep track of a global variable and i think if unlucky only change
-//		 one light or smart plug depending on reachability. Also first click currently always turn lights on, and then start working as intended
-
-// This function loops through the "slaves" of a unit asset, and sets them to either true (for on) and false (off), returning an error if it occurs
+// STRETCH GOAL: Below can also be done with groups, could look into makeing groups for each switch,
+// and then delete them on shutdown doing it with groups would make it so we don't
+// have to keep track of a global variable and i think if unlucky only change one
+// light or smart plug depending on reachability. Also first click currently always
+// turn lights on, and then start working as intended.
+//
+// This function loops through the "slaves" of a unit asset, and sets them to either
+// true (for on) and false (off), returning an error if it occurs.
 func (ua *UnitAsset) toggleSlaves(currentState bool) (err error) {
+	var req *http.Request
 	for i := range ua.Slaves {
-		// API call to toggle smart plug or lights on/off, PUT call should be sent to URL/api/apikey/[sensors or lights]/sensor_id/config
+		// API call to toggle smart plug or lights on/off, PUT call should be sent
+		// to URL/api/apikey/[sensors or lights]/sensor_id/config
 		apiURL := fmt.Sprintf("http://%s/api/%s/lights/%v/state", gateway, ua.Apikey, ua.Slaves[i])
 		// Create http friendly payload
-		s := fmt.Sprintf(`{"on":%t}`, currentState) // Create payload
-		req, err := createPutRequest(s, apiURL)
+		s := fmt.Sprintf(`{"on":%t}`, currentState)
+		req, err = createPutRequest(s, apiURL)
 		if err != nil {
-			return err
+			return
 		}
-		err = sendPutRequest(req)
+		if err = sendPutRequest(req); err != nil {
+			return
+		}
 	}
-	return err
+	return
 }
 
-// Function starts listening to a websocket, every message received through websocket is read, and checked if it's what we're looking for
+// Function starts listening to a websocket, every message received through websocket is read,
+// and checked if it's what we're looking for.
 // The uniqueid (UniqueID in systemconfig.json file) from the connected switch is used to filter out messages
-func (ua *UnitAsset) initWebsocketClient(ctx context.Context) error {
-	//gateway = "192.168.10.122:8080" // For testing purposes
+func (ua *UnitAsset) initWebsocketClient(ctx context.Context) {
 	dialer := websocket.Dialer{}
-	//wsURL := fmt.Sprintf("ws://192.168.10.122:%s", websocketport) // For testing purposes
 	wsURL := fmt.Sprintf("ws://localhost:%s", websocketport)
 	conn, _, err := dialer.Dial(wsURL, nil)
 	if err != nil {
-		log.Fatal("Error occured while dialing:", err)
+		log.Fatal("Error occured while dialing websocket:", err)
+		return
 	}
-	log.Println("Connected to websocket")
 	defer conn.Close()
 	currentState := false
+
 	for {
 		select {
-		case <-ctx.Done():
-			return nil
+		case <-ctx.Done(): // Shutdown
+			return
 		default:
 			// Read the message
-			_, p, err := conn.ReadMessage()
+			// TODO: this is a blocking call! Might need to handle this read better,
+			// otherwise this goroutine might never be shutdown (from the context).
+			_, b, err := conn.ReadMessage()
 			if err != nil {
 				log.Println("Error occured while reading message:", err)
-				return err
+				return
 			}
-			// Put it inot a message variable of type eventJSON with "buttonevent" easily accessible
-			var message eventJSON
-			err = json.Unmarshal(p, &message)
+			currentState, err = ua.handleWebSocketMsg(currentState, b)
 			if err != nil {
-				log.Println("Error unmarshalling message:", err)
-				return err
-			}
-			// Depending on what buttonevent occured, either turn the slaves on, or off
-			if message.UniqueID == ua.Uniqueid && (message.State.Buttonevent == 1002 || message.State.Buttonevent == 2002) {
-				bEvent := message.State.Buttonevent
-				if currentState == true {
-					currentState = false
-				} else {
-					currentState = true
-				}
-				if bEvent == 1002 {
-					// toggle the smart plugs/lights (lights)
-					err = ua.toggleSlaves(currentState)
-					if err != nil {
-						return err
-					}
-				}
-				if bEvent == 2002 {
-					// TODO: Find out how "long presses" works and if it can be used through websocket
-				}
+				log.Printf("Error handling websocket message: %s", err)
 			}
 		}
 	}
+}
+
+func (ua *UnitAsset) handleWebSocketMsg(currentState bool, body []byte) (newState bool, err error) {
+	// Put it inot a message variable of type eventJSON with "buttonevent" easily accessible
+	newState = currentState
+	var message eventJSON
+	err = json.Unmarshal(body, &message)
+	if err != nil {
+		err = fmt.Errorf("unmarshall message: %w", err)
+		return
+	}
+
+	if message.UniqueID == ua.Uniqueid {
+		// Depending on what buttonevent occured, either turn the slaves on, or off
+		switch message.State.Buttonevent {
+		case 1002: // toggle the smart plugs/lights (lights)
+			newState = !currentState // Toggles the state between true/false
+			err = ua.toggleSlaves(newState)
+			if err != nil {
+				err = fmt.Errorf("toggle slaves to state %v: %w", newState, err)
+				return
+			}
+
+		case 2002:
+			// TODO: Find out how "long presses" works and if it can be used through websocket
+
+		default:
+			// Ignore any other events
+		}
+	}
+	return
 }
