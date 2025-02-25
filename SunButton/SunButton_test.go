@@ -12,41 +12,13 @@ import (
 func TestHttpSetButton(t *testing.T) {
 	ua := initTemplate().(*UnitAsset)
 
-	//Godd test case: PUT
-	// creates a fake request body with JSON data
+	// Good case test: GET
 	w := httptest.NewRecorder()
-	fakebody := bytes.NewReader([]byte(`{"value": 0, "unit": "bool", "version": "SignalA_v1.0"}`))       // converts the Jason data so it can be read
-	r := httptest.NewRequest("PUT", "http://172.30.106.39:8670/SunButton/Button/ButtonStatus", fakebody) // simulating a put request from a user to update the button status
-	r.Header.Set("Content-Type", "application/json")                                                     // basic setup to prevent the request to be rejected.
+	r := httptest.NewRequest("GET", "http://172.30.106.39:8670/SunButton/Button/ButtonStatus", nil)
 	goodStatusCode := 200
 	ua.httpSetButton(w, r)
-
-	// save the response and read the body
-	resp := w.Result()
-	if resp.StatusCode != goodStatusCode {
-		t.Errorf("expected good status code: %v, got %v", goodStatusCode, resp.StatusCode)
-	}
-
-	//BAD case: PUT, if the fake body is formatted incorrectly
-
-	// creates a fake request body with JSON data
-	w = httptest.NewRecorder()
-	fakebody = bytes.NewReader([]byte(`{"123, "unit": "bool", "version": "SignalA_v1.0"}`))             // converts the Jason data so it can be read
-	r = httptest.NewRequest("PUT", "http://172.30.106.39:8670/SunButton/Button/ButtonStatus", fakebody) // simulating a put request from a user to update the button status
-	r.Header.Set("Content-Type", "application/json")                                                    // basic setup to prevent the request to be rejected.
-	ua.httpSetButton(w, r)
-	// save the response and read the body
-	resp = w.Result()
-	if resp.StatusCode == goodStatusCode {
-		t.Errorf("expected bad status code: %v, got %v", goodStatusCode, resp.StatusCode)
-	}
-
-	// Good case test: GET
-	w = httptest.NewRecorder()
-	r = httptest.NewRequest("GET", "http://172.30.106.39:8670/SunButton/Button/ButtonStatus", nil)
-	ua.httpSetButton(w, r)
 	// calls the method and extracts the response and save is in resp for the upcoming tests
-	resp = w.Result()
+	resp := w.Result()
 	if resp.StatusCode != goodStatusCode {
 		t.Errorf("expected good status code: %v, got %v", goodStatusCode, resp.StatusCode)
 	}
@@ -64,6 +36,34 @@ func TestHttpSetButton(t *testing.T) {
 	}
 	if version != true {
 		t.Errorf("expected the version statment to be true!")
+	}
+
+	//Godd test case: PUT
+	// creates a fake request body with JSON data
+	w = httptest.NewRecorder()
+	fakebody := bytes.NewReader([]byte(`{"value": 0, "unit": "bool", "version": "SignalA_v1.0"}`))      // converts the Jason data so it can be read
+	r = httptest.NewRequest("PUT", "http://172.30.106.39:8670/SunButton/Button/ButtonStatus", fakebody) // simulating a put request from a user to update the button status
+	r.Header.Set("Content-Type", "application/json")                                                    // basic setup to prevent the request to be rejected.
+	ua.httpSetButton(w, r)
+
+	// save the response and read the body
+	resp = w.Result()
+	if resp.StatusCode != goodStatusCode {
+		t.Errorf("expected good status code: %v, got %v", goodStatusCode, resp.StatusCode)
+	}
+
+	//BAD case: PUT, if the fake body is formatted incorrectly
+
+	// creates a fake request body with JSON data
+	w = httptest.NewRecorder()
+	fakebody = bytes.NewReader([]byte(`{"123, "unit": "bool", "version": "SignalA_v1.0"}`))             // converts the Jason data so it can be read
+	r = httptest.NewRequest("PUT", "http://172.30.106.39:8670/SunButton/Button/ButtonStatus", fakebody) // simulating a put request from a user to update the button status
+	r.Header.Set("Content-Type", "application/json")                                                    // basic setup to prevent the request to be rejected.
+	ua.httpSetButton(w, r)
+	// save the response and read the body
+	resp = w.Result()
+	if resp.StatusCode == goodStatusCode {
+		t.Errorf("expected bad status code: %v, got %v", goodStatusCode, resp.StatusCode)
 	}
 	// Bad test case: default part of code
 	// force the case to hit default statement but alter the method
