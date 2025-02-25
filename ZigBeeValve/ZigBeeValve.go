@@ -55,7 +55,9 @@ func main() {
 			log.Fatalf("Resource configuration error: %+v\n", err)
 		}
 		ua, startup := newResource(uac, &sys, servsTemp)
-		startup()
+		if err := startup(); err != nil {
+			log.Fatalf("Error during startup: %s\n", err)
+		}
 		sys.UAssets[ua.GetName()] = &ua
 	}
 

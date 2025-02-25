@@ -151,7 +151,7 @@ func initTemplate() components.UnitAsset {
 // newResource creates the resource with its pointers and channels based on the configuration using the tConfig structs
 // This is a startup function that's used to initiate the unit assets declared in the systemconfig.json, the function
 // that is returned is later used to send a setpoint/start a goroutine depending on model of the unitasset
-func newResource(uac UnitAsset, sys *components.System, servs []components.Service) (components.UnitAsset, func()) {
+func newResource(uac UnitAsset, sys *components.System, servs []components.Service) (components.UnitAsset, func() error) {
 	// deterimine the protocols that the system supports
 	sProtocols := components.SProtocols(sys.Husk.ProtoPort)
 
@@ -178,6 +178,7 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		},
 	}
 
+	// Handles a panic caused by when this field is missing from the config file
 	if uac.Slaves == nil {
 		ua.Slaves = make(map[string]string)
 	}
@@ -190,42 +191,47 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 	}
 	ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
 
-	return ua, func() {
-		if websocketport == "startup" {
-			err := ua.getWebsocketPort()
-			if err != nil {
-				log.Println("Error occured during startup, while calling getWebsocketPort():", err)
-				// TODO: Check if we need to kill program if this doesn't pass?
-			}
+	return ua, ua.startup
+}
 
-		}
-		switch ua.Model {
-		case "ZHAThermostat":
-			err := ua.sendSetPoint()
-			if err != nil {
-				log.Println("Error occured during startup, while calling sendSetPoint():", err)
-			}
-		case "Smart plug":
-			// Find all sensors belonging to the smart plug and put them in the slaves array with
-			// their type as the key
-			err := ua.getSensors()
-			if err != nil {
-				log.Println("Error occured during startup, while calling getSensors():", err)
-			}
-			// Not all smart plugs should be handled by the feedbackloop, some should be handled by a switch
-			if ua.Period > 0 {
-				// start the unit assets feedbackloop, this fetches the temperature from ds18b20 and and toggles
-				// between on/off depending on temperature in the room and a set temperature in the unitasset
-				go ua.feedbackLoop(ua.Owner.Ctx)
-			}
-		case "ZHASwitch":
-			// Starts listening to the websocket to find buttonevents (button presses) and then
-			// turns its controlled devices (slaves) on/off
-			go ua.initWebsocketClient(ua.Owner.Ctx)
-		default:
+func (ua *UnitAsset) startup() (err error) {
+	if websocketport == "startup" {
+		err = ua.getWebsocketPort()
+		if err != nil {
+			err = fmt.Errorf("getwebsocketport: %w", err)
 			return
 		}
 	}
+
+	switch ua.Model {
+	case "ZHAThermostat":
+		err = ua.sendSetPoint()
+		if err != nil {
+			err = fmt.Errorf("ZHAThermostat sendsetpoint: %w", err)
+			return
+		}
+
+	case "Smart plug":
+		// Find all sensors belonging to the smart plug and put them in the slaves array with
+		// their type as the key
+		err = ua.getSensors()
+		if err != nil {
+			err = fmt.Errorf("SmartPlug getsensors: %w", err)
+			return
+		}
+		// Not all smart plugs should be handled by the feedbackloop, some should be handled by a switch
+		if ua.Period > 0 {
+			// start the unit assets feedbackloop, this fetches the temperature from ds18b20 and and toggles
+			// between on/off depending on temperature in the room and a set temperature in the unitasset
+			go ua.feedbackLoop(ua.Owner.Ctx)
+		}
+
+	case "ZHASwitch":
+		// Starts listening to the websocket to find buttonevents (button presses) and then
+		// turns its controlled devices (slaves) on/off
+		go ua.initWebsocketClient(ua.Owner.Ctx)
+	}
+	return
 }
 
 func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
