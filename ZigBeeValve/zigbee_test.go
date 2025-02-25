@@ -131,17 +131,17 @@ func TestConsumption(t *testing.T) {
 	ua := initTemplate().(*UnitAsset)
 	ua.Name = "SmartPlug1"
 	ua.Model = "Smart plug"
-	ua.Slaves["ZHAConsumption"] = "ConsumptionTest"
+	ua.Slaves["ZHAConsumption"] = "14:ef:14:10:00:b3:b3:89-01"
 	// --- Good case test: GET ---
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/consumption", nil)
 
 	zBeeResponse := `{
-	"state": {"consumption": 1},
-	"name": "SnartPlug1",
-	"uniqueid": "ConsumptionTest",
-	"type": "ZHAConsumption"
-	}`
+			"state": {"consumption": 1},
+			"name": "SmartPlug1",
+			"uniqueid": "14:ef:14:10:00:b3:b3:89-XX-XXXX",
+			"type": "ZHAConsumption"
+			}`
 
 	zResp := &http.Response{
 		Status:     "200 OK",
@@ -176,7 +176,7 @@ func TestConsumption(t *testing.T) {
 	ua.Model = "Wrong model"
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/consumption", nil)
-	//newMockTransport(zResp, false, nil)
+	newMockTransport(zResp, false, nil)
 	ua.consumption(w, r)
 	resp = w.Result()
 	if resp.StatusCode != 500 {
@@ -185,11 +185,11 @@ func TestConsumption(t *testing.T) {
 	// --- Bad test case: error from getConsumption() because of broken body ---
 	ua.Model = "Smart plug"
 	zBeeResponse = `{
-		"state": {"consumption": 1},
-		"name": "SnartPlug1",
-		"uniqueid": "ConsumptionTest",
-		"type": "ZHAConsumption"
-		} + 123`
+			"state": {"consumption": 1},
+			"name": "SnartPlug1",
+			"uniqueid": "ConsumptionTest",
+			"type": "ZHAConsumption"
+			} + 123`
 
 	zResp = &http.Response{
 		Status:     "200 OK",
@@ -215,30 +215,29 @@ func TestConsumption(t *testing.T) {
 	}
 }
 
-/*
 func TestPower(t *testing.T) {
 	ua := initTemplate().(*UnitAsset)
 	ua.Name = "SmartPlug1"
 	ua.Model = "Smart plug"
-	ua.Slaves["ZHAPower"] = "PowerTest"
+	ua.Slaves["ZHAPower"] = "14:ef:14:10:00:b3:b3:89-01"
 	// --- Good case test: GET ---
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/power", nil)
+
 	zBeeResponse := `{
-		"state": {"power": 2},
-		"name": "SmartPlug1",
-		"uniqueid": "PowerTest",
-		"type": "ZHAPower"
-		}`
+			"state": {"power": 2},
+			"name": "SmartPlug1",
+			"uniqueid": "14:ef:14:10:00:b3:b3:89-XX-XXXX",
+			"type": "ZHAPower"
+			}`
 
 	zResp := &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
 		Body:       io.NopCloser(strings.NewReader(zBeeResponse)),
 	}
-
 	newMockTransport(zResp, false, nil)
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/power", nil)
-	ua.consumption(w, r)
+	ua.power(w, r)
 	// Read response to a string, and save it in stringBody
 	resp := w.Result()
 	if resp.StatusCode != good_code {
@@ -261,5 +260,308 @@ func TestPower(t *testing.T) {
 	if version != true {
 		t.Errorf("Good GET: Expected the version statment to be true!")
 	}
+
+	// --- Wrong model ---
+	ua.Model = "Wrong model"
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/consumption", nil)
+	newMockTransport(zResp, false, nil)
+	ua.power(w, r)
+	resp = w.Result()
+	if resp.StatusCode != 500 {
+		t.Errorf("Expected statuscode 500, got: %d", resp.StatusCode)
+	}
+
+	// --- Bad test case: error from getPower() because of broken body ---
+	ua.Model = "Smart plug"
+	zBeeResponse = `{
+			"state": {"consumption": 1},
+			"name": "SnartPlug1",
+			"uniqueid": "ConsumptionTest",
+			"type": "ZHAConsumption"
+			} + 123`
+
+	zResp = &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(zBeeResponse)),
+	}
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/power", nil)
+	newMockTransport(zResp, false, nil)
+	ua.power(w, r)
+	resp = w.Result()
+	if resp.StatusCode != 500 {
+		t.Errorf("Expected status code 500, got %d", resp.StatusCode)
+	}
+
+	// --- Default part of code (Method not supported)
+	ua.Model = "Smart plug"
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("123", "http://localhost:8870/ZigBeeHandler/SmartPlug1/power", nil)
+	ua.power(w, r)
+	resp = w.Result()
+	if resp.StatusCode != 404 {
+		t.Errorf("Expected statuscode to be 404, got %d", resp.StatusCode)
+	}
 }
-*/
+
+func TestCurrent(t *testing.T) {
+	ua := initTemplate().(*UnitAsset)
+	ua.Name = "SmartPlug1"
+	ua.Model = "Smart plug"
+	ua.Slaves["ZHAPower"] = "14:ef:14:10:00:b3:b3:89-01"
+	// --- Good case test: GET ---
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/current", nil)
+
+	zBeeResponse := `{
+	"state": {"current": 3},
+	"name": "SmartPlug1",
+	"uniqueid": "14:ef:14:10:00:b3:b3:89-XX-XXXX",
+	"type": "ZHAPower"
+	}`
+
+	zResp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(zBeeResponse)),
+	}
+	newMockTransport(zResp, false, nil)
+	ua.current(w, r)
+	// Read response to a string, and save it in stringBody
+	resp := w.Result()
+	if resp.StatusCode != good_code {
+		t.Errorf("expected good status code: %v, got %v", good_code, resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	stringBody := string(body)
+	// Check if correct values are present in the body, each line returns true/false
+	value := strings.Contains(string(stringBody), `"value": 3`)
+	unit := strings.Contains(string(stringBody), `"unit": "mA"`)
+	version := strings.Contains(string(stringBody), `"version": "SignalA_v1.0"`)
+
+	// Check that above statements are true
+	if value != true {
+		t.Errorf("Good GET: The value statment should be true!")
+	}
+	if unit != true {
+		t.Errorf("Good GET: Expected the unit statement to be true!")
+	}
+	if version != true {
+		t.Errorf("Good GET: Expected the version statment to be true!")
+	}
+
+	// --- Wrong model ---
+	ua.Model = "Wrong model"
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/consumption", nil)
+	newMockTransport(zResp, false, nil)
+	ua.current(w, r)
+	resp = w.Result()
+	if resp.StatusCode != 500 {
+		t.Errorf("Expected statuscode 500, got: %d", resp.StatusCode)
+	}
+
+	// --- Bad test case: error from getPower() because of broken body ---
+	ua.Model = "Smart plug"
+	zBeeResponse = `{
+			"state": {"consumption": 1},
+			"name": "SnartPlug1",
+			"uniqueid": "ConsumptionTest",
+			"type": "ZHAConsumption"
+			} + 123`
+
+	zResp = &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(zBeeResponse)),
+	}
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/power", nil)
+	newMockTransport(zResp, false, nil)
+	ua.current(w, r)
+	resp = w.Result()
+	if resp.StatusCode != 500 {
+		t.Errorf("Expected status code 500, got %d", resp.StatusCode)
+	}
+
+	// --- Default part of code (Method not supported)
+	ua.Model = "Smart plug"
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("123", "http://localhost:8870/ZigBeeHandler/SmartPlug1/power", nil)
+	ua.current(w, r)
+	resp = w.Result()
+	if resp.StatusCode != 404 {
+		t.Errorf("Expected statuscode to be 404, got %d", resp.StatusCode)
+	}
+}
+
+func TestVoltage(t *testing.T) {
+	ua := initTemplate().(*UnitAsset)
+	ua.Name = "SmartPlug1"
+	ua.Model = "Smart plug"
+	ua.Slaves["ZHAPower"] = "14:ef:14:10:00:b3:b3:89-01"
+	// --- Good case test: GET ---
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/voltage", nil)
+	zBeeResponse := `{
+	"state": {"voltage": 4},
+	"name": "SmartPlug1",
+	"uniqueid": "14:ef:14:10:00:b3:b3:89-XX-XXXX",
+	"type": "ZHAPower"
+	}`
+	zResp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(zBeeResponse)),
+	}
+	newMockTransport(zResp, false, nil)
+	ua.voltage(w, r)
+	// Read response to a string, and save it in stringBody
+	resp := w.Result()
+	if resp.StatusCode != good_code {
+		t.Errorf("expected good status code: %v, got %v", good_code, resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	stringBody := string(body)
+	// Check if correct values are present in the body, each line returns true/false
+	value := strings.Contains(string(stringBody), `"value": 4`)
+	unit := strings.Contains(string(stringBody), `"unit": "V"`)
+	version := strings.Contains(string(stringBody), `"version": "SignalA_v1.0"`)
+	// Check that above statements are true
+	if value != true {
+		t.Errorf("Good GET: The value statment should be true!")
+	}
+	if unit != true {
+		t.Errorf("Good GET: Expected the unit statement to be true!")
+	}
+	if version != true {
+		t.Errorf("Good GET: Expected the version statment to be true!")
+	}
+
+	// --- Wrong model ---
+	ua.Model = "Wrong model"
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/voltage", nil)
+	newMockTransport(zResp, false, nil)
+	ua.voltage(w, r)
+	resp = w.Result()
+
+	if resp.StatusCode != 500 {
+		t.Errorf("Expected statuscode 500, got: %d", resp.StatusCode)
+	}
+
+	// --- Bad test case: error from getPower() because of broken body ---
+	ua.Model = "Smart plug"
+	zBeeResponse = `{
+			"state": {"consumption": 1},
+			"name": "SmartPlug1",
+			"uniqueid": "ConsumptionTest",
+			"type": "ZHAConsumption"
+			} + 123`
+	zResp = &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(zBeeResponse)),
+	}
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/voltage", nil)
+	newMockTransport(zResp, false, nil)
+	ua.voltage(w, r)
+	resp = w.Result()
+	if resp.StatusCode != 500 {
+		t.Errorf("Expected status code 500, got %d", resp.StatusCode)
+	}
+
+	// --- Default part of code (Method not supported)
+	ua.Model = "Smart plug"
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("123", "http://localhost:8870/ZigBeeHandler/SmartPlug1/voltage", nil)
+	ua.voltage(w, r)
+	resp = w.Result()
+	if resp.StatusCode != 404 {
+		t.Errorf("Expected statuscode to be 404, got %d", resp.StatusCode)
+	}
+
+}
+
+func TestState(t *testing.T) {
+	ua := initTemplate().(*UnitAsset)
+	ua.Name = "SmartPlug1"
+	ua.Model = "Smart plug"
+
+	zBeeResponse := `{
+		"state": {"on": true},
+		"name": "SmartPlug1",
+		"uniqueid": "14:ef:14:10:00:b3:b3:89-XX-XXXX",
+		"type": "ZHAPower"
+		}`
+	zResp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(zBeeResponse)),
+	}
+	newMockTransport(zResp, false, nil)
+	// --- Good test case: GET ---
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", nil)
+	r.Header.Set("Content-Type", "application/json")
+	ua.state(w, r)
+	raw := w.Result().Body
+	body, err := io.ReadAll(raw)
+	if err != nil {
+		t.Error("Expected no errors reading body")
+	}
+	stringBody := string(body)
+	value := strings.Contains(string(stringBody), `"value": 1`)
+	unit := strings.Contains(string(stringBody), `"unit": "Binary"`)
+	if value == false {
+		t.Error("Expected value to be 1, but wasn't")
+	}
+	if unit == false {
+		t.Error("Expected unit to be Binary, was something else")
+	}
+	// --- Bad test case: Wrong model ---
+	newMockTransport(zResp, false, nil)
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", nil)
+	r.Header.Set("Content-Type", "application/json")
+	ua.Model = "Wrong model"
+	ua.state(w, r)
+
+	// --- Bad test case: Error from getState() ---
+	zResp.Body = errReader(0)
+	newMockTransport(zResp, false, nil)
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", nil)
+	r.Header.Set("Content-Type", "application/json")
+	ua.Model = "Smart plug"
+	ua.state(w, r)
+
+	// --- Good test case: PUT ---
+	zResp.Body = io.NopCloser(strings.NewReader(zBeeResponse))
+	newMockTransport(zResp, false, nil)
+	w = httptest.NewRecorder()
+	fakebody := `{"value": 0, "signal": "SignalA_v1.0"}`
+	sentBody := io.NopCloser(strings.NewReader(fakebody))
+	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", sentBody)
+	r.Header.Set("Content-Type", "application/json")
+	ua.Model = "Smart plug"
+	ua.state(w, r)
+
+	// --- Bad test case: PUT Wrong model ---
+	zResp.Body = io.NopCloser(strings.NewReader(zBeeResponse))
+	newMockTransport(zResp, false, nil)
+	w = httptest.NewRecorder()
+	fakebody = `{"value": 0, "signal": "SignalA_v1.0"}`
+	sentBody = io.NopCloser(strings.NewReader(fakebody))
+	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", sentBody)
+	r.Header.Set("Content-Type", "application/json")
+	ua.Model = "Wrong model"
+	ua.state(w, r)
+
+	// --- Bad test case: PUT Request incorrectly formatted ---
+	// COMPLETE THIS TOMORROW.
+
+}
