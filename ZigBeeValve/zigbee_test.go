@@ -447,7 +447,6 @@ func TestVoltage(t *testing.T) {
 	newMockTransport(zResp, false, nil)
 	ua.voltage(w, r)
 	resp = w.Result()
-
 	if resp.StatusCode != 500 {
 		t.Errorf("Expected statuscode 500, got: %d", resp.StatusCode)
 	}
@@ -502,14 +501,29 @@ func TestState(t *testing.T) {
 		StatusCode: 200,
 		Body:       io.NopCloser(strings.NewReader(zBeeResponse)),
 	}
+	// --- Default part of code ---
 	newMockTransport(zResp, false, nil)
-	// --- Good test case: GET ---
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", nil)
+	r := httptest.NewRequest("123", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", nil)
 	r.Header.Set("Content-Type", "application/json")
 	ua.state(w, r)
-	raw := w.Result().Body
-	body, err := io.ReadAll(raw)
+	res := w.Result()
+	_, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Error("Expected no errors")
+	}
+	if res.StatusCode != 404 {
+		t.Errorf("Expected no errors in default part of code, got: %d", res.StatusCode)
+	}
+
+	// --- Good test case: GET ---
+	newMockTransport(zResp, false, nil)
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", nil)
+	r.Header.Set("Content-Type", "application/json")
+	ua.state(w, r)
+	res = w.Result()
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Error("Expected no errors reading body")
 	}
@@ -522,15 +536,20 @@ func TestState(t *testing.T) {
 	if unit == false {
 		t.Error("Expected unit to be Binary, was something else")
 	}
-	// --- Bad test case: Wrong model ---
+
+	// --- Bad test case: GET Wrong model ---
 	newMockTransport(zResp, false, nil)
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest("GET", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", nil)
 	r.Header.Set("Content-Type", "application/json")
 	ua.Model = "Wrong model"
 	ua.state(w, r)
+	res = w.Result()
+	if res.StatusCode != 500 {
+		t.Errorf("Expected status code 500 w/ wrong model, was: %d", res.StatusCode)
+	}
 
-	// --- Bad test case: Error from getState() ---
+	// --- Bad test case: GET Error from getState() ---
 	zResp.Body = errReader(0)
 	newMockTransport(zResp, false, nil)
 	w = httptest.NewRecorder()
@@ -538,30 +557,66 @@ func TestState(t *testing.T) {
 	r.Header.Set("Content-Type", "application/json")
 	ua.Model = "Smart plug"
 	ua.state(w, r)
+	res = w.Result()
+	if res.StatusCode != 500 {
+		t.Errorf("Expected status code 500 w/ error from getState(), was: %d", res.StatusCode)
+	}
 
 	// --- Good test case: PUT ---
 	zResp.Body = io.NopCloser(strings.NewReader(zBeeResponse))
 	newMockTransport(zResp, false, nil)
 	w = httptest.NewRecorder()
-	fakebody := `{"value": 0, "signal": "SignalA_v1.0"}`
+	fakebody := `{"value": 0, "version": "SignalA_v1.0"}`
 	sentBody := io.NopCloser(strings.NewReader(fakebody))
 	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", sentBody)
 	r.Header.Set("Content-Type", "application/json")
 	ua.Model = "Smart plug"
 	ua.state(w, r)
+	res = w.Result()
+	if res.StatusCode != 200 {
+		t.Errorf("Expected status code 200, was: %d", res.StatusCode)
+	}
 
 	// --- Bad test case: PUT Wrong model ---
-	zResp.Body = io.NopCloser(strings.NewReader(zBeeResponse))
 	newMockTransport(zResp, false, nil)
 	w = httptest.NewRecorder()
-	fakebody = `{"value": 0, "signal": "SignalA_v1.0"}`
+	fakebody = `{"value": 0, "version": "SignalA_v1.0"}`
 	sentBody = io.NopCloser(strings.NewReader(fakebody))
 	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", sentBody)
 	r.Header.Set("Content-Type", "application/json")
 	ua.Model = "Wrong model"
 	ua.state(w, r)
+	res = w.Result()
+	if res.StatusCode != 500 {
+		t.Errorf("Expected status code 500, was: %d", res.StatusCode)
+	}
 
-	// --- Bad test case: PUT Request incorrectly formatted ---
-	// COMPLETE THIS TOMORROW.
+	// --- Bad test case: PUT Incorrectly formatted form ---
+	zResp.Body = io.NopCloser(strings.NewReader(zBeeResponse))
+	newMockTransport(zResp, false, nil)
+	w = httptest.NewRecorder()
+	fakebody = `{"value": a}`
+	sentBody = io.NopCloser(strings.NewReader(fakebody))
+	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", sentBody)
+	r.Header.Set("Content-Type", "application/json")
+	ua.Model = "Smart plug"
+	ua.state(w, r)
+	res = w.Result()
+	if res.StatusCode != 400 {
+		t.Errorf("Expected status code to be 400, was %d", res.StatusCode)
+	}
 
+	// --- Bad test case: PUT breaking setState() ---
+	newMockTransport(zResp, false, nil)
+	w = httptest.NewRecorder()
+	fakebody = `{"value": 3, "version": "SignalA_v1.0"}` // Value 3 not supported
+	sentBody = io.NopCloser(strings.NewReader(fakebody))
+	r = httptest.NewRequest("PUT", "http://localhost:8870/ZigBeeHandler/SmartPlug1/state", sentBody)
+	r.Header.Set("Content-Type", "application/json")
+	ua.Model = "Smart plug"
+	ua.state(w, r)
+	res = w.Result()
+	if res.StatusCode != 400 {
+		t.Errorf("Expected status code to be 400, was %d", res.StatusCode)
+	}
 }
