@@ -282,7 +282,7 @@ func TestCreatePutRequest(t *testing.T) {
 	// --- Good test case: createPutRequest() ---
 	raw, err := createPutRequest(data, apiURL)
 	if err != nil {
-		t.Error("Error occured, expected none")
+		t.Error("Error occurred, expected none")
 	}
 	body, err := io.ReadAll(raw.Body)
 	if string(body) != "test" {
@@ -376,7 +376,7 @@ func TestSendGetRequest(t *testing.T) {
 	req, _ := createGetRequest(apiURL)
 	raw, err := sendGetRequest(req)
 	if err != nil {
-		t.Error("Expected no errors, error occured:", err)
+		t.Error("Expected no errors, error occurred:", err)
 	}
 	data := string(raw)
 	if data != "Test ok" {
@@ -398,7 +398,7 @@ func TestSendGetRequest(t *testing.T) {
 	req, _ = createGetRequest(apiURL)
 	raw, err = sendGetRequest(req)
 	if err == nil {
-		t.Error("Expected errors, no error occured:")
+		t.Error("Expected errors, no error occurred:")
 	}
 
 	// Error StatusCode

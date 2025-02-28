@@ -117,7 +117,7 @@ func (rsc *UnitAsset) setpt(w http.ResponseWriter, r *http.Request) {
 		if rsc.Model == "ZHAThermostat" || rsc.Model == "Smart plug" {
 			sig, err := usecases.HTTPProcessSetRequest(w, r)
 			if err != nil {
-				http.Error(w, "Request incorrectly formated", http.StatusBadRequest)
+				http.Error(w, "Request incorrectly formatted", http.StatusBadRequest)
 				return
 			}
 			rsc.setSetPoint(sig)

@@ -373,9 +373,11 @@ func (ua *UnitAsset) setSetPoint(f forms.SignalA_v1a) {
 	ua.Setpt = f.Value
 }
 
-// Function to send a new setpoint ot a device that has the "heatsetpoint" in its config (smart plug or smart thermostat)
+// Function to send a new setpoint of a device that has the "heatsetpoint" in its
+// config (smart plug or smart thermostat)
 func (ua *UnitAsset) sendSetPoint() (err error) {
-	// API call to set desired temp in smart thermostat, PUT call should be sent to  URL/api/apikey/sensors/sensor_id/config
+	// API call to set desired temp in smart thermostat, PUT call should be sent
+	// to  URL/api/apikey/sensors/sensor_id/config
 	// --- Send setpoint to specific unit ---
 	apiURL := "http://" + gateway + "/api/" + ua.Apikey + "/sensors/" + ua.Uniqueid + "/config"
 	// Create http friendly payload
@@ -439,7 +441,7 @@ func (ua *UnitAsset) toggleState(state bool) (err error) {
 	return sendPutRequest(req)
 }
 
-// Functions to create put or get reques and return the *http.request and/or error if one occurs
+// Functions to create put or get request and return the *http.request and/or error if one occurs
 func createPutRequest(data string, apiURL string) (req *http.Request, err error) {
 	body := bytes.NewReader([]byte(data))                    // Put data into buffer
 	req, err = http.NewRequest(http.MethodPut, apiURL, body) // Put request is made
@@ -696,7 +698,7 @@ func (ua *UnitAsset) getWebsocketPort() (err error) {
 	return
 }
 
-// STRETCH GOAL: Below can also be done with groups, could look into makeing groups for each switch,
+// STRETCH GOAL: Below can also be done with groups, could look into making groups for each switch,
 // and then delete them on shutdown doing it with groups would make it so we don't
 // have to keep track of a global variable and i think if unlucky only change one
 // light or smart plug depending on reachability. Also first click currently always
@@ -731,7 +733,7 @@ func (ua *UnitAsset) initWebsocketClient(ctx context.Context) {
 	wsURL := fmt.Sprintf("ws://localhost:%s", websocketport)
 	conn, _, err := dialer.Dial(wsURL, nil)
 	if err != nil {
-		log.Fatal("Error occured while dialing websocket:", err)
+		log.Fatal("Error occurred while dialing websocket:", err)
 		return
 	}
 	defer conn.Close()
@@ -747,7 +749,7 @@ func (ua *UnitAsset) initWebsocketClient(ctx context.Context) {
 			// otherwise this goroutine might never be shutdown (from the context).
 			_, b, err := conn.ReadMessage()
 			if err != nil {
-				log.Println("Error occured while reading message:", err)
+				log.Println("Error occurred while reading message:", err)
 				return
 			}
 			currentState, err = ua.handleWebSocketMsg(currentState, b)
@@ -759,7 +761,7 @@ func (ua *UnitAsset) initWebsocketClient(ctx context.Context) {
 }
 
 func (ua *UnitAsset) handleWebSocketMsg(currentState bool, body []byte) (newState bool, err error) {
-	// Put it inot a message variable of type eventJSON with "buttonevent" easily accessible
+	// Put it into a message variable of type eventJSON with "buttonevent" easily accessible
 	newState = currentState
 	var message eventJSON
 	err = json.Unmarshal(body, &message)
@@ -769,7 +771,7 @@ func (ua *UnitAsset) handleWebSocketMsg(currentState bool, body []byte) (newStat
 	}
 
 	if message.UniqueID == ua.Uniqueid {
-		// Depending on what buttonevent occured, either turn the slaves on, or off
+		// Depending on what buttonevent occurred, either turn the slaves on, or off
 		switch message.State.Buttonevent {
 		case 1002: // toggle the smart plugs/lights (lights)
 			newState = !currentState // Toggles the state between true/false
