@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
+	"strings"
 
 	//"io"
 	"net/http"
@@ -73,6 +75,10 @@ func (t mockTransport) RoundTrip(req *http.Request) (resp *http.Response, err er
 const apiDomain string = "https://sunrisesunset.io/"
 
 func TestSingleUnitAssetOneAPICall(t *testing.T) {
+	ua := initTemplate().(*UnitAsset)
+	//maby better to use a getter method
+	url := fmt.Sprintf(`http://api.sunrisesunset.io/json?lat=%06f&lng=%06f&timezone=CET&date=%d-%02d-%02d&time_format=24`, ua.Latitude, ua.Longitude, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+
 	resp := &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
@@ -80,9 +86,10 @@ func TestSingleUnitAssetOneAPICall(t *testing.T) {
 	}
 	trans := newMockTransport(resp)
 	// Creates a single UnitAsset and assert it only sends a single API request
-	ua := initTemplate().(*UnitAsset)
+
 	//retrieveAPIPrice(ua)
-	ua.getAPIData()
+	// better to use a getter method??
+	ua.getAPIData(url)
 
 	// TEST CASE: cause a single API request
 	hits := trans.domainHits(apiDomain)
@@ -251,7 +258,6 @@ func TestNewUnitAsset(t *testing.T) {
 	}
 }
 
-/*
 // Fuctions that help creating bad body
 type errReader int
 
@@ -268,9 +274,10 @@ func (errReader) Close() error {
 // cretas a URL that is broken
 var brokenURL string = string([]byte{0x7f})
 
-
-func TestGetAPIPriceData(t *testing.T) {
-	sunDataExample = fmt.Sprintf(`[{
+func TestGetAPIPriceDataSun(t *testing.T) {
+	ua := initTemplate().(*UnitAsset)
+	// Should not be an array, it should match the exact struct
+	sunDataExample = fmt.Sprintf(`{
 		"results": {
 			"date": "%d-%02d-%02d",
 			"sunrise": "08:00:00",
@@ -281,12 +288,12 @@ func TestGetAPIPriceData(t *testing.T) {
 			"dusk": "20:30:00",
 			"solar_noon": "16:00:00",
 			"golden_hour": "19:00:00",
-			"day_length": "12:00:00"
+			"day_length": "12:00:00",
 			"timezone": "CET",
-			"utc_offset": "1"
+			"utc_offset": 1
 		},
 		"status": "OK"
-		}]`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(),
+		}`, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day(),
 	)
 	// creates a fake response
 	fakeBody := fmt.Sprintf(sunDataExample)
@@ -297,8 +304,37 @@ func TestGetAPIPriceData(t *testing.T) {
 	}
 	// Testing good cases
 	// Test case: goal is no errors
-	url := fmt.Sprintf(`http://api.sunrisesunset.io/json?lat=%06f&lng=%06f&timezone=CET&date=%d-%02d-%02d&time_format=24`, 65.584816, 22.156704, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+	apiURL := fmt.Sprintf(`http://api.sunrisesunset.io/json?lat=%06f&lng=%06f&timezone=CET&date=%d-%02d-%02d&time_format=24`, ua.Latitude, ua.Longitude, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+	fmt.Println("API URL:", apiURL)
+
 	// creates a mock HTTP transport to simulate api respone for the test
 	newMockTransport(resp)
+	err := ua.getAPIData(apiURL)
+	if err != nil {
+		t.Errorf("expected no errors but got %s :", err)
+	}
+	// Testing bad cases
+	// Test case: using wrong url leads to an error
+	newMockTransport(resp)
+	// Call the function (which now hits the mock server)
+	err = ua.getAPIData(brokenURL)
+	if err == nil {
+		t.Errorf("Expected an error but got none!")
+	}
+	// Test case: if reading the body causes an error
+	resp.Body = errReader(0)
+	newMockTransport(resp)
+	err = ua.getAPIData(apiURL)
+	if err != errBodyRead {
+		t.Errorf("expected an error %v, got %v", errBodyRead, err)
+	}
+	//Test case: if status code > 299
+	resp.Body = io.NopCloser(strings.NewReader(fakeBody))
+	resp.StatusCode = 300
+	newMockTransport(resp)
+	err = ua.getAPIData(apiURL)
+	// check the statuscode is bad, witch is expected for the test to be successful
+	if err != errStatuscode {
+		t.Errorf("expected an bad status code but got %v", err)
+	}
 }
-*/

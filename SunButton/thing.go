@@ -233,10 +233,12 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 
 // This function sends a new button status to the ZigBee system if needed
 func (ua *UnitAsset) processFeedbackLoop() {
-	date := time.Now().Format("2006-01-02")                                                                          // Gets the current date in the defined format.
+	date := time.Now().Format("2006-01-02") // Gets the current date in the defined format.
+	apiURL := fmt.Sprintf(`http://api.sunrisesunset.io/json?lat=%06f&lng=%06f&timezone=CET&date=%d-%02d-%02d&time_format=24`, ua.Latitude, ua.Longitude, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+
 	if !((ua.data.Results.Date == date) && ((ua.oldLatitude == ua.Latitude) && (ua.oldLongitude == ua.Longitude))) { // If there is a new day or latitude or longitude is changed new data is downloaded.
 		log.Printf("Sun API has not been called today for this region, downloading sun data...")
-		err := ua.getAPIData()
+		err := ua.getAPIData(apiURL)
 		if err != nil {
 			log.Printf("Cannot get sun API data: %s\n", err)
 			return
@@ -294,8 +296,8 @@ func (ua *UnitAsset) sendStatus() error {
 
 var errStatuscode error = fmt.Errorf("bad status code")
 
-func (ua *UnitAsset) getAPIData() error {
-	apiURL := fmt.Sprintf(`http://api.sunrisesunset.io/json?lat=%06f&lng=%06f&timezone=CET&date=%d-%02d-%02d&time_format=24`, ua.Latitude, ua.Longitude, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
+func (ua *UnitAsset) getAPIData(apiURL string) error {
+	//apiURL := fmt.Sprintf(`http://api.sunrisesunset.io/json?lat=%06f&lng=%06f&timezone=CET&date=%d-%02d-%02d&time_format=24`, ua.Latitude, ua.Longitude, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
 	parsedURL, err := url.Parse(apiURL)
 	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
 		return errors.New("the url is invalid")
