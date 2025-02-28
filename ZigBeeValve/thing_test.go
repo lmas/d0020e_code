@@ -30,7 +30,7 @@ func newMockTransport(resp *http.Response, retErr bool, err error) mockTransport
 		hits:        make(map[string]int),
 		err:         err,
 	}
-	// Highjack the default http client so no actuall http requests are sent over the network
+	// Hijack the default http client so no actual http requests are sent over the network
 	http.DefaultClient.Transport = t
 	return t
 }
@@ -191,7 +191,7 @@ func TestFindGateway(t *testing.T) {
 	newMockTransport(resp, false, fmt.Errorf("Test error"))
 	err = findGateway()
 	if err == nil {
-		t.Error("Error expcted during unmarshalling, got nil instead", err)
+		t.Error("Error expected during unmarshalling, got nil instead", err)
 	}
 
 	// Statuscode > 299, have to make changes to mockTransport to test this
@@ -273,6 +273,7 @@ func TestSendSetPoint(t *testing.T) {
 	gateway = "localhost"
 }
 
+
 func TestCreatePutRequest(t *testing.T) {
 	// Setup
 	data := "test"
@@ -302,7 +303,7 @@ func TestCreateGetRequest(t *testing.T) {
 	// --- Good test case: createGetRequest() ---
 	_, err := createGetRequest(apiURL)
 	if err != nil {
-		t.Error("Error occured, expected none")
+		t.Error("Error occurred, expected none")
 	}
 
 	// --- Bad test case: Error in createGetRequest() because of broken URL---
@@ -328,7 +329,7 @@ func TestSendPutRequests(t *testing.T) {
 	req, _ := createPutRequest(s, apiURL)
 	err := sendPutRequest(req)
 	if err != nil {
-		t.Error("Expected no errors, error occured:", err)
+		t.Error("Expected no errors, error occurred:", err)
 	}
 
 	// Break defaultClient.Do()
@@ -348,7 +349,7 @@ func TestSendPutRequests(t *testing.T) {
 	err = sendPutRequest(req)
 
 	if err == nil {
-		t.Error("Expected errors, no error occured:")
+		t.Error("Expected errors, no error occurred:")
 	}
 
 	// Error StatusCode

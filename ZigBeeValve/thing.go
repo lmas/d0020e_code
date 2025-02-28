@@ -71,7 +71,7 @@ func (ua *UnitAsset) GetDetails() map[string][]string {
 // ensure UnitAsset implements components.UnitAsset (this check is done at during the compilation)
 var _ components.UnitAsset = (*UnitAsset)(nil)
 
-//-------------------------------------Instatiate a unit asset template
+//-------------------------------------Instantiate a unit asset template
 
 // initTemplate initializes a UnitAsset with default values.
 func initTemplate() components.UnitAsset {
@@ -146,13 +146,13 @@ func initTemplate() components.UnitAsset {
 	return uat
 }
 
-//-------------------------------------Instatiate the unit assets based on configuration
+//-------------------------------------Instantiate the unit assets based on configuration
 
 // newResource creates the resource with its pointers and channels based on the configuration using the tConfig structs
 // This is a startup function that's used to initiate the unit assets declared in the systemconfig.json, the function
 // that is returned is later used to send a setpoint/start a goroutine depending on model of the unitasset
+
 func newResource(uac UnitAsset, sys *components.System, servs []components.Service) (components.UnitAsset, func() error) {
-	// deterimine the protocols that the system supports
 	sProtocols := components.SProtocols(sys.Husk.ProtoPort)
 
 	// instantiate the consumed services
@@ -161,7 +161,7 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		Protos: sProtocols,
 		Url:    make([]string, 0),
 	}
-	// intantiate the unit asset
+	// instantiate the unit asset
 	ua := &UnitAsset{
 		Name:        uac.Name,
 		Owner:       sys,
@@ -190,7 +190,6 @@ func newResource(uac UnitAsset, sys *components.System, servs []components.Servi
 		}
 	}
 	ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, ref.Details)
-
 	return ua, ua.startup
 }
 
@@ -266,12 +265,12 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	if tup.Value < ua.Setpt {
 		err = ua.toggleState(true)
 		if err != nil {
-			log.Println("Error occured while toggling state to true: ", err)
+			log.Println("Error occurred while toggling state to true: ", err)
 		}
 	} else {
 		err = ua.toggleState(false)
 		if err != nil {
-			log.Println("Error occured while toggling state to false: ", err)
+			log.Println("Error occurred while toggling state to false: ", err)
 		}
 	}
 }
