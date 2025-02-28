@@ -273,7 +273,6 @@ func TestSendSetPoint(t *testing.T) {
 	gateway = "localhost"
 }
 
-
 func TestCreatePutRequest(t *testing.T) {
 	// Setup
 	data := "test"
