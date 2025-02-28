@@ -49,6 +49,11 @@ var mockStates = map[string]string{
 	"SEKPrice":    `{ "value": 0.10403, "unit": "SEK", "timestamp": "%s", "version": "SignalA_v1.0" }`,
 	"DesiredTemp": `{ "value": 25, "unit": "Celsius", "timestamp": "%s", "version": "SignalA_v1.0" }`,
 	"setpoint":    `{ "value": 20, "unit": "Celsius", "timestamp": "%s", "version": "SignalA_v1.0" }`,
+	"consumption": `{ "value": 32, "unit": "Wh", "timestamp": "%s", "version": "SignalA_v1.0" }`,
+	"state":       `{ "value": 1, "unit": "Binary", "timestamp": "%s", "version": "SignalA_v1.0" }`,
+	"power":       `{ "value": 330, "unit": "Wh", "timestamp": "%s", "version": "SignalA_v1.0" }`,
+	"current":     `{ "value": 9, "unit": "mA", "timestamp": "%s", "version": "SignalA_v1.0" }`,
+	"voltage":     `{ "value": 229, "unit": "V", "timestamp": "%s", "version": "SignalA_v1.0" }`,
 }
 
 const (

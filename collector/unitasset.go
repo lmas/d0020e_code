@@ -102,6 +102,11 @@ func initTemplate() *unitAsset {
 			{"SEKPrice", map[string][]string{"Location": {"Kitchen"}}},
 			{"DesiredTemp", map[string][]string{"Location": {"Kitchen"}}},
 			{"setpoint", map[string][]string{"Location": {"Kitchen"}}},
+			{"consumption", map[string][]string{"Location": {"Kitchen"}}},
+			{"state", map[string][]string{"Location": {"Kitchen"}}},
+			{"power", map[string][]string{"Location": {"Kitchen"}}},
+			{"current", map[string][]string{"Location": {"Kitchen"}}},
+			{"voltage", map[string][]string{"Location": {"Kitchen"}}},
 		},
 	}
 }
