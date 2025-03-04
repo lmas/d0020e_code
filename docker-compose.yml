@@ -81,7 +81,7 @@ services:
     build:
       context: ./src
       args:
-        - SRC=./ZigBeeValve/*.go
+        - SRC=./ZigBeeHandler/*.go
         - PORT=8870
     depends_on:
       - registrar
