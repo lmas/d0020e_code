@@ -16,8 +16,7 @@ lint:
 
 # Runs spellchecker on the code and comments
 # This requires this tool to be installed from https://github.com/crate-ci/typos?tab=readme-ov-file
-# Example installation:
-# cargo install typos-cli
+# Example installation (if you have rust installed): cargo install typos-cli
 spellcheck:
 	typos .
 
