@@ -88,7 +88,7 @@ func (rsc *UnitAsset) httpSetButton(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			http.Error(w, "request incorrectly formated", http.StatusBadRequest)
+			http.Error(w, "request incorrectly formatted", http.StatusBadRequest)
 			return
 		}
 		rsc.setButtonStatus(sig)
@@ -105,7 +105,7 @@ func (rsc *UnitAsset) httpSetLatitude(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			http.Error(w, "request incorrectly formated", http.StatusBadRequest)
+			http.Error(w, "request incorrectly formatted", http.StatusBadRequest)
 			return
 		}
 		rsc.setLatitude(sig)
@@ -122,7 +122,7 @@ func (rsc *UnitAsset) httpSetLongitude(w http.ResponseWriter, r *http.Request) {
 	case "PUT":
 		sig, err := usecases.HTTPProcessSetRequest(w, r)
 		if err != nil {
-			http.Error(w, "request incorrectly formated", http.StatusBadRequest)
+			http.Error(w, "request incorrectly formatted", http.StatusBadRequest)
 			return
 		}
 		rsc.setLongitude(sig)

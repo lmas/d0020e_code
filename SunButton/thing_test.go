@@ -29,7 +29,7 @@ func newMockTransport(resp *http.Response) mockTransport {
 		resp: resp,
 		hits: make(map[string]int),
 	}
-	// Highjack the default http client so no actuall http requests are sent over the network
+	// Hijack the default http client so no actual http requests are sent over the network
 	http.DefaultClient.Transport = t
 	return t
 }
@@ -134,7 +134,7 @@ func TestGetMethods(t *testing.T) {
 	uasset := initTemplate().(*UnitAsset)
 
 	// ButtonStatus
-	// check if the value from the struct is the acctual value that the func is getting
+	// check if the value from the struct is the actual value that the func is getting
 	result1 := uasset.getButtonStatus()
 	if result1.Value != uasset.ButtonStatus {
 		t.Errorf("expected Value of the ButtonStatus is to be %v, got %v", uasset.ButtonStatus, result1.Value)
@@ -144,7 +144,7 @@ func TestGetMethods(t *testing.T) {
 		t.Errorf("expected Unit to be 'bool', got %v", result1.Unit)
 	}
 	// Latitude
-	// check if the value from the struct is the acctual value that the func is getting
+	// check if the value from the struct is the actual value that the func is getting
 	result2 := uasset.getLatitude()
 	if result2.Value != uasset.Latitude {
 		t.Errorf("expected Value of the Latitude is to be %v, got %v", uasset.Latitude, result2.Value)
@@ -154,7 +154,7 @@ func TestGetMethods(t *testing.T) {
 		t.Errorf("expected Unit to be 'Degrees', got %v", result2.Unit)
 	}
 	// Longitude
-	// check if the value from the struct is the acctual value that the func is getting
+	// check if the value from the struct is the actual value that the func is getting
 	result3 := uasset.getLongitude()
 	if result3.Value != uasset.Longitude {
 		t.Errorf("expected Value of the Longitude is to be %v, got %v", uasset.Longitude, result3.Value)
@@ -182,10 +182,10 @@ func TestInitTemplate(t *testing.T) {
 		t.Errorf("expected service definition to be ButtonStatus")
 	}
 	if Services["Latitude"].Definition != "Latitude" {
-		t.Errorf("expected service defenition to be Latitude")
+		t.Errorf("expected service definition to be Latitude")
 	}
 	if Services["Longitude"].Definition != "Longitude" {
-		t.Errorf("expected service defenition to be Longitude")
+		t.Errorf("expected service definition to be Longitude")
 	}
 	//GetCervice//
 	Cervices := uasset.GetCervices()
@@ -205,7 +205,7 @@ func TestNewUnitAsset(t *testing.T) {
 	defer cancel()                                          // make sure all paths cancel the context to avoid context leak
 	// instantiate the System
 	sys := components.NewSystem("SunButton", ctx)
-	// Instatiate the Capusle
+	// Instantiate the Capsule
 	sys.Husk = &components.Husk{
 		Description: " is a controller for a consumed smart plug based on status depending on the sun",
 		Certificate: "ABCD",
@@ -223,7 +223,7 @@ func TestNewUnitAsset(t *testing.T) {
 		Definition:  "Latitude",
 		SubPath:     "Latitude",
 		Details:     map[string][]string{"Unit": {"Degrees"}, "Forms": {"SignalA_v1a"}},
-		Description: "provides the latitide (using a GET request)",
+		Description: "provides the latitude (using a GET request)",
 	}
 	setLongitude := components.Service{
 		Definition:  "Longitude",
@@ -258,7 +258,7 @@ func TestNewUnitAsset(t *testing.T) {
 	}
 }
 
-// Fuctions that help creating bad body
+// Functions that help creating bad body
 type errReader int
 
 var errBodyRead error = fmt.Errorf("bad body read")
@@ -307,7 +307,7 @@ func TestGetAPIPriceDataSun(t *testing.T) {
 	apiURL := fmt.Sprintf(`http://api.sunrisesunset.io/json?lat=%06f&lng=%06f&timezone=CET&date=%d-%02d-%02d&time_format=24`, ua.Latitude, ua.Longitude, time.Now().Local().Year(), int(time.Now().Local().Month()), time.Now().Local().Day())
 	fmt.Println("API URL:", apiURL)
 
-	// creates a mock HTTP transport to simulate api respone for the test
+	// creates a mock HTTP transport to simulate api response for the test
 	newMockTransport(resp)
 	err := ua.getAPIData(apiURL)
 	if err != nil {
