@@ -42,7 +42,7 @@ type UnitAsset struct {
 	ServicesMap components.Services `json:"-"`
 	CervicesMap components.Cervices `json:"-"`
 	//
-	Period time.Duration `json:"samplingPeriod"`
+	Period time.Duration `json:"SamplingPeriod"`
 	//
 	DesiredTemp    float64 `json:"DesiredTemp"`
 	oldDesiredTemp float64 // keep this field private!
@@ -51,7 +51,7 @@ type UnitAsset struct {
 	MaxPrice       float64 `json:"MaxPrice"`
 	MinTemp        float64 `json:"MinTemp"`
 	MaxTemp        float64 `json:"MaxTemp"`
-	UserTemp       float64 `json:"userTemp"`
+	UserTemp       float64 `json:"UserTemp"`
 	Region         float64 `json:"Region"` // the user can choose from what region the SEKPrice is taken from
 }
 
@@ -78,12 +78,11 @@ func priceFeedbackLoop() {
 	// start the control loop
 	for {
 		err := getAPIPriceData(url)
-
 		if err != nil {
 			return
 		}
-		select {
 
+		select {
 		case <-ticker.C:
 			// blocks the execution until the ticker fires
 		}
@@ -130,10 +129,10 @@ func switchRegion() {
 var errStatuscode error = fmt.Errorf("bad status code")
 var data []GlobalPriceData // Create a list to hold the data json
 
-// This function fetches the current electricity price from "https://www.elprisetjustnu.se/elpris-api", then prosess it and updates globalPrice
+// This function fetches the current electricity price from "https://www.elprisetjustnu.se/elpris-api", then process it and updates globalPrice
 func getAPIPriceData(apiURL string) error {
 	//Validate the URL//
-	parsedURL, err := url.Parse(apiURL) // ensures the string is a valid URL, .schema and .Host checks prevent emty or altered URL
+	parsedURL, err := url.Parse(apiURL) // ensures the string is a valid URL, .schema and .Host checks prevent empty or altered URL
 	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
 		return errors.New("The URL is invalid")
 	}
@@ -228,27 +227,27 @@ func initTemplate() components.UnitAsset {
 		Description: "provides the desired temperature the system calculates based on user inputs (using a GET request)",
 	}
 	setUserTemp := components.Service{
-		Definition:  "userTemp",
-		SubPath:     "userTemp",
+		Definition:  "UserTemp",
+		SubPath:     "UserTemp",
 		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
 		Description: "provides the temperature the user wants regardless of prices (using a GET request)",
 	}
 	setRegion := components.Service{
 		Definition:  "Region",
 		SubPath:     "Region",
-		Details:     map[string][]string{"Unit": {"Celsius"}, "Forms": {"SignalA_v1a"}},
+		Details:     map[string][]string{"Forms": {"SignalA_v1a"}},
 		Description: "provides the temperature the user wants regardless of prices (using a GET request)",
 	}
 
 	return &UnitAsset{
 		//These fields should reflect a unique asset (ie, a single sensor with unique ID and location)
-		Name:        "Set Values",
+		Name:        "Set_Values",
 		Details:     map[string][]string{"Location": {"Kitchen"}},
 		SEKPrice:    1.5,  // Example electricity price in SEK per kWh
 		MinPrice:    1.0,  // Minimum price allowed
 		MaxPrice:    2.0,  // Maximum price allowed
 		MinTemp:     20.0, // Minimum temperature
-		MaxTemp:     25.0, // Maximum temprature allowed
+		MaxTemp:     25.0, // Maximum temperature allowed
 		DesiredTemp: 0,    // Desired temp calculated by system
 		Period:      15,
 		UserTemp:    0,
@@ -331,7 +330,7 @@ func (ua *UnitAsset) getSEKPrice() (f forms.SignalA_v1a) {
 	return f
 }
 
-//Get and set- metods for MIN/MAX price/temp and desierdTemp
+//Get and set- methods for MIN/MAX price/temp and desierdTemp
 
 // getMinPrice is used for reading the current value of MinPrice
 func (ua *UnitAsset) getMinPrice() (f forms.SignalA_v1a) {
@@ -361,7 +360,7 @@ func (ua *UnitAsset) setMaxPrice(f forms.SignalA_v1a) {
 	ua.MaxPrice = f.Value
 }
 
-// getMinTemp is used for reading the current minimum temerature value
+// getMinTemp is used for reading the current minimum temperature value
 func (ua *UnitAsset) getMinTemp() (f forms.SignalA_v1a) {
 	f.NewForm()
 	f.Value = ua.MinTemp
@@ -424,7 +423,6 @@ func (ua *UnitAsset) setRegion(f forms.SignalA_v1a) {
 func (ua *UnitAsset) getRegion() (f forms.SignalA_v1a) {
 	f.NewForm()
 	f.Value = ua.Region
-	f.Unit = "RegionPoint"
 	f.Timestamp = time.Now()
 	return f
 }
@@ -439,14 +437,14 @@ func (ua *UnitAsset) feedbackLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			ua.processFeedbackLoop() // either modifiy processFeedback loop or write a new one
+			ua.processFeedbackLoop() // either modify processFeedback loop or write a new one
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-// this function adjust and sends a new desierd temprature to the zigbee system
+// this function adjust and sends a new desierd temperature to the zigbee system
 // get the current best temperature
 func (ua *UnitAsset) processFeedbackLoop() {
 	ua.Region = GlobalRegion
@@ -494,7 +492,7 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	}
 }
 
-// Calculates the new most optimal temprature (desierdTemp) based on the price/temprature intervalls
+// Calculates the new most optimal temperature (desierdTemp) based on the price/temprature intervals
 // and the current electricity price
 func (ua *UnitAsset) calculateDesiredTemp() float64 {
 

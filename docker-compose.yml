@@ -1,0 +1,130 @@
+
+# Documentation: https://docs.docker.com/reference/compose-file/
+
+version: "3"
+services:
+  # WARN: using localhost in docker networking is highly discouraged!
+  # But the way mbaigo is built, service discovery is done using localhost by default
+  # so have to add `network_mode: "host"` so the systems can discover each other.
+  #
+  # It's a really bad idea, exposing the host's network to the containers
+  # but it solves the problem for now...
+  #
+  # Source: https://stackoverflow.com/a/43554707
+
+  # Build and run the core systems
+
+  registrar:
+    image: registrar:0.1.0
+    build:
+      context: ./mbaigo
+      args:
+        - SRC=./sregistrar/*.go
+        - PORT=8443
+    network_mode: "host"
+    volumes:
+      - ./data/registrar:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+  orchestrator:
+    image: orchestrator:0.1.0
+    build:
+      context: ./mbaigo
+      args:
+        - SRC=./orchestrator/*.go
+        - PORT=8445
+    depends_on:
+      - registrar
+    network_mode: "host"
+    volumes:
+      - ./data/orchestrator:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+  # Build and run business systems
+
+  ds18b20:
+    image: ds18b20:0.1.0
+    build:
+      context: ./mbaigo
+      args:
+        - SRC=./ds18b20/*.go
+        - PORT=8690
+    depends_on:
+      - registrar
+      - orchestrator
+    network_mode: "host"
+    volumes:
+      - ./data/ds18b20:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+  comfortstat:
+    image: comfortstat:0.2.0
+    build:
+      context: ./src
+      args:
+        - SRC=./Comfortstat/*.go
+        - PORT=8670
+    depends_on:
+      - registrar
+      - orchestrator
+    network_mode: "host"
+    volumes:
+      - ./data/comfortstat:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+  zigbee:
+    image: zigbee:0.2.0
+    build:
+      context: ./src
+      args:
+        - SRC=./ZigBeeValve/*.go
+        - PORT=8870
+    depends_on:
+      - registrar
+      - orchestrator
+      - ds18b20
+    network_mode: "host"
+    volumes:
+      - ./data/zigbee:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+  influxdb:
+    image: influxdb:2.7.11-alpine
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: password
+      DOCKER_INFLUXDB_INIT_ORG: organisation
+      DOCKER_INFLUXDB_INIT_BUCKET: arrowhead
+      INFLUXD_LOG_LEVEL: warn
+    ports:
+      - 8086:8086
+    volumes:
+      - ./data/influxdb/data:/var/lib/influxdb2
+      - ./data/influxdb/config:/etc/influxdb2
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+  collector:
+    image: collector:0.1.0
+    build:
+      context: ./src
+      args:
+        - SRC=./collector/*.go
+        - PORT=6666
+    depends_on:
+      - ds18b20
+      - comfortstat
+      - zigbee
+      - influxdb
+    network_mode: "host"
+    volumes:
+      - ./data/collector:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
