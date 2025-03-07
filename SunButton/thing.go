@@ -244,6 +244,8 @@ func (ua *UnitAsset) processFeedbackLoop() {
 			return
 		}
 	}
+	ua.oldLongitude = ua.Longitude
+	ua.oldLatitude = ua.Latitude
 	layout := "15:04:05"
 	sunrise, _ := time.Parse(layout, ua.data.Results.Sunrise)                   // Saves the sunrise in the layout format.
 	sunset, _ := time.Parse(layout, ua.data.Results.Sunset)                     // Saves the sunset in the layout format.
