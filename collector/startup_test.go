@@ -15,8 +15,6 @@ import (
 var errNotImplemented = fmt.Errorf("method not implemented")
 
 type mockInflux struct {
-	pingErr bool
-	pingRun bool
 	closeCh chan bool
 }
 
@@ -34,12 +32,6 @@ func (i *mockInflux) Health(ctx context.Context) (*domain.HealthCheck, error) {
 	return nil, errNotImplemented
 }
 func (i *mockInflux) Ping(ctx context.Context) (bool, error) {
-	switch {
-	case i.pingErr:
-		return false, errNotImplemented
-	case i.pingRun:
-		return false, nil
-	}
 	return true, nil
 }
 func (i *mockInflux) Close() {
@@ -100,20 +92,6 @@ func TestStartup(t *testing.T) {
 		t.Fatalf("Expected error, got nil")
 	}
 	ua.CollectionPeriod = goodPeriod
-
-	// Bad case: error while pinging influxdb server
-	ua.influx = &mockInflux{pingErr: true}
-	err = ua.startup()
-	if err == nil {
-		t.Fatalf("Expected error, got nil")
-	}
-
-	// Bad case: influxdb not running when pinging
-	ua.influx = &mockInflux{pingRun: true}
-	err = ua.startup()
-	if err == nil {
-		t.Fatalf("Expected error, got nil")
-	}
 
 	// Good case: startup() enters loop and can be shut down again
 	c := make(chan bool)

@@ -164,14 +164,6 @@ func (ua *unitAsset) startup() (err error) {
 		return errTooShortPeriod
 	}
 
-	// Make sure we can contact the influxdb server, before trying to do any thing else
-	running, err := ua.influx.Ping(ua.Owner.Ctx)
-	if err != nil {
-		return fmt.Errorf("ping influxdb: %w", err)
-	} else if !running {
-		return fmt.Errorf("influxdb not running")
-	}
-
 	for {
 		select {
 		// Wait for a shutdown signal
