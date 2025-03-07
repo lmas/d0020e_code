@@ -53,6 +53,7 @@ type UnitAsset struct {
 	Longitude    float64 `json:"Longitude"`
 	oldLongitude float64
 	data         Data
+	connError    float64
 }
 
 // GetName returns the name of the Resource.
@@ -251,25 +252,31 @@ func (ua *UnitAsset) processFeedbackLoop() {
 	sunset, _ := time.Parse(layout, ua.data.Results.Sunset)                     // Saves the sunset in the layout format.
 	currentTime, _ := time.Parse(layout, time.Now().Local().Format("15:04:05")) // Saves the current time in the layout format.
 	if currentTime.After(sunrise) && !(currentTime.After(sunset)) {             // This checks if the time is between sunrise or sunset, if it is the switch is supposed to turn off.
-		if ua.ButtonStatus == 0 { // If the button is already off there is no need to send a state again.
+		if ua.ButtonStatus == 0 && ua.connError == 0 { // If the button is already off there is no need to send a state again.
 			log.Printf("The button is already off")
 			return
 		}
 		ua.ButtonStatus = 0
 		err := ua.sendStatus()
 		if err != nil {
+			ua.connError = 1
 			return
+		} else {
+			ua.connError = 0
 		}
 
 	} else { // If the time is not between sunrise and sunset the button is supposed to be on.
-		if ua.ButtonStatus == 1 { // If the button is already on there is no need to send a state again.
+		if ua.ButtonStatus == 1 && ua.connError == 0 { // If the button is already on there is no need to send a state again.
 			log.Printf("The button is already on")
 			return
 		}
 		ua.ButtonStatus = 1
 		err := ua.sendStatus()
 		if err != nil {
+			ua.connError = 1
 			return
+		} else {
+			ua.connError = 0
 		}
 	}
 }
