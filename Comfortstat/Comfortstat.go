@@ -84,7 +84,7 @@ func (t *UnitAsset) Serving(w http.ResponseWriter, r *http.Request, servicePath 
 		t.httpSetSEKPrice(w, r)
 	case "DesiredTemp":
 		t.httpSetDesiredTemp(w, r)
-	case "userTemp":
+	case "UserTemp":
 		t.httpSetUserTemp(w, r)
 	case "Region":
 		t.httpSetRegion(w, r)
