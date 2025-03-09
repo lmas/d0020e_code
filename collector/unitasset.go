@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
+
 	"github.com/sdoque/mbaigo/components"
 	"github.com/sdoque/mbaigo/forms"
 	"github.com/sdoque/mbaigo/usecases"
@@ -32,18 +34,28 @@ type unitAsset struct {
 	ServicesMap components.Services `json:"-"`       // Services provided to consumers
 	CervicesMap components.Cervices `json:"-"`       // Services being consumed
 
-	InfluxDBHost         string `json:"influxdb_host"`  // IP:port addr to the influxdb server
-	InfluxDBToken        string `json:"influxdb_token"` // Auth token
-	InfluxDBOrganisation string `json:"influxdb_organisation"`
-	InfluxDBBucket       string `json:"influxdb_bucket"`   // Data bucket
-	CollectionPeriod     int    `json:"collection_period"` // Period (in seconds) between each data collection
+	InfluxDBHost         string   `json:"influxdb_host"`  // IP:port addr to the influxdb server
+	InfluxDBToken        string   `json:"influxdb_token"` // Auth token
+	InfluxDBOrganisation string   `json:"influxdb_organisation"`
+	InfluxDBBucket       string   `json:"influxdb_bucket"`   // Data bucket
+	CollectionPeriod     int      `json:"collection_period"` // Period (in seconds) between each data collection
+	Samples              []Sample `json:"samples"`           // Arrowhead services we want to sample data from
 
 	// Mockable function for getting states from the consumed services.
 	apiGetState func(*components.Cervice, *components.System) (forms.Form, error)
 
-	//
+	// internal things for talking with Influx
 	influx       influxdb2.Client
 	influxWriter api.WriteAPI
+}
+
+// A Sample is a struct that defines a service to be sampled.
+// The service sampled is identified using the details map.
+// Inspired from:
+// https://github.com/vanDeventer/metalepsis/blob/9752ee11657a44fd701e3c3b4f75c592d001a5e5/Influxer/thing.go#L38
+type Sample struct {
+	Service string              `json:"service"`
+	Details map[string][]string `json:"details"`
 }
 
 // Following methods are required by the interface components.UnitAsset.
@@ -77,45 +89,41 @@ const uaName string = "Cache"
 
 // initTemplate initializes a new UA and prefils it with some default values.
 // The returned instance is used for generating the configuration file, whenever it's missing.
-// func initTemplate() components.UnitAsset {
 func initTemplate() *unitAsset {
 	return &unitAsset{
-		Name:    uaName,
-		Details: map[string][]string{"Location": {"Kitchen"}},
-
+		Name:                 uaName,
 		InfluxDBHost:         "http://localhost:8086",
 		InfluxDBToken:        "insert secret token here",
 		InfluxDBOrganisation: "organisation",
 		InfluxDBBucket:       "arrowhead",
 		CollectionPeriod:     30,
+		Samples: []Sample{
+			{"temperature", map[string][]string{"Location": {"Kitchen"}}},
+			{"SEKPrice", map[string][]string{"Location": {"Kitchen"}}},
+			{"DesiredTemp", map[string][]string{"Location": {"Kitchen"}}},
+			{"setpoint", map[string][]string{"Location": {"Kitchen"}}},
+			{"consumption", map[string][]string{"Location": {"Kitchen"}}},
+			{"state", map[string][]string{"Location": {"Kitchen"}}},
+			{"power", map[string][]string{"Location": {"Kitchen"}}},
+			{"current", map[string][]string{"Location": {"Kitchen"}}},
+			{"voltage", map[string][]string{"Location": {"Kitchen"}}},
+		},
 	}
 }
 
-var consumeServices []string = []string{
-	"temperature",
-	"SEKPrice",
-	"DesiredTemp",
-	"setpoint",
-}
-
-// newUnitAsset creates a new and proper instance of UnitAsset, using settings and
-// values loaded from an existing configuration file.
-// This function returns an UA instance that is ready to be published and used,
-// aswell as a function that can ...
-// TODO: complete doc and remove servs here and in the system file
-// func newUnitAsset(uac unitAsset, sys *components.System, servs []components.Service) (components.UnitAsset, func() error) {
-// func newUnitAsset(uac unitAsset, sys *components.System, servs []components.Service) *unitAsset {
-func newUnitAsset(uac unitAsset, sys *system, servs []components.Service) *unitAsset {
+// newUnitAsset creates a new instance of UnitAsset, using settings and values
+// loaded from an existing configuration file.
+// Returns an UA instance that is ready to be published and used by others.
+func newUnitAsset(uac unitAsset, sys *system) *unitAsset {
 	client := influxdb2.NewClientWithOptions(
 		uac.InfluxDBHost, uac.InfluxDBToken,
 		influxdb2.DefaultOptions().SetHTTPClient(http.DefaultClient),
 	)
 
 	ua := &unitAsset{
-		Name:    uac.Name,
-		Owner:   &sys.System,
-		Details: uac.Details,
-		// ServicesMap: components.CloneServices(servs), // TODO: not required?
+		Name:        uac.Name,
+		Owner:       &sys.System,
+		Details:     uac.Details,
 		CervicesMap: components.Cervices{},
 
 		InfluxDBHost:         uac.InfluxDBHost,
@@ -123,33 +131,27 @@ func newUnitAsset(uac unitAsset, sys *system, servs []components.Service) *unitA
 		InfluxDBOrganisation: uac.InfluxDBOrganisation,
 		InfluxDBBucket:       uac.InfluxDBBucket,
 		CollectionPeriod:     uac.CollectionPeriod,
+		Samples:              uac.Samples,
 
-		apiGetState:  usecases.GetState,
-		influx:       client,
+		// Default to using the API method, outside of tests.
+		apiGetState: usecases.GetState,
+		influx:      client,
+		// "[The async] WriteAPI automatically logs write errors." Source:
+		// https://pkg.go.dev/github.com/influxdata/influxdb-client-go/v2#readme-reading-async-errors
 		influxWriter: client.WriteAPI(uac.InfluxDBOrganisation, uac.InfluxDBBucket),
 	}
 
-	// TODO: handle influx write errors or don't care?
-
-	// Prep all the consumed services
-	protos := components.SProtocols(sys.Husk.ProtoPort)
-	for _, service := range consumeServices {
-		ua.CervicesMap[service] = &components.Cervice{
-			Name:   service,
-			Protos: protos,
-			Url:    make([]string, 0),
+	// Maps the services we want to sample. The services will then be looked up
+	// using the Orchestrator.
+	// Again based on code from VanDeventer.
+	for _, s := range ua.Samples {
+		ua.CervicesMap[s.Service] = &components.Cervice{
+			Name:    s.Service,
+			Details: s.Details,
+			Url:     make([]string, 0),
 		}
 	}
 
-	// TODO: required for matching values with locations?
-	// ua.CervicesMap["temperature"].Details = components.MergeDetails(ua.Details, nil)
-	// for _, cs := range ua.CervicesMap {
-	// TODO: or merge it with an empty map if this doesn't work...
-	// cs.Details = ua.Details
-	// }
-
-	// Returns the loaded unit asset and an function to handle optional cleanup at shutdown
-	// return ua, ua.startup
 	return ua
 }
 
@@ -162,8 +164,6 @@ func (ua *unitAsset) startup() (err error) {
 		return errTooShortPeriod
 	}
 
-	// TODO: try connecting to influx, check if need to call Health()/Ping()/Ready()/Setup()?
-
 	for {
 		select {
 		// Wait for a shutdown signal
@@ -171,10 +171,10 @@ func (ua *unitAsset) startup() (err error) {
 			ua.cleanup()
 			return
 
-			// Wait until it's time to collect new data
+		// Wait until it's time to collect new data
 		case <-time.Tick(time.Duration(ua.CollectionPeriod) * time.Second):
 			if err = ua.collectAllServices(); err != nil {
-				return
+				log.Println("Error: ", err)
 			}
 		}
 	}
@@ -185,45 +185,42 @@ func (ua *unitAsset) cleanup() {
 }
 
 func (ua *unitAsset) collectAllServices() (err error) {
-	// log.Println("tick") // TODO
 	var wg sync.WaitGroup
-
-	for _, service := range consumeServices {
+	for _, sample := range ua.Samples {
 		wg.Add(1)
-		go func(s string) {
-			if err := ua.collectService(s); err != nil {
-				log.Printf("Error collecting data from %s: %s", s, err)
+		go func(s Sample) {
+			if e := ua.collectService(s); e != nil {
+				err = fmt.Errorf("collecting data from %s: %w", s, e)
 			}
 			wg.Done()
-		}(service)
+		}(sample)
 	}
 
+	// Errors from the writer are caught in another goroutine and logged there
 	wg.Wait()
 	ua.influxWriter.Flush()
-	return nil
+	return
 }
 
-func (ua *unitAsset) collectService(service string) (err error) {
-	f, err := ua.apiGetState(ua.CervicesMap[service], ua.Owner)
+func (ua *unitAsset) collectService(sam Sample) (err error) {
+	f, err := ua.apiGetState(ua.CervicesMap[sam.Service], ua.Owner)
 	if err != nil {
-		return // TODO: use a better error?
+		return fmt.Errorf("failed to get state: %w", err)
 	}
-	// fmt.Println(f)
-	s, ok := f.(*forms.SignalA_v1a)
+	sig, ok := f.(*forms.SignalA_v1a)
 	if !ok {
 		err = fmt.Errorf("bad form version: %s", f.FormVersion())
 		return
 	}
-	// fmt.Println(s) // TODO
 
-	p := influxdb2.NewPoint(
-		service,
-		map[string]string{"unit": s.Unit},
-		map[string]interface{}{"value": s.Value},
-		s.Timestamp.UTC(),
-	)
-	// fmt.Println(p)
-
-	ua.influxWriter.WritePoint(p)
+	ua.influxWriter.WritePoint(influxdb2.NewPoint(
+		sam.Service,
+		map[string]string{
+			"unit":     sig.Unit,
+			"location": strings.Join(sam.Details["Location"], "-"),
+		},
+		map[string]interface{}{"value": sig.Value},
+		sig.Timestamp.UTC(),
+	))
 	return nil
 }
