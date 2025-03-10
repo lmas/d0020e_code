@@ -1,0 +1,214 @@
+[gd_scene load_steps=7 format=3 uid="uid://d26pior3xdu0k"]
+
+[ext_resource type="Script" path="res://settings.gd" id="1_kwi35"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wp2rf"]
+bg_color = Color(0.721569, 0.564706, 0.454902, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7yjjv"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cb1j8"]
+bg_color = Color(0.827451, 0.827451, 0.827451, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_26o2j"]
+bg_color = Color(0.65098, 0.65098, 0.65098, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_c73t7"]
+
+[node name="Settings" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_kwi35")
+
+[node name="HTTP requests" type="HTTPRequest" parent="."]
+
+[node name="get_maxTemp" type="HTTPRequest" parent="HTTP requests"]
+
+[node name="get_minTemp" type="HTTPRequest" parent="HTTP requests"]
+
+[node name="get_maxPrice" type="HTTPRequest" parent="HTTP requests"]
+
+[node name="get_minPrice" type="HTTPRequest" parent="HTTP requests"]
+
+[node name="set_maxTemp" type="HTTPRequest" parent="HTTP requests"]
+
+[node name="Background" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_wp2rf")
+
+[node name="SettingsLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -89.0
+offset_top = 165.0
+offset_right = 89.0
+offset_bottom = 232.0
+grow_horizontal = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 46
+text = "Settings"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SettingsContainer" type="GridContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -74.0
+offset_top = -80.0
+offset_right = 74.0
+offset_bottom = 56.0
+grow_horizontal = 2
+grow_vertical = 2
+columns = 2
+
+[node name="maxTemp" type="Label" parent="SettingsContainer"]
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 16
+text = "maxTemp"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="maxTemp_text" type="LineEdit" parent="SettingsContainer"]
+layout_mode = 2
+alignment = 1
+max_length = 4
+
+[node name="minTemp" type="Label" parent="SettingsContainer"]
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 16
+text = "minTemp"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="minTemp_text" type="LineEdit" parent="SettingsContainer"]
+layout_mode = 2
+alignment = 1
+max_length = 4
+
+[node name="maxPrice" type="Label" parent="SettingsContainer"]
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 16
+text = "maxPrice"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="maxPrice_text" type="LineEdit" parent="SettingsContainer"]
+layout_mode = 2
+alignment = 1
+max_length = 4
+
+[node name="minPrice" type="Label" parent="SettingsContainer"]
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 16
+text = "minPrice"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="minPrice_text" type="LineEdit" parent="SettingsContainer"]
+layout_mode = 2
+alignment = 1
+max_length = 4
+
+[node name="ButtonsContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -113.5
+offset_top = 92.0
+offset_right = 113.5
+offset_bottom = 132.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BackButton" type="Button" parent="ButtonsContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_7yjjv")
+theme_override_styles/hover = SubResource("StyleBoxFlat_cb1j8")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_26o2j")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_c73t7")
+text = "Back"
+
+[node name="UpdateSettings" type="Button" parent="ButtonsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_7yjjv")
+theme_override_styles/hover = SubResource("StyleBoxFlat_cb1j8")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_26o2j")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_c73t7")
+text = "Update Settings
+"
+
+[node name="ErrorText" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -226.0
+offset_top = 63.0
+offset_right = 226.0
+offset_bottom = 86.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[connection signal="request_completed" from="HTTP requests/get_maxTemp" to="." method="_on_get_max_temp_request_completed"]
+[connection signal="request_completed" from="HTTP requests/get_minTemp" to="." method="_on_get_min_temp_request_completed"]
+[connection signal="request_completed" from="HTTP requests/get_maxPrice" to="." method="_on_get_max_price_request_completed"]
+[connection signal="request_completed" from="HTTP requests/get_minPrice" to="." method="_on_get_min_price_request_completed"]
+[connection signal="request_completed" from="HTTP requests/set_maxTemp" to="." method="_on_set_max_temp_request_completed"]
+[connection signal="text_changed" from="SettingsContainer/maxTemp_text" to="." method="_on_max_temp_text_changed"]
+[connection signal="pressed" from="ButtonsContainer/BackButton" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="ButtonsContainer/UpdateSettings" to="." method="_on_update_settings_pressed"]
